@@ -44,6 +44,16 @@ pnpm dsh web
 
 `pnpm run build` 会准备仓库产物。`pnpm dsh web` 会直接使用这些已构建产物，不会重新构建。
 
+### 本地一键启动
+
+本仓库额外提供本机恢复脚本：
+
+```sh
+./scripts/start-web-local.sh
+```
+
+脚本默认使用 `/tmp/node-v22.19.0-linux-x64/bin/node` 和 `/tmp/dsh-corepack/v1/pnpm/11.7.0/bin/pnpm.mjs`；脚本只检查依赖是否已存在。缺依赖时会打印离线恢复命令并停止，不会主动安装或联网下载。端口默认 `3080`，可用 `DSH_WEB_PORT` 覆盖。
+
 ## 社区与支持
 
 - 通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。

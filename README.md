@@ -40,6 +40,16 @@ pnpm dsh web
 
 `pnpm run build` prepares the repository artifacts. `pnpm dsh web` uses those built artifacts without rebuilding.
 
+### Local One-Command Start
+
+This checkout also includes a local recovery launcher:
+
+```sh
+./scripts/start-web-local.sh
+```
+
+The script defaults to `/tmp/node-v22.19.0-linux-x64/bin/node` and `/tmp/dsh-corepack/v1/pnpm/11.7.0/bin/pnpm.mjs`. The script only checks whether dependencies already exist. If they are missing, it prints an offline restore command and stops instead of installing or downloading packages. The default port is `3080`; override it with `DSH_WEB_PORT`.
+
 ## Community and support
 
 - Submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
