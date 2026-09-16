@@ -58,7 +58,7 @@ setsid bash -c '
   node_bin=$2
   shift 2
   cd "$root"
-  tail -f /dev/null | env PATH="$(dirname "$node_bin"):$PATH" "$node_bin" apps/cli/lib/bin.js web "$@"
+  tail -f /dev/null | env DSH_WEB_LOCAL_NO_AUTH=1 PATH="$(dirname "$node_bin"):$PATH" "$node_bin" apps/cli/lib/bin.js web "$@"
 ' dsh-web-wrapper "$ROOT_DIR" "$NODE_BIN" --port "$PORT" "${TRUSTED_ARGS[@]}" --no-open >"$LOG_FILE" 2>&1 &
 
 pid="$!"

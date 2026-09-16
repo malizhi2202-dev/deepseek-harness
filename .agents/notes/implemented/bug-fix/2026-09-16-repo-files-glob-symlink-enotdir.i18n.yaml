@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-16-repo-files-glob-symlink-enotdir.md
+2026-09-16-repo-files-glob-symlink-enotdir.md: 14ad4b35f00b3df4c1f8408653b5535af9f0c0dc
+2026-09-16-repo-files-glob-symlink-enotdir.zh.md: b32fc2bd53020e3ca687f69486db579f2b3a0a0d

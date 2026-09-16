@@ -117,6 +117,16 @@ function cookieValue(headerValue: string, name: string): string | undefined {
   return undefined
 }
 
+function localNoAuthEnabled(headers: IncomingHttpHeaders): boolean {
+  if (process.env.DSH_WEB_LOCAL_NO_AUTH !== '1') return false
+  const authority = requestAuthority(headers)
+  if (authority === undefined) return false
+  const host = authority.startsWith('[')
+    ? authority.slice(1, authority.indexOf(']'))
+    : authority.split(':', 1)[0]
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1'
+}
+
 /** Serialize the fixed browser-session attributes; generated names and values are cookie-safe base64url. */
 function sessionCookie(name: string, value: string, expiresAt: number, maxAgeSeconds: number): string {
   return `${name}=${value}; Max-Age=${String(maxAgeSeconds)}; Path=/; Expires=${new Date(expiresAt).toUTCString()}; HttpOnly; SameSite=Strict`
@@ -238,6 +248,7 @@ export class BrowserAuth {
    * @returns true only when the caller may serve index.html.
    */
   authorizeIndex(req: ConnectionIndexRequest, res: ConnectionIndexResponse): boolean {
+    if (localNoAuthEnabled(req.headers)) return true
     /* v8 ignore next -- node:http always supplies url on server requests. */
     const url = new URL(req.url ?? '/', 'http://dsh.invalid')
     const tokens = url.searchParams.getAll(TOKEN_QUERY)
@@ -287,6 +298,7 @@ export class BrowserAuth {
    * @returns true only for an unexpired cookie signed by this activation's loaded secret.
    */
   isAuthenticated(request: ConnectionTrustRequest): boolean {
+    if (localNoAuthEnabled(request.headers)) return true
     const authority = requestAuthority(request.headers)
     const rawCookie = header(request.headers, 'cookie')
     if (authority === undefined || rawCookie === undefined) return false

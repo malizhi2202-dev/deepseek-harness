@@ -36,13 +36,16 @@ describe('highlightToHtml', () => {
   // Every read-tool language hint whose grammar loads lazily (the boot set —
   // ts/js/shell/sh/json — is covered above). Touching each one drives its own
   // dynamic import thunk, so the whole LAZY_GRAMMARS table is exercised.
+  // Each import plus its synchronous eager TextMate compilation runs ~4 s in
+  // isolation and needs headroom under aggregate gate CPU contention, so the
+  // case carries its own budget above the lane default.
   const LAZY_ALIASES = [
     'py', 'rb', 'go', 'rs', 'java', 'c', 'cpp', 'cs', 'kotlin', 'swift', 'php',
     'yaml', 'toml', 'ini', 'md', 'mdx', 'html', 'css', 'scss', 'less', 'sql',
     'xml', 'lua',
   ]
 
-  it('lazily loads every read-card grammar: plain first, highlighted after load', async () => {
+  it('lazily loads every read-card grammar: plain first, highlighted after load', { timeout: 20_000 }, async () => {
     const registered = Promise.withResolvers<undefined>()
     // Registration notifications, not a private polling deadline, establish readiness.
     const stop = subscribeGrammarLoaded(() => {

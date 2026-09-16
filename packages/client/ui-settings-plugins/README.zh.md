@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-打开设置中的「插件」分区并选择**插件配置**标签页，即可编辑本部署所组装的宿主平面插件。卡片依次为 shell 执行器（`bash`）、agent 循环的工具调用并行度（`agent-loop`）、subagent 模型选择（`subagent-model-selection`）以及 DeepSeek 搜索提供方（`web-search-deepseek`）。
+打开设置中的「插件」分区并选择**插件配置**标签页，即可编辑本部署所组装的宿主平面插件。卡片依次为 shell 执行器（`bash`）、agent 循环的工具调用并行度（`agent-loop`）、subagent 模型选择（`subagent-model-selection`）、DeepSeek 搜索提供方（`web-search-deepseek`）以及 Tuitui IM 桥（`tuitui`）。
 
 ### 这里会出现什么
 
@@ -39,7 +39,7 @@ Subagent 卡会同时暂存其权限开关与精确模型复选框。启用时�
 
 ### secret 角色字段
 
-密钥控件初始为空、只报告是否已配置，并经由 credentials 领域而非 settings 分节写入；空草稿不写入任何东西，保留已存密钥。
+密钥控件初始为空、只报告是否已配置，空草稿不写入任何东西，因此已存密钥得以保留。DeepSeek 搜索卡的 API key 经 credentials 领域写入；Tuitui 卡的 `appSecret` 则是其自身 settings schema 中的 `role('secret')` 字段——由 Host 在 `describe` 时脱敏，并经 settings path-op 写入。
 
 -----
 
@@ -57,7 +57,7 @@ Subagent 卡会同时暂存其权限开关与精确模型复选框。启用时�
 
 ### 写入路径
 
-保存时，暂存字段通过客户端 settings scope 写入；每次单字段写入或有序 mutation 都以草稿读取时的命名空间 revision 设栅，因此已与文档脱节的表单会被拒绝，而不是覆盖并发变更。字段是否被覆盖，取决于它是否出现在原始用户层中，而非取决于它的值；重置会清除该字段，使其重新继承组装层。secret 角色的字段绝不搭乘响应；卡片会在转发来的 `credentials/reference-updated` 事件报告它所关注的引用时重读。
+保存时，暂存字段通过客户端 settings scope 写入；每次单字段写入或有序 mutation 都以草稿读取时的命名空间 revision 设栅，因此已与文档脱节的表单会被拒绝，而不是覆盖并发变更。字段是否被覆盖，取决于它是否出现在原始用户层中，而非取决于它的值；重置会清除该字段，使其重新继承组装层。secret 角色的字段绝不搭乘响应：credentials 引用会在转发来的 `credentials/reference-updated` 事件报告所关注引用时重读，而 settings 中的 `role('secret')` 字段由 Host 在 `describe` 时脱敏，并从共享镜像的 `secrets` 读取。
 
 </details>
 

@@ -146,6 +146,46 @@ export function textField(field: string): CardFieldSpec {
 }
 
 /**
+ * A boolean field drafted as the text "true" or "false". A toggle control
+ * stages exactly one of those, so an empty draft is the only clear.
+ * @param field - field name inside the namespace section.
+ * @returns the field's conversion spec.
+ */
+export function booleanField(field: string): CardFieldSpec {
+  return {
+    field,
+    format: value => typeof value === 'boolean' ? String(value) : '',
+    parse: (text) => {
+      const trimmed = text.trim()
+      if (trimmed === '') return { kind: 'clear' }
+      if (trimmed === 'true') return { kind: 'set', value: true }
+      if (trimmed === 'false') return { kind: 'set', value: false }
+      return undefined
+    },
+  }
+}
+
+/**
+ * A comma- or newline-separated list field. The stored array is rendered as a
+ * joined string and split back on save; an empty draft clears the field.
+ * @param field - field name inside the namespace section.
+ * @returns the field's conversion spec.
+ */
+export function arrayField(field: string): CardFieldSpec {
+  return {
+    field,
+    format: value => Array.isArray(value) ? value.map(item => String(item)).join(', ') : '',
+    parse: (text) => {
+      const items = text
+        .split(/[\n,]/)
+        .map(item => item.trim())
+        .filter(item => item.length > 0)
+      return items.length === 0 ? { kind: 'clear' } : { kind: 'set', value: items }
+    },
+  }
+}
+
+/**
  * Stages one card's edits over one settings namespace and writes them on save.
  *
  * The form publishes through a snapshot store because slot components read

@@ -25,7 +25,7 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-Open the Plugins section in Settings and select the **Plugin configuration** tab to edit the host-plane plugins this deployment composes. The cards appear in this order: the shell executor (`bash`), the agent loop's tool-call parallelism (`agent-loop`), subagent model selection (`subagent-model-selection`), and the DeepSeek search provider (`web-search-deepseek`).
+Open the Plugins section in Settings and select the **Plugin configuration** tab to edit the host-plane plugins this deployment composes. The cards appear in this order: the shell executor (`bash`), the agent loop's tool-call parallelism (`agent-loop`), subagent model selection (`subagent-model-selection`), the DeepSeek search provider (`web-search-deepseek`), and the Tuitui IM bridge (`tuitui`).
 
 ### What appears here
 
@@ -39,7 +39,7 @@ The Subagent card stages its permission switch and exact model checkboxes togeth
 
 ### Secret-role fields
 
-A key control starts blank, reports only whether one is configured, and writes through the credentials domain rather than the settings section; a blank draft writes nothing and keeps the stored key.
+A key control starts blank, reports only whether one is configured, and a blank draft writes nothing, so the stored key survives. The DeepSeek search card writes its API key through the credentials domain, while the Tuitui card's `appSecret` is a `role('secret')` field in its own settings schema — redacted by the Host on `describe` and written through a settings path-op.
 
 -----
 
@@ -57,7 +57,7 @@ The section declares `settings.plugins.tab`, a root list slot whose labels becom
 
 ### The write path
 
-Saving writes staged fields through the client settings scope, which fences each write or ordered mutation with the namespace revision the draft read, so a form that has drifted from the document is refused rather than overwriting a concurrent change. A field's presence in the raw user layer — not its value — is what marks it overridden; a reset clears that field so it re-inherits the composition layer. Secret-role fields never ride a response; the card re-reads on the forwarded `credentials/reference-updated` event for the reference it watches.
+Saving writes staged fields through the client settings scope, which fences each write or ordered mutation with the namespace revision the draft read, so a form that has drifted from the document is refused rather than overwriting a concurrent change. A field's presence in the raw user layer — not its value — is what marks it overridden; a reset clears that field so it re-inherits the composition layer. Secret-role fields never ride a response: a credential reference re-reads on the forwarded `credentials/reference-updated` event for the reference it watches, while a settings `role('secret')` field is redacted by the Host on `describe` and read from the shared mirror's `secrets`.
 
 </details>
 

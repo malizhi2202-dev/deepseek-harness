@@ -91,3 +91,9 @@
   line-height: 1.5;
   color: var(--dsw-alias-label-tertiary);
 }
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

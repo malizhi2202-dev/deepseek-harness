@@ -6,7 +6,7 @@
  * card's save is the single point where a draft becomes a document mutation.
  */
 
-import { Tag } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Tag, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './fields.module.css'
 
 /** What every field control needs regardless of its value type. */
@@ -119,6 +119,47 @@ export function SecretField(props: Pick<FieldProps, 'id' | 'label' | 'hint' | 't
         onChange={(event) => { props.onEdit(event.target.value) }}
       />
       <p className={css.hint}>{props.hint}</p>
+    </div>
+  )
+}
+
+/**
+ * A boolean toggle. The staged draft is the text `"true"` or `"false"`, so the
+ * switch reflects the draft and reports the next state back through `onEdit`.
+ * A boolean field cannot be invalid, so the hint is always the field's hint.
+ * @param props - the field's copy, its staged text, and the edit actions.
+ * @returns the labelled control.
+ */
+export function ToggleField(props: Omit<FieldProps, 'id' | 'invalid' | 'invalidLabel'>) {
+  return (
+    <div className={css.field}>
+      <div className={css.head}>
+        <span className={css.label}>{props.label}</span>
+        {props.overridden
+          ? (
+            <span className={css.badges}>
+              <Tag tone="neutral">{props.overriddenLabel}</Tag>
+              <button
+                type="button"
+                className={css.reset}
+                disabled={props.disabled}
+                onClick={props.onReset}
+              >
+                {props.resetLabel}
+              </button>
+            </span>
+          )
+          : null}
+      </div>
+      <div className={css.toggleRow}>
+        <Switch
+          checked={props.text === 'true'}
+          label={props.label}
+          disabled={props.disabled}
+          onChange={(next) => { props.onEdit(String(next)) }}
+        />
+        <p className={css.hint}>{props.hint}</p>
+      </div>
     </div>
   )
 }

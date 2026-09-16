@@ -1,6 +1,6 @@
 /** Shared repository file discovery and line-oriented reference scanning. */
 
-import { globSync, readFileSync, realpathSync } from 'node:fs'
+import { globSync, lstatSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
 
 /** One authored path plus its canonical target for symlink deduplication. */
@@ -41,7 +41,20 @@ export function uniqueRepoFiles(
   const seen = new Set<string>()
   const files: RepoFile[] = []
   for (const pattern of patterns) {
-    for (const match of globSync(pattern, { cwd: root })) {
+    for (const match of globSync(pattern, {
+      cwd: root,
+      // `**` recursion descends into a symlink that resolves to a file and then
+      // trips ENOTDIR reading inside it. Exclude only those from traversal;
+      // the realpath dedup below collapses any symlinked file to its target.
+      exclude: (relativePath) => {
+        const abs = resolve(root, relativePath)
+        try {
+          return lstatSync(abs).isSymbolicLink() && !statSync(abs).isDirectory()
+        } catch {
+          return false
+        }
+      },
+    })) {
       const repoPath = match.split(sep).join('/')
       if (isExcluded(repoPath)) continue
       const abs = resolve(root, repoPath)
