@@ -36,11 +36,20 @@ import { catalogModels } from './catalog.ts'
  * guessing at either would report an authentication failure as a provider
  * with no models. pi-ai's remaining protocols are absent for the same reason.
  */
-const LISTABLE_PROTOCOLS: ReadonlySet<string> = new Set([
-  'anthropic-messages',
-  'openai-completions',
-  'openai-responses',
-])
+const LISTABLE_PROTOCOL_NAMES = ['anthropic-messages', 'openai-completions', 'openai-responses'] as const
+
+/**
+ * Membership test for {@link LISTABLE_PROTOCOL_NAMES}.
+ *
+ * `PROTOCOLS` (`provider.ts`) owns the wire protocols this adapter can speak; this list is the subset
+ * with a model-listing endpoint, and every name here must also appear there.
+ */
+const LISTABLE_PROTOCOLS: ReadonlySet<string> = new Set(LISTABLE_PROTOCOL_NAMES)
+
+/** Render {@link LISTABLE_PROTOCOL_NAMES} for diagnostics that ask the caller to pick one. */
+function listableProtocols(): string {
+  return LISTABLE_PROTOCOL_NAMES.map(protocol => `"${protocol}"`).join(', ')
+}
 
 /** Stable API version required by Anthropic's model-listing endpoint. */
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -263,8 +272,9 @@ export interface StoredModelDiscoveryProfile {
  *   the named route. It is read only on the path that reaches the network; the
  *   credential is resolved only when the draft carries none.
  * @returns the advertised models in endpoint order.
- * @throws LlmError when the protocol has no readable listing, the endpoint
- *   refuses or fails the request, or the reply is not a model listing.
+ * @throws LlmError when the request names no protocol, names one with no
+ *   readable listing, the endpoint refuses or fails the request, or the reply is
+ *   not a model listing.
  */
 export async function discoverModels(
   request: LlmModelDiscoveryOperation,
@@ -290,16 +300,23 @@ export async function discoverModels(
       'DISCOVERY_FAILED',
     )
   }
-  // A draft that has not chosen a protocol yet is asked as OpenAI Chat
-  // Completions: it is the shape a gateway is overwhelmingly likely to speak,
-  // and the alternative — refusing until the field is filled — would withhold
-  // the action from the case it exists for. The cost is a misdirected message
-  // when the endpoint speaks something else (an Anthropic gateway answers 401,
-  // which reads as a credential problem), and hand-entry remains the way out.
-  const api = request.api ?? 'openai-completions'
+  // A draft that has not chosen a protocol yet is refused rather than asked as
+  // OpenAI Chat Completions. Guessing misdirected every endpoint speaking
+  // another protocol: an Anthropic gateway answers 401 to a completions probe,
+  // which reads as a credential problem. The protocol is the one input the
+  // caller owns, so the error asks for it and names what this build can ask.
+  const api = request.api
+  if (api === undefined) {
+    throw new LlmError(
+      `model discovery needs the route's api; set it to the wire protocol this endpoint speaks (${listableProtocols()})`
+      + ', or enter this provider\'s models by hand',
+      'DISCOVERY_UNSUPPORTED',
+    )
+  }
   if (!LISTABLE_PROTOCOLS.has(api)) {
     throw new LlmError(
-      `pi-ai protocol "${api}" has no model listing this build can read; enter this provider's models by hand`,
+      `pi-ai protocol "${api}" has no model listing this build can read; use ${listableProtocols()}`
+      + ', or enter this provider\'s models by hand',
       'DISCOVERY_UNSUPPORTED',
     )
   }
@@ -335,10 +352,13 @@ export async function discoverModels(
     throw new LlmError(`could not reach ${url}`, 'DISCOVERY_FAILED', { cause: error })
   }
   if (!response.ok) {
-    throw new LlmError(
-      `${url} answered ${response.status}${response.status === 401 || response.status === 403 ? '; check the API key' : ''}`,
-      'DISCOVERY_FAILED',
-    )
+    // A rejected listing has two candidates that present identically: a credential the endpoint
+    // refuses, and a route whose declared api is not the protocol this endpoint speaks. Name both
+    // rather than concluding the first, which sends the caller to rotate a working key.
+    const misdirected = response.status === 401 || response.status === 403
+      ? `; check the credential, and that api "${api}" is the wire protocol this endpoint speaks`
+      : ''
+    throw new LlmError(`${url} answered ${response.status}${misdirected}`, 'DISCOVERY_FAILED')
   }
   let text: string
   try {

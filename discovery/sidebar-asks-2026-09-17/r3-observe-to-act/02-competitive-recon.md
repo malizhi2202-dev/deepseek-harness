@@ -1,0 +1,13 @@
+# R3-1 ② 竞品与技术调研
+
+**CI：重试 = 保留历史的新 attempt，三档粒度。** GitHub Actions 提供 Re-run all / Re-run failed / 单个 job（`gh run rerun --failed|--job`），复用原 actor 权限与同一 SHA，每次重跑是新 attempt，单 run 上限 50 次、30 天窗口 —— [docs.github.com](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs)。GitLab 的重试**创建新 job 实例**："A new job instance is created with a new job ID… runs with the same parameters and variables" —— [docs.gitlab.com](https://docs.gitlab.com/ci/jobs/)。Buildkite："the information about the failed job(s) remains, and a new job is created. The history of retried jobs is preserved and immutable" —— [buildkite docs 源](https://raw.githubusercontent.com/buildkite/docs/main/pages/pipelines/configure/retry.md)。CircleCI 粒度下沉到测试；Jenkins 核心无重跑按钮，靠插件。
+
+**观测 UI：trace→动作是"跳转 + 建单"，不是重放。** Grafana 在 span 上挂 correlation link 跳到日志/指标/外部系统 —— [grafana.com](https://grafana.com/docs/grafana/latest/datasources/tempo/configure-tempo-data-source/trace-correlations/)；Datadog 从 graph/monitor 直接 Declare Incident —— [docs.datadoghq.com](https://docs.datadoghq.com/getting_started/incident_management/)；Sentry 把 issue 变成一次修复运行 —— [docs.sentry.io](https://docs.sentry.io/api/seer/start-seer-issue-fix/)。
+
+**Agent IDE 的回滚语义分歧最大（最该抄的一课）。** Claude Code 每个 prompt 前自动拍 checkpoint、留最近 100 个，`/rewind` 四种粒度，且**明确不追踪 bash 命令改动、多数子代理改动不恢复** —— [code.claude.com](https://code.claude.com/docs/en/checkpointing)；Cursor 相反："reverts files only; it does not remove messages from the conversation"，本地存储、与 Git 分离 —— [cursor.com](https://cursor.com/docs/agent/overview)；LangGraph 把 replay 与 fork 分成两个动作，fork 经 `update_state` "creates a new checkpoint that branches from the specified point" —— [docs.langchain.com](https://docs.langchain.com/oss/python/langgraph/use-time-travel)。Cursor 的排队消息 vs 立即 steer 与 DSH 的 `prompt(content,'queue'|'steer')` 同构。
+
+**事故响应：动作是预定义可执行动作库。** PagerDuty "push-button access to a library of defined diagnostic or remediation actions" —— [support.pagerduty.com](https://support.pagerduty.com/main/docs/automation-actions)；FireHydrant runbook 步骤可由 UI/Slack 手动触发 —— [docs.firehydrant.com](https://docs.firehydrant.com/docs/triggering-runbooks)；Rootly 建模为 trigger + condition + action —— [docs.rootly.com](https://docs.rootly.com/workflows/workflows)。
+
+**换模型重试的三种触发模型。** LangSmith Gateway fallback 链由 HTTP 429/5xx 触发 —— [docs.langchain.com](https://docs.langchain.com/langsmith/llm-gateway-fallbacks)；LangChain `with_fallbacks` "tried in order until one succeeds or all fail"；Anthropic `fallbacks` **不是错误驱动而是拒绝驱动**（refusal 以 HTTP 200 + `stop_reason: "refusal"` 返回）—— [platform.claude.com](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback)。
+
+未联网验证：Copilot 一键修复的官方措辞；Devin session tools 的细节。

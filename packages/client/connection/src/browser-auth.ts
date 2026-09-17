@@ -117,7 +117,7 @@ function cookieValue(headerValue: string, name: string): string | undefined {
   return undefined
 }
 
-function localNoAuthEnabled(headers: IncomingHttpHeaders): boolean {
+function localNoAuthEnabled(headers: ConnectionTrustRequest['headers']): boolean {
   if (process.env.DSH_WEB_LOCAL_NO_AUTH !== '1') return false
   const authority = requestAuthority(headers)
   if (authority === undefined) return false

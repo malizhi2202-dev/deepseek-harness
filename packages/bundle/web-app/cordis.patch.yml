@@ -234,6 +234,11 @@
     - id: ui-sidebar-files
       name: '@deepseek-ai/dsh-client-ui-sidebar-files'
 
+    # The right Sidebar's task-observation tab type: the session's todo list
+    # and background jobs, both read from live browser state.
+    - id: ui-sidebar-tasks
+      name: '@deepseek-ai/dsh-client-ui-sidebar-tasks'
+
     - id: ui-settings
       name: '@deepseek-ai/dsh-client-ui-settings'
 

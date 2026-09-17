@@ -185,7 +185,7 @@ describe('tuitui settings section', () => {
       .filter(row => String(row.ns) === 'tuitui')
 
     expect(descriptor).toBeDefined()
-    expect(descriptor.secrets).toEqual([{ path: ['appSecret'], set: true }])
+    expect(descriptor?.secrets).toEqual([{ path: ['appSecret'], set: true }])
     expect(JSON.stringify(descriptor)).not.toContain('test-secret')
     await pluginFiber.dispose()
     await ctx.fiber.dispose()

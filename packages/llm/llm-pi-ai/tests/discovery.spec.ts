@@ -104,6 +104,18 @@ describe('catalog-route model discovery', () => {
     // that shape is only reachable by calling it directly.
     await expect(discoverModels({})).rejects.toThrow(/set a baseURL/)
   })
+
+  it('requires the protocol before asking an endpoint, and names what it can ask', async () => {
+    const ctx = await harness()
+    // Nothing goes out: an undeclared protocol is the caller's gap to close, not
+    // a shape to guess at. The refusal code says it stopped before the network.
+    const refusal = ctx.llm.discoverModels('llm-pi-ai', { baseURL: 'https://gateway.example/v1' })
+    await expect(refusal).rejects.toThrow(
+      'needs the route\'s api; set it to the wire protocol this endpoint speaks '
+      + '("anthropic-messages", "openai-completions", "openai-responses")',
+    )
+    await expect(refusal).rejects.toMatchObject({ code: 'DISCOVERY_UNSUPPORTED' })
+  })
 })
 
 describe('draft-provider model discovery', () => {
@@ -121,7 +133,7 @@ describe('draft-provider model discovery', () => {
     })
     const ctx = await harness()
 
-    const models = await ctx.llm.discoverModels('llm-pi-ai', { baseURL: `${server.url}/v1`, apiKey: 'probe-key' })
+    const models = await ctx.llm.discoverModels('llm-pi-ai', { baseURL: `${server.url}/v1`, api: 'openai-completions', apiKey: 'probe-key' })
 
     expect(models).toEqual([
       { id: 'acme-large', name: 'Acme Large', contextWindow: 65_536, maxTokens: 4096 },
@@ -153,7 +165,7 @@ describe('draft-provider model discovery', () => {
     })
     const ctx = await harness()
 
-    expect(await ctx.llm.discoverModels('llm-pi-ai', { baseURL: server.url })).toEqual([
+    expect(await ctx.llm.discoverModels('llm-pi-ai', { baseURL: server.url, api: 'openai-completions' })).toEqual([
       {
         id: 'lobechat-deepseek-chat',
         name: 'DeepSeek V4 Flash',
@@ -221,7 +233,7 @@ describe('draft-provider model discovery', () => {
     })
     const ctx = await harness()
 
-    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: server.url }))
+    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: server.url, api: 'openai-completions' }))
       .resolves.toEqual([{ id: 'standard', name: 'standard' }])
   })
 
@@ -229,7 +241,7 @@ describe('draft-provider model discovery', () => {
     const server = await listingServer({ body: JSON.stringify({ data: [{ id: 'm' }] }) })
     const ctx = await harness()
 
-    await ctx.llm.discoverModels('llm-pi-ai', { baseURL: `${server.url}/openai/v1/` })
+    await ctx.llm.discoverModels('llm-pi-ai', { baseURL: `${server.url}/openai/v1/`, api: 'openai-completions' })
 
     expect(server.paths).toEqual(['/openai/v1/models'])
   })
@@ -238,7 +250,7 @@ describe('draft-provider model discovery', () => {
     const server = await listingServer({ body: JSON.stringify({ data: [{ id: 'm' }] }) })
     const ctx = await harness()
 
-    await ctx.llm.discoverModels('llm-pi-ai', { baseURL: server.url })
+    await ctx.llm.discoverModels('llm-pi-ai', { baseURL: server.url, api: 'openai-completions' })
 
     expect(server.headers[0]?.authorization).toBeUndefined()
   })
@@ -271,17 +283,17 @@ describe('draft-provider model discovery', () => {
       },
     })
 
-    await ctx.llm.discoverModels('llm-pi-ai', { provider: 'acme-gateway', baseURL: server.url })
+    await ctx.llm.discoverModels('llm-pi-ai', { provider: 'acme-gateway', baseURL: server.url, api: 'openai-completions' })
     // A key typed into the form is the one being tested — possibly the
     // replacement for the stored one — so it wins without resolving the
     // missing stored credential, while the route's headers still apply.
     Reflect.deleteProperty(process.env, 'ACME_GATEWAY_KEY')
-    await ctx.llm.discoverModels('llm-pi-ai', { provider: 'acme-gateway', baseURL: server.url, apiKey: 'typed' })
+    await ctx.llm.discoverModels('llm-pi-ai', { provider: 'acme-gateway', baseURL: server.url, api: 'openai-completions', apiKey: 'typed' })
     // A route no profile declares yet is the create case: nothing is stored.
-    await ctx.llm.discoverModels('llm-pi-ai', { provider: 'not-declared-yet', baseURL: server.url })
+    await ctx.llm.discoverModels('llm-pi-ai', { provider: 'not-declared-yet', baseURL: server.url, api: 'openai-completions' })
     // A configured route without deployment headers still contributes its
     // stored credential without inventing a header map.
-    await ctx.llm.discoverModels('llm-pi-ai', { provider: 'plain-gateway', baseURL: server.url, apiKey: 'plain-typed' })
+    await ctx.llm.discoverModels('llm-pi-ai', { provider: 'plain-gateway', baseURL: server.url, api: 'openai-completions', apiKey: 'plain-typed' })
 
     expect(server.headers.map(headers => headers.authorization))
       .toEqual(['Bearer stored-key', 'Bearer typed', undefined, 'Bearer plain-typed'])
@@ -316,23 +328,23 @@ describe('draft-provider model discovery', () => {
     })
     const ctx = await harness()
 
-    expect(await ctx.llm.discoverModels('llm-pi-ai', { baseURL: server.url }))
+    expect(await ctx.llm.discoverModels('llm-pi-ai', { baseURL: server.url, api: 'openai-completions' }))
       .toEqual([{ id: 'good', name: 'good' }, { id: 'zero-capacity', name: 'zero-capacity' }])
   })
 
-  it('points at the credential for a rejected one, and only then', async () => {
+  it('names both the credential and the declared protocol for a rejected listing', async () => {
     const ctx = await harness()
 
     for (const status of [401, 403]) {
       const refused = await listingServer({ status, body: '{"error":"nope"}' })
-      await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: refused.url, apiKey: 'wrong' }))
-        .rejects.toThrow(new RegExp(`answered ${status}; check the API key`))
+      await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: refused.url, api: 'openai-completions', apiKey: 'wrong' }))
+        .rejects.toThrow(new RegExp(`answered ${status}; check the credential, and that api "openai-completions" is the wire protocol this endpoint speaks`))
     }
 
-    // A server fault is not a credential problem, so it must not send the user
-    // off to re-check a key that is fine.
+    // A server fault is neither a credential problem nor a protocol one, so it
+    // must not send the user off to re-check either.
     const broken = await listingServer({ status: 500, body: '{"error":"boom"}' })
-    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: broken.url, apiKey: 'fine' }))
+    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: broken.url, api: 'openai-completions', apiKey: 'fine' }))
       .rejects.toThrow(/answered 500$/)
   })
 
@@ -340,11 +352,11 @@ describe('draft-provider model discovery', () => {
     const server = await listingServer({ body: '{"models":[]}' })
     const ctx = await harness()
 
-    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: server.url }))
+    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: server.url, api: 'openai-completions' }))
       .rejects.toThrow(/neither a "data" array nor a "models" object/)
 
     const broken = await listingServer({ body: 'not json at all' })
-    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: broken.url }))
+    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: broken.url, api: 'openai-completions' }))
       .rejects.toThrow(/did not answer with JSON/)
   })
 
@@ -354,20 +366,20 @@ describe('draft-provider model discovery', () => {
     const oversized = `{"data":[{"id":"m","pad":"${'x'.repeat(4 * 1024 * 1024)}"}]}`
 
     const declared = await listingServer({ body: oversized })
-    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: declared.url }))
+    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: declared.url, api: 'openai-completions' }))
       .rejects.toThrow(/answered with more than 4194304 bytes/)
 
     // A streamed reply declares no length, so the ceiling has to hold on the
     // body the harness actually read.
     const streamed = await listingServer({ chunks: ['{"data":[{"id":"m","pad":"', 'x'.repeat(4 * 1024 * 1024), '"}]}'] })
-    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: streamed.url }))
+    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: streamed.url, api: 'openai-completions' }))
       .rejects.toThrow(/answered with more than 4194304 bytes/)
   })
 
   it('reports an unreachable endpoint instead of an empty catalog', async () => {
     const ctx = await harness()
     // Port 9 is the discard service: nothing accepts a connection there.
-    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: 'http://127.0.0.1:9/v1' }))
+    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: 'http://127.0.0.1:9/v1', api: 'openai-completions' }))
       .rejects.toMatchObject({ code: 'DISCOVERY_FAILED' })
   })
 
@@ -404,6 +416,7 @@ describe('draft-provider model discovery', () => {
     })
     const probe = ctx.llm.discoverModels('llm-pi-ai', {
       baseURL: 'https://slow.example/v1',
+      api: 'openai-completions',
     }, controller.signal)
     await bodyRead.promise
     controller.abort('test cancellation')
@@ -416,6 +429,7 @@ describe('draft-provider model discovery', () => {
     const aborted = AbortSignal.abort('test cancellation')
     await expect(ctx.llm.discoverModels('llm-pi-ai', {
       baseURL: 'http://127.0.0.1:9/v1',
+      api: 'openai-completions',
     }, aborted)).rejects.toMatchObject({ code: 'ABORTED' })
   })
 

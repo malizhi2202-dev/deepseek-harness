@@ -1,0 +1,110 @@
+.panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 0 10px;
+  color: var(--dsw-alias-label-primary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: 1.5;
+}
+
+.section {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.head {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: inherit;
+  font-weight: 500;
+}
+
+.summary {
+  color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.track {
+  height: 4px;
+  margin: 0 10px;
+  overflow: hidden;
+  background: var(--dsw-alias-bg-layer-1);
+  border-radius: 999px;
+  corner-shape: round;
+}
+
+.bar {
+  height: 100%;
+  background: var(--dsw-alias-brand-primary);
+  border-radius: inherit;
+  corner-shape: round;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 3px 10px;
+}
+
+.dot {
+  flex: 0 0 auto;
+  margin-top: 5px;
+}
+
+.body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.settled {
+  color: var(--dsw-alias-label-dimmed);
+  text-decoration: line-through;
+}
+
+.detail {
+  color: var(--dsw-alias-label-caption);
+  overflow-wrap: anywhere;
+}
+
+.state {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+}
+
+.empty {
+  margin: 0;
+  padding: 0 10px;
+  color: var(--dsw-alias-label-tertiary);
+}
