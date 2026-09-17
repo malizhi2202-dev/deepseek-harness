@@ -32,7 +32,7 @@ Remote 消费端投影同时包含 `.d.ts`、`.d.ts.map` 和 `.js`。`.d.ts` 只
 | Typert registry | `ctx.typert` | 分开保存当前环境 reflection、导入的 Remote contribution、lookup provider 和 Context provider |
 | Typert generator/loader | 无新增业务服务 | 从 Host/Client Program 生成三类 `lib` 产物，并把当前环境产物注册到 `ctx.typert` |
 | API Gateway 的 Host face | `ctx.typertGateway` | 关联 Host definition 与活 Service，解码参数、解析 receiver、调用方法和编码结果 |
-| Connection | `ctx.connection` | 独占 HTTP Server/未来 WebSocket、共享 `/api` route、RPC envelope、rpcId、序列化、trust、错误传输、Typert 拦截，以及各 owner 在同一 channel 上注册的精确 Fetch route |
+| Connection | `ctx.connection` | 独占 HTTP Server 及其 WebSocket upgrade 路径（Gateway 的 Remote 流路由经此提供）、共享 `/api` route、RPC envelope、rpcId、序列化、trust、错误传输、Typert 拦截，以及各 owner 在同一 channel 上注册的精确 Fetch route |
 | API Gateway 的 Client face | `ctx.remote`、`ctx.remote.<namespace>` | mount Remote contribution，把每个 namespace 实体化为可追踪的 `remote.<namespace>` 子 Service，并把规范调用交给 `ctx.connection.rpc` |
 | API Remotes | 无新增服务 | 负责 Host Agent/Session lookup 策略，并作为 Client 业务的唯一 facade，选择并挂载 `/remote` contribution，同时暴露所选 API 声明 |
 | Agent/Session owning 包 | 既有领域服务 | 同时提供静态 interface merge 与运行时 lookup/Context provider |
@@ -457,7 +457,7 @@ Gateway 只向 Connection 注册 ownership matcher 和 RPC handler，不注册 H
 - Typert runtime：分别保存当前环境的 local reflection 与导入的 Remote contribution。
 - `@deepseek-ai/dsh-api-gateway`：默认入口关联 Host definition 与 Service，认领 Remote endpoint，执行 lookup、Context receiver 解析、调用和结果编码，并向 Connection 注册 `/api` interceptor；`/client` 入口挂载 Remote contribution，创建严格 Remote namespace Service 和方法，并把调用交给 `ctx.connection.rpc`。两个入口共享 Remote 协议，但不互相导入各自的 Cordis interface merge。
 - `@deepseek-ai/dsh-api-remotes`：BFF 层；注册本应用转发的 Cordis 事件源与随 generation readiness 携带的 Host home，选择 Client `/remote` contribution，并通过共享的 `TypertClientRemote` 约定向业务包暴露合并后的 Remote 类型。
-- Connection：拥有唯一 HTTP Server/未来 WebSocket carrier、共享 `/api` route 与其复合 FetchHandler、各 owner 注册的精确 Fetch route、RPC envelope、rpcId、序列化、trust 和错误传输。
+- Connection：拥有唯一 HTTP Server 及其上的 WebSocket upgrade 路径、共享 `/api` route 与其复合 FetchHandler、各 owner 注册的精确 Fetch route、RPC envelope、rpcId、序列化、trust 和错误传输。
 - Agent/Session 等业务对象包：拥有 lookup、Context provider、唯一 ID 类型和纯类型公共出口。
 - `@deepseek-ai/dsh-api-session-controller`：配置共享的 `agent`/`session` lookup 与 `agent` Host Context resolver，因此每个接收这些对象的 Remote endpoint 共用同一套恢复与 ownership fence 策略。
 - 业务 Service 包：声明 binding、Remote 方法及其 request/result 类型，并导出生成的 `/remote` 子路径。
