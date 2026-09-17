@@ -70,7 +70,13 @@
 | # | 决策 | 裁定 | 连带后果 |
 | --- | --- | --- | --- |
 | 1 | `sessionOutcomes` 的聚合归属 | **采用推荐案**：新建宿主投影单元包，照 `session-stats` 三文件模板加 `client.ts`，key `sessionOutcomes`，纯 fold + `wire.view` | 不动既有投影 schema、只在 web-app 补丁加一行；`stateVersion` 不递增、无新会话事件、无格式版本变更。替代案（扩 `session-stats` 加计数字段）落选 |
-| 2 | S6「只有 tab 类型能拥有 guide 条目 ⇒ 必须独立成 kind」 | **对抗性检验进行中**，结论回填后补记 | 若检验推翻该主张，「智能体派生」可降为既有 kind 下的镜头/标签，新包可省 |
+| 2 | S6「只有 tab 类型能拥有 guide 条目 ⇒ 必须独立成 kind」 | **对抗性检验已完成：判词「仅在 X 条件下成立」，且该主张的字面表述为假** | X ＝「智能体派生」必须是可与任务观测**并排**的独立具名入口（含图标）＋独立 chip。字面为假的依据：guide 页的 body 是可被整页替换的 chain 席位（`packages/client/ui-sidebar-right/src/client/contract/slots.ts:67-77`），任何插件都能自绘带图标的命名入口并 `openTab` 既有 kind ⇒ 「只有 tab 类型能出现在 guide 页」不成立；为真的只是一条更窄的表述——**shipped guide 的每个 entry box 派生自已注册的 tab 类型，且目标恒为该类型自己的 kind**（`tab-registry.ts:60-76,124-125,392-398`；`tabs/guide/GuideBody.tsx:80`）。另：「必须**新建包**」独立地为假（一个包可注册多个 kind，`ui-sidebar-right` 自身即如此）。故若保留并排入口的要求，新 kind 成立但新包可省；若放弃并排入口，既有 `tasks` kind 内加一段即可，回退＝删一段 |
+
+**由第 2 项检验推出的两处计划订正（必须一并记入，否则会写出自相矛盾的规则）：**
+
+- **「新 kind 须拥有独立 `dsh-resource://<type>/…` 地址域」这条准入判据，若落成门禁会让本议题自证不合规**：地址域在代码里即协议（`packages/client/resources/src/client/resources.ts:44-70,84-99`，一协议一 provider、重复注册即抛），而现成三个页类型（guide／files／tasks）**都不带** `patterns` ⇒ 该判据必须**明文豁免页类型**，否则 `agents` 作为页类型会被自己的门禁拒绝。这条规则本身是计划要**新建**的，代码里今天不存在。
+- **`99-roadmap.md` 阶段二第 6 项「从 `session-controller` 的 `/client` 导出 `flattenLineage`」按现规范不可行**：该函数未从 `/client` 入口导出（只导类型），值导入会撞客户端包的 purity 门禁（`packages/client/tsdown.client.ts` 的 `INLINE_SAFE` 不含 session-controller 与其「cross-plugin value imports are forbidden」；`scripts/verify-client-packages.ts` 禁止 `packages/client/` 下的特性包声明 `dsh.client.external`）⇒ 新面板只能**自行重复那段纯 fold**，仓内已有同类重复先例（两个特性包各自一份 `subagent-lineage.ts` 且带 `jscpd:ignore`）。另：头部浮层组件确不可复用（其 props 绑在会话头部契约上），但「不能复用组件」推不出「必须新 kind」。
+- 顺带更正：`agents` 将是**第五个** kind（现为 guide／files／tasks／text），计划文本里的排序说法需改。
 | 3 | git-graph 上游修复状态 | **先做版本线迁移的有界代价评估** | 移植与自建都建立在「先迁版本线」之上，故二者暂不开工；评估完成后再定移植/自建/砍 |
 | 4 | 终端的授权边界 | **就此闭闸** | 只读那半沿用终端轮 2a 决策（服务端把浏览器请求映射到该会话 owner、绝不接受客户端自报 owner）；写的那半由第四项议题闭闸（授权由 preset 是否组合该行表达、写入口不在本期），留待 2b 再提 |
 | 5 | 阶段一的可见性数字 | **按计划数字先开工**：默认可见＝任务观测 + 智能体派生，上限 3，其余 `order` ≥ 100 | 原本挂着的「需现网实测数与签字人」降为 **V1 后校准**，不再作为开工阻塞 |
