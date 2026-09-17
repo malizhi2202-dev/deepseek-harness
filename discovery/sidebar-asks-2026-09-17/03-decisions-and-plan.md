@@ -77,6 +77,8 @@
 - **「新 kind 须拥有独立 `dsh-resource://<type>/…` 地址域」这条准入判据，若落成门禁会让本议题自证不合规**：地址域在代码里即协议（`packages/client/resources/src/client/resources.ts:44-70,84-99`，一协议一 provider、重复注册即抛），而现成三个页类型（guide／files／tasks）**都不带** `patterns` ⇒ 该判据必须**明文豁免页类型**，否则 `agents` 作为页类型会被自己的门禁拒绝。这条规则本身是计划要**新建**的，代码里今天不存在。
 - **`99-roadmap.md` 阶段二第 6 项「从 `session-controller` 的 `/client` 导出 `flattenLineage`」按现规范不可行**：该函数未从 `/client` 入口导出（只导类型），值导入会撞客户端包的 purity 门禁（`packages/client/tsdown.client.ts` 的 `INLINE_SAFE` 不含 session-controller 与其「cross-plugin value imports are forbidden」；`scripts/verify-client-packages.ts` 禁止 `packages/client/` 下的特性包声明 `dsh.client.external`）⇒ 新面板只能**自行重复那段纯 fold**，仓内已有同类重复先例（两个特性包各自一份 `subagent-lineage.ts` 且带 `jscpd:ignore`）。另：头部浮层组件确不可复用（其 props 绑在会话头部契约上），但「不能复用组件」推不出「必须新 kind」。
 - 顺带更正：`agents` 将是**第五个** kind（现为 guide／files／tasks／text），计划文本里的排序说法需改。
+
+**第 2 项检验的门内裁定（已定）：保留「与任务观测并排的独立具名入口（含图标）+ 独立 chip」，并选择新建包。** ⇒ X 条件成立，独立 kind 成立；`ui-sidebar-agents`（kind `agents`）按原计划执行，并接受其代价：三处注册面（web-app 补丁行、web-app 包清单、客户端 tsconfig）加脚手架／README／i18n 命名空间。随之确定两件连带事项：阶段一要落的那条准入判据**必须明文豁免页类型**，否则会拒绝本包；阶段二第 6 项改为**在新包内自行重复那段纯 fold**（不得从 `session-controller` 做值导入，也不得加 `dsh.client.external`）。
 | 3 | git-graph 上游修复状态 | **先做版本线迁移的有界代价评估** | 移植与自建都建立在「先迁版本线」之上，故二者暂不开工；评估完成后再定移植/自建/砍 |
 | 4 | 终端的授权边界 | **就此闭闸** | 只读那半沿用终端轮 2a 决策（服务端把浏览器请求映射到该会话 owner、绝不接受客户端自报 owner）；写的那半由第四项议题闭闸（授权由 preset 是否组合该行表达、写入口不在本期），留待 2b 再提 |
 | 5 | 阶段一的可见性数字 | **按计划数字先开工**：默认可见＝任务观测 + 智能体派生，上限 3，其余 `order` ≥ 100 | 原本挂着的「需现网实测数与签字人」降为 **V1 后校准**，不再作为开工阻塞 |
