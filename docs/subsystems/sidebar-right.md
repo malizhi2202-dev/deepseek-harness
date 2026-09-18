@@ -19,7 +19,7 @@ A tab type is two registrations that share one `kind`: a static definition in `c
 | [`client/resources`](../../packages/client/resources/README.md) | `ctx.resources`, `useResource`, the protocol → value roster `ResourceProtocolMap` |
 | [`api/workspace-files`](../../packages/api/workspace-files/README.md) | Host `ctx.workspaceFiles`, the `workspaceFiles` Remote namespace, and the Client `file` resource provider |
 | [`util/workspace-path`](../../packages/util/workspace-path/README.md) | The file address grammar: `fileAddressFor`, `parseFileAddress` |
-| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.md), [`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.md), [`client/ui-sidebar-tasks`](../../packages/client/ui-sidebar-tasks/README.md) | The shipped `text`, `files`, and `tasks` types |
+| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.md), [`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.md), [`client/ui-sidebar-tasks`](../../packages/client/ui-sidebar-tasks/README.md), [`client/ui-sidebar-agents`](../../packages/client/ui-sidebar-agents/README.md) | The shipped `text`, `files`, `tasks`, and `agents` types |
 
 ## Addresses
 
@@ -38,7 +38,7 @@ Tab identity is the pair `(kind, address)`: the registry's claim uses the addres
 | Field | Meaning |
 |---|---|
 | `id` | The implementation's identity, unique across every registration; a package name is the natural value (`@deepseek-ai/dsh-client-ui-sidebar-files`). It is the key the body and title register under. |
-| `kind` | The type's discriminator: what its tabs are, and what `openTab` names. Not unique — an extension may take over a builtin's kind. The shipped kinds are `guide`, `text`, `files`, and `tasks`. |
+| `kind` | The type's discriminator: what its tabs are, and what `openTab` names. Not unique — an extension may take over a builtin's kind. The shipped kinds are `guide`, `text`, `files`, `tasks`, and `agents`. |
 | `patterns` | Optional resource-address globs the type recognizes; a page type opened by kind omits them. A pattern containing `:` matches the whole address (`dsh-resource://file/**`); one without matches the URL's path at any depth (`*.md`), and an address that is not a URL matches no such pattern. Matching is case-insensitive and does not hide dotfiles; the syntax is picomatch's POSIX dialect. |
 | `priority` | One of three literal bands: `extension` (the default and the highest: a type from outside the product outranks every shipped viewer), `builtin` (types shipped with the product), `fallback` (plain-content viewers anything more specific should beat). |
 | `canOpen(address)` | Optional synchronous veto of a glob match; it runs on every routing decision. |
@@ -50,7 +50,7 @@ Tab identity is the pair `(kind, address)`: the registry's claim uses the addres
 
 A surface is born with its guide and one tab per `default-on` type, in ascending `order`, in the first pane; those tabs are part of the initial layout, so stepping back stops at them and closing one is not undone. At most three types may declare `default-on` (`MAX_DEFAULT_VISIBLE_TABS` in `contract/visibility.ts`): the registry throws on the registration that would exceed it, and `verify-sidebar-right-tab-types` refuses the declaration in review. A `default-on` type must declare an `icon` and must be a page type — a viewer has no page of its own to open, and the registry refuses the combination rather than seating fewer tabs than the declaration promised. Nothing else decides the default set: not registration order, not a list of kinds.
 
-A new kind is admitted on one condition: it must own its own `dsh-resource://<type>/` address domain, and claim no other. A page type is exempt, because it is opened by kind and recognizes no address; the shipped `guide`, `files`, and `tasks` types declare no `patterns` for exactly that reason. `verify-sidebar-right-tab-types` reads every shipped definition, states the whole roster as `kind`, section, order, default state, and address domain, and fails on a definition that breaks a rule above.
+A new kind is admitted on one condition: it must own its own `dsh-resource://<type>/` address domain, and claim no other. A page type is exempt, because it is opened by kind and recognizes no address; the shipped `guide`, `files`, `tasks`, and `agents` types declare no `patterns` for exactly that reason. `verify-sidebar-right-tab-types` reads every shipped definition, states the whole roster as `kind`, section, order, default state, and address domain, and fails on a definition that breaks a rule above.
 
 The strip's type picker is the panel's own entry into the column: a menu in its chrome that lists the registered page types in ascending `order` with their `icon`, and calls `openTab(kind, { paneId })` for its own pane. It omits the guide, which the strip's add control opens, and every `hidden` type; a viewer is never listed, because it is opened by resolving an address.
 
@@ -132,6 +132,7 @@ The Host `ctx.workspaceFiles` service and the generated `workspaceFiles` Remote 
 - **`text`** — `fallback`, `available`, order 300, `dsh-resource://file/**`. Reads metadata through `useResource<'file'>` and the file's lines by page through `read`; honours `params.line` on every navigation; keeps pages, scroll, and wrap in its own store ([README](../../packages/client/ui-sidebar-textpreview/README.md)).
 - **`files`** — `builtin`, `available`, order 200, opened as `openTab('files')`. The workspace directory tree, listed lazily through `list`, opening a file with `tab.actions.openResource(fileAddressFor(sessionId, root, path))` into its own pane ([README](../../packages/client/ui-sidebar-files/README.md)).
 - **`tasks`** — `builtin`, `default-on`, order 10, opened as `openTab('tasks')`. The session's todo list with its progress summary, then its background jobs, both read from browser state; a fresh surface therefore opens it beside the guide ([README](../../packages/client/ui-sidebar-tasks/README.md)).
+- **`agents`** — `builtin`, `default-on`, order 20, opened as `openTab('agents')`. The complete derivation tree of the mounted session: every durable child from the session list, plus the direct-child catalog's diagnostics and read state; a row opens its session only while the parent catalog can confirm it, and the session header's catalog offers the panel by name ([README](../../packages/client/ui-sidebar-agents/README.md)).
 
 <a id="not-built"></a>
 ## Not built

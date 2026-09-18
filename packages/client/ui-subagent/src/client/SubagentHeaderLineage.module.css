@@ -101,7 +101,6 @@
   width: 336px;
   max-width: min(400px, calc(100vw - 32px));
   max-height: min(560px, calc(100vh - 140px));
-  padding: 4px;
   overflow: auto;
   border-radius: 20px;
   background: var(--dsw-specific-menu);
@@ -111,12 +110,41 @@
   box-shadow: var(--dsw-elevation-prominent);
 }
 
+.tree {
+  display: flex;
+  flex-direction: column;
+  /* The menu's own padding lives here, so the tree box is the box the rows are
+     inset from and the panel action below it starts flush with the menu. */
+  padding: 4px;
+}
 .node {
   position: relative;
   min-width: 0;
 }
-.menu > .node {
+.tree > .node {
   margin-left: -3px;
+}
+.panelAction {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 4px;
+  padding: 6px 8px 6px 11px;
+  border: 0;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 0 0 8px 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
+}
+.panelAction:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 .row {

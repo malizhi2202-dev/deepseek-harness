@@ -530,6 +530,29 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
     expect(scaffold.ctx.agents.get(oneShotId)).toBeUndefined()
   })
 
+  it('opens the derivation panel from the session header', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-subagent-panel-entry'))
+    await page.getByRole('tree', { name: 'Sessions' })
+      .getByRole('treeitem')
+      .last()
+      .click()
+    // The lineage trigger aggregates this session's descendants; hover is what
+    // the catalog opens on.
+    await page.getByRole('button', { name: /^\d+ subagents?$/u }).hover()
+    const entry = page.getByRole('button', { name: 'Open in panel' })
+    await entry.waitFor({ timeout: 15_000 })
+    await entry.click()
+    // The entry seats the panel's own type, so the strip names it and the tree
+    // is the derivation forest the session list already holds.
+    const column = page.locator('[data-rightbar-col]')
+    await expect.poll(
+      () => column.locator('[data-dockkit-tab-title]').filter({ hasText: 'Derivations' }).count(),
+      { timeout: 15_000 },
+    ).toBe(1)
+    await expect.poll(() => column.locator('[data-agents-row]').count(), { timeout: 15_000 }).toBeGreaterThan(0)
+    expect(await column.locator('[data-agents-diagnostic]').count()).toBe(0)
+  })
+
   it('places an ordinary fork from a subagent beside its workspace-owning ancestor', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-subagent-fork'))
     await page.getByRole('tree', { name: 'Sessions' })
@@ -603,4 +626,5 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
     expect(scaffold.ctx.agents.get(forkId)).not.toBeUndefined()
     await expect.poll(() => scaffold.ctx.agents.get(childId), { timeout: 10_000 }).toBeUndefined()
   })
+
 })

@@ -3,6 +3,7 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { SubagentHeaderLineage, type SubagentCatalogInjected } from './SubagentHeaderLineage.tsx'
 import {
   SubagentReadOnlyComposer, type SubagentReadOnlyMatch,
@@ -28,6 +29,29 @@ export type {
 
 /** Required services for conversation slots and session navigation. */
 export const inject = ['sessions', 'slots', 'locale']
+
+/**
+ * The derivation panel's tab kind.
+ *
+ * A feature package may not import another feature package's values, so the kind
+ * is spelled here; it is the public name the panel registers under. The entry
+ * that opens it is offered only while that kind is registered, which keeps this
+ * package usable in a composition that installs no derivation panel.
+ */
+const AGENTS_KIND = 'agents'
+
+/**
+ * The panel-opening action, or `undefined` when no derivation panel is installed.
+ * @param ctx - client root context, read for the sidebar services that may be absent.
+ * @returns the action, or `undefined` when either service or the tab type is missing.
+ */
+function panelOpener(ctx: ClientContext): (() => void) | undefined {
+  const tabs = ctx.get('sidebarRightTabs')
+  const sidebar = ctx.get('sidebarRight')
+  if (tabs === undefined || sidebar === undefined) return undefined
+  if (tabs.get(AGENTS_KIND) === undefined) return undefined
+  return () => { sidebar.openTab(AGENTS_KIND) }
+}
 
 /** Claim the composer for one-shot history or an unavailable continuation owner. */
 function selectReadOnlySubagent(owner: ComposerChainProps): SubagentReadOnlyMatch | null {
@@ -61,6 +85,7 @@ export function apply(ctx: ClientContext): void {
     setCatalogOpen(parentSessionId: SessionId, open: boolean) {
       sessions.setSubagentCatalogOpen(parentSessionId, open)
     },
+    openPanel: panelOpener(ctx),
   })
   ctx.slots.inject(
     'conversation.session.header.lineage',

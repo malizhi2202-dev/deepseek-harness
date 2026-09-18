@@ -40,4 +40,4 @@ The Sidebar now answers the session-progress question without leaving the window
 
 Two limits are recorded in the package README rather than solved here: the panel is observation-only, and it reports state without job timings, so no duration formatter is needed yet.
 
-The `todos` projection is drawn as the model wrote it, so a session whose model never calls the todo tool shows an empty state rather than an inferred plan. Deeper work-state views — a task graph over subagent lineage, per-failure root cause, and an evaluation of each node — build on the same client-side facts (`subagentsByParent`, `subagent.address`, `lastAgentError`) and are deferred until that shape is decided.
+The `todos` projection is drawn as the model wrote it, so a session whose model never calls the todo tool shows an empty state rather than an inferred plan. The task graph over subagent lineage this note deferred is now decided by the [agent-derivation panel](2026-09-18-agent-derivation-panel.md): the tree is folded from the session list, and the catalogs supply diagnosis and admission. Per-failure root cause and an evaluation of each node stay deferred.

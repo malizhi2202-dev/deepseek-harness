@@ -239,6 +239,11 @@
     - id: ui-sidebar-tasks
       name: '@deepseek-ai/dsh-client-ui-sidebar-tasks'
 
+    # The right Sidebar's derivation tab type: the subagent forest the current
+    # session derived, read from the full session list.
+    - id: ui-sidebar-agents
+      name: '@deepseek-ai/dsh-client-ui-sidebar-agents'
+
     - id: ui-settings
       name: '@deepseek-ai/dsh-client-ui-settings'
 

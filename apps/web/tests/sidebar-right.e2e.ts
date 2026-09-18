@@ -35,9 +35,10 @@ const SAMPLE_TEXT = 'produced by the seeded turn\nsecond line\n'
 
 /**
  * The strip a fresh settled session opens with: the pane's guide, then the
- * default-visible `tasks` tab the surface seats by itself.
+ * default-visible `tasks` and `agents` tabs the surface seats by itself, in
+ * ascending `order`.
  */
-const SEEDED = ['Start', 'Tasks'] as const
+const SEEDED = ['Start', 'Tasks', 'Derivations'] as const
 
 /** Where this batch's accepted product forms are archived. */
 const SHOT_DIR = fileURLToPath(new URL('../../../.artifacts/screenshots/0907-sidebar-rules', import.meta.url))
@@ -960,7 +961,7 @@ describe('web e2e: shipped right Sidebar', () => {
         await expandOf(zhPage).click()
 
         const guide = column.locator('[data-sidebar-right-guide]')
-        await expect.poll(async () => await tabTitles(column)).toEqual(['开始', '任务'])
+        await expect.poll(async () => await tabTitles(column)).toEqual(['开始', '任务', '派生'])
         // A fresh surface opens on the tasks tab, so the guide's copy reaches the
         // screen only once the guide is picked.
         await column.locator('[data-dockkit-tab]').filter({ hasText: '开始' }).click()

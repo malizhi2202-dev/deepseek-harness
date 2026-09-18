@@ -261,7 +261,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     await panes.first().locator('[data-dockkit-tab]').filter({ hasText: 'Files' }).click()
     await expect.poll(() => panes.first().locator('[data-files-state="tree"]').count()).toBe(1)
     const retainedA = await paneSnapshot(page)
-    expect(retainedA.map(pane => pane.tabs.map(tab => tab.title))).toEqual([['Files', 'Tasks', 'Start'], ['Start']])
+    expect(retainedA.map(pane => pane.tabs.map(tab => tab.title))).toEqual([['Files', 'Tasks', 'Derivations', 'Start'], ['Start']])
     await checkpoint('A normal: two panes')
 
     await column.locator('[data-sidebar-right-mode="fullscreen"]').click()
@@ -289,7 +289,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     await expect.poll(() => column.locator('[data-files-row="loading"]').count()).toBe(0)
     expect(await column.locator('[data-files-row="failed"]').count()).toBe(0)
     const retainedB = await paneSnapshot(page)
-    expect(retainedB.map(pane => pane.tabs.map(tab => tab.title))).toEqual([['Files', 'Tasks']])
+    expect(retainedB.map(pane => pane.tabs.map(tab => tab.title))).toEqual([['Files', 'Tasks', 'Derivations']])
     await close()
     await checkpoint('B closed: independent pane and expanded workspace directory')
 

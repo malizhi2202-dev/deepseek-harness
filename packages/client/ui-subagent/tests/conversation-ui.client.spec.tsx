@@ -47,6 +47,7 @@ function props(
   value: SubagentCatalogSnapshot | undefined,
   nested: Readonly<Record<SessionId, SubagentCatalogSnapshot>> = {},
   summaries?: Readonly<Record<SessionId, SessionSummary>>,
+  openPanel?: () => void,
 ) {
   const state = {
     ids: [CHILD],
@@ -74,6 +75,7 @@ function props(
     openChild: vi.fn(),
     refresh: vi.fn(),
     setCatalogOpen: vi.fn(),
+    openPanel,
     lineageSessionId: PARENT,
     displayTitle: 'Parent title',
     t,
@@ -88,6 +90,13 @@ function summary(id: SessionId, updatedAt: number): SessionSummary {
     blank: false,
     updatedAt,
   }
+}
+
+/** The positioned menu box that carries the catalog tree. */
+function menuBox(): HTMLElement {
+  const box = screen.getByRole('tree').parentElement
+  if (box === null) throw new Error('catalog tree has no menu host')
+  return box
 }
 
 function hoverCatalog(trigger: HTMLElement): void {
@@ -244,19 +253,18 @@ describe('SubagentHeaderLineage', () => {
     await advance(149)
     expect(screen.queryByRole('tree')).toBeNull()
     await advance(1)
-    const tree = screen.getByRole('tree')
-    expect(tree.style.top).toBe('45px')
-    expect(tree.style.left).toBe('50px')
+    expect(menuBox().style.top).toBe('45px')
+    expect(menuBox().style.left).toBe('50px')
     triggerRect.mockReturnValue({ bottom: 60, left: 70 } as DOMRect)
     fireEvent.resize(window)
-    expect(tree.style.top).toBe('65px')
-    expect(tree.style.left).toBe('70px')
+    expect(menuBox().style.top).toBe('65px')
+    expect(menuBox().style.left).toBe('70px')
     fireEvent.mouseLeave(trigger.parentElement!)
-    fireEvent.mouseEnter(tree)
+    fireEvent.mouseEnter(menuBox())
     await advance(120)
     expect(screen.getByRole('tree')).toBeTruthy()
 
-    fireEvent.mouseLeave(tree)
+    fireEvent.mouseLeave(menuBox())
     await advance(119)
     expect(screen.getByRole('tree')).toBeTruthy()
     await advance(1)
@@ -268,25 +276,38 @@ describe('SubagentHeaderLineage', () => {
     await advance(120)
   })
 
+  it('opens the derivation panel from the catalog, and only when one is installed', () => {
+    const openPanel = vi.fn()
+    const view = render(<SubagentHeaderLineage {...props(catalog())} />)
+    hoverCatalog(screen.getByRole('button', { name: /2 个子代理/ }))
+    expect(screen.queryByRole('button', { name: '在面板中打开' })).toBeNull()
+    view.unmount()
+
+    render(<SubagentHeaderLineage {...props(catalog(), {}, undefined, openPanel)} />)
+    hoverCatalog(screen.getByRole('button', { name: /2 个子代理/ }))
+    fireEvent.click(screen.getByRole('button', { name: '在面板中打开' }))
+    expect(openPanel).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('tree')).toBeNull()
+  })
+
   it('repositions an open catalog after viewport resize and document scroll', () => {
     const view = render(<SubagentHeaderLineage {...props(catalog())} />)
     const trigger = screen.getByRole('button', { name: /2 个子代理/ })
     const bounds = vi.spyOn(trigger, 'getBoundingClientRect')
     bounds.mockReturnValue({ bottom: 20, left: 30 } as DOMRect)
     hoverCatalog(trigger)
-    const tree = screen.getByRole('tree')
-    expect(tree.style.top).toBe('25px')
-    expect(tree.style.left).toBe('30px')
+    expect(menuBox().style.top).toBe('25px')
+    expect(menuBox().style.left).toBe('30px')
 
     bounds.mockReturnValue({ bottom: 70, left: 80 } as DOMRect)
     act(() => { window.dispatchEvent(new Event('resize')) })
-    expect(tree.style.top).toBe('75px')
-    expect(tree.style.left).toBe('80px')
+    expect(menuBox().style.top).toBe('75px')
+    expect(menuBox().style.left).toBe('80px')
 
     bounds.mockReturnValue({ bottom: 90, left: 100 } as DOMRect)
     act(() => { document.dispatchEvent(new Event('scroll')) })
-    expect(tree.style.top).toBe('95px')
-    expect(tree.style.left).toBe('100px')
+    expect(menuBox().style.top).toBe('95px')
+    expect(menuBox().style.left).toBe('100px')
     view.unmount()
   })
 

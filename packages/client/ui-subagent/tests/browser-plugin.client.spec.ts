@@ -78,6 +78,37 @@ async function fullBench(sessions: SessionSummary[]) {
   return { face, ctx }
 }
 
+/**
+ * Boot the plugin beside the two Right-Sidebar services a derivation panel adds.
+ * @param tabs - tab kinds the fake type registry holds, or `undefined` for no registry service.
+ * @param right - whether the navigation face is provided.
+ * @returns the context, the recorded `openTab` kinds, and the catalog actions.
+ */
+async function sidebarBench(tabs: readonly string[] | undefined, right: boolean) {
+  const ctx = new Context()
+  const opened: string[] = []
+  ctx.provide('sessions', sessionsWith([]))
+  ctx.provide('remote', { $on: () => () => {} } as never)
+  ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
+  await provideSlotFaces(ctx)
+  await ctx.plugin({ inject: localeInject, apply: applyLocale }).await()
+  if (tabs !== undefined) {
+    ctx.provide('sidebarRightTabs', {
+      get: (kind: string) => (tabs.includes(kind) ? { kind } : undefined),
+    } as never)
+  }
+  if (right) {
+    ctx.provide('sidebarRight', {
+      openTab: (kind: string) => { opened.push(kind) },
+    } as never)
+  }
+  await ctx.plugin({ inject: [...inject], apply }).await()
+  const entry = ctx.slots.entries('conversation.session.header.lineage')
+    .find(candidate => candidate.component === SubagentHeaderLineage)!
+  const actions = (entry.inject as unknown as (id: SessionId) => SubagentCatalogInjected)(sid('parent'))
+  return { opened, openPanel: actions.openPanel }
+}
+
 const FAMILY: SessionSummary[] = [
   summary({ id: sid('parent'), displayTitle: 'parent', running: true }),
   summary({ id: sid('c1'), parentId: sid('parent'), displayTitle: 'worker-1', running: true }),
@@ -139,5 +170,17 @@ describe('apply', () => {
     // A RUNNING parent-offline continuable yields the default composer, whose
     // disabled input still carries the primary Stop; stopped, it takes back over.
     expect(select(owner({ address, parentAvailable: false }, true))).toBeNull()
+  })
+
+  it('offers the derivation-panel entry only while that tab type is installed', async () => {
+    // No registry, no navigation face, and a registry that never saw the kind:
+    // three compositions where the entry must not appear at all.
+    expect((await sidebarBench(undefined, true)).openPanel).toBeUndefined()
+    expect((await sidebarBench(['files'], false)).openPanel).toBeUndefined()
+    expect((await sidebarBench(['files'], true)).openPanel).toBeUndefined()
+
+    const wired = await sidebarBench(['files', 'agents'], true)
+    wired.openPanel?.()
+    expect(wired.opened).toEqual(['agents'])
   })
 })

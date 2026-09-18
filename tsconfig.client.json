@@ -88,6 +88,7 @@
     { "path": "./packages/client/ui-sidebar-right" },
     { "path": "./packages/client/ui-sidebar-textpreview" },
     { "path": "./packages/client/ui-sidebar-files" },
+    { "path": "./packages/client/ui-sidebar-agents" },
     { "path": "./packages/client/ui-sidebar-tasks" },
     { "path": "./packages/client/ui-jobs" },
     { "path": "./packages/client/ui-schedule" },
