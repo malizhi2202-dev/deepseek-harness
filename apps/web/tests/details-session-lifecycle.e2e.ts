@@ -43,10 +43,10 @@ function appFrame(page: Page) {
 }
 
 /**
- * Pick the guide tab in the first pane.
+ * Return to the guide tab in the first pane.
  *
- * A fresh surface opens on the first tab the registry reports as `default-on`,
- * so the guide's entry boxes are only on screen once the guide is picked.
+ * A fresh surface opens on the guide, so this is a re-focus after other
+ * tabs have taken it, not the only way the guide's entry boxes appear.
  */
 async function pickGuide(page: Page): Promise<void> {
   await page.locator('[data-rightbar-col] [data-dockkit-pane]').first()

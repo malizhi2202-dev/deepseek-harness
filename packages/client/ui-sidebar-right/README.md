@@ -65,7 +65,7 @@ After every action the kit's settle planner keeps the surface populated: a docke
 
 State is memory-only. A reload returns every session to the collapsed default; switching sessions keeps each surface where it was.
 
-A fresh surface is one pane holding the guide and one tab per type the registry reports as `default-on`, in ascending `order`, with the first of them focused. Those tabs belong to the initial layout, not to a recorded entry, so stepping back stops at what the session was born with and closing one is not undone by the settle that follows. The registry's default-open set is read through the store's seed (`SurfaceSeed`) afresh for each new surface, so a type registered before a session opens is seated in it.
+A fresh surface is one pane holding the guide and one tab per type the registry reports as `default-on`, in ascending `order`, with the guide focused. Those tabs belong to the initial layout, not to a recorded entry, so stepping back stops at what the session was born with and closing one is not undone by the settle that follows. The registry's default-open set is read through the store's seed (`SurfaceSeed`) afresh for each new surface, so a type registered before a session opens is seated in it.
 
 <a id="extension-seats"></a>
 ## Extension seats

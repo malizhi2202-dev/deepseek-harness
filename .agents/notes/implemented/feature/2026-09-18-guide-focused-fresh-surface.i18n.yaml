@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-18-guide-focused-fresh-surface.md
+2026-09-18-guide-focused-fresh-surface.md: 9f2b2d67340bc7699a86afa8a54d31455a2cebfa
+2026-09-18-guide-focused-fresh-surface.zh.md: 1ac11c4b14c73ba788c15f647d86b4de90d8efbb

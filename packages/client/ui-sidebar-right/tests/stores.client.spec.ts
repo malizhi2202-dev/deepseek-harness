@@ -291,13 +291,13 @@ describe('createSidebarRightStore — the default-visible seed', () => {
     return getPane(layout, paneId as PaneId).tabs.map(id => layout.tabs[id]?.kind)
   }
 
-  it('seats the default-visible tabs after the guide, in order, and leaves the first one showing', () => {
+  it('seats the default-visible tabs after the guide, in order, and leaves the guide showing', () => {
     const { surface } = seeded(() => [tasks, agents])
     const pane = getPane(surface.layout, surface.layout.rootId)
     expect(kinds(surface.layout, pane.id)).toEqual(['guide', 'tasks', 'agents'])
     const active = pane.activeTabId
     if (active === undefined) throw new Error('expected an active tab')
-    expect(surface.layout.tabs[active]?.kind).toBe('tasks')
+    expect(surface.layout.tabs[active]?.kind).toBe('guide')
     expect(surface.history.entries).toEqual([])
   })
 

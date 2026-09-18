@@ -108,22 +108,21 @@ export interface SurfaceSeed {
  *
  * Those tabs are part of the initial layout rather than the first recorded
  * entry, so stepping back stops at what the session was born with and closing
- * one of them is not undone by the sequence's own history. The first declared
- * type is the one left on screen: `order` decides what the column shows, not
- * which tab happened to open last.
+ * one of them is not undone by the sequence's own history. The guide tab is
+ * the one left on screen: the surface opens on what introduces the column,
+ * not on whichever type declares the lowest `order`.
  * @param seed - the guide's name and the default-visible types' tabs, both read here.
  * @returns the initial surface.
  */
 export function createSurface(seed: SurfaceSeed): SurfaceState {
   const counter = counting(0)
   let layout = createInitialState({ next: counter.mint }, id => makeGuideTab(id, seed.title()))
-  let leading: TabId | undefined
   for (const tab of seed.tabs()) {
     const planned = planOpenContent(layout, counter.mint, { kind: tab.kind, contentId: tab.contentId, title: tab.title })
-    leading ??= planned.tabId
     layout = replay(layout, planned.ops)
   }
-  if (leading !== undefined) layout = replay(layout, planFocusTab(layout, leading))
+  const guide = paneGuide(layout, activeDockPaneId(layout))
+  if (guide !== undefined) layout = replay(layout, planFocusTab(layout, guide))
   return { layout, history: EMPTY_HISTORY, minted: counter.used() }
 }
 
