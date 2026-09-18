@@ -42,6 +42,7 @@ harness 由 `packages/` 下的 npm 包组装而成，按能力系列分组：会
 | [`terminal/`](terminal/README.zh.md) | 持久 PTY 能力系列：限定所有者范围的会话、本地实现、面向模型的工具 |
 | [`code-runtime/`](code-runtime/README.zh.md) | 代码执行能力系列：Service Definition + worker 线程提供方 + PTC mode Consumer |
 | [`sandbox/`](sandbox/README.zh.md) | 进程限制 seam；bwrap/Landlock/Seatbelt 后端 |
+| [`git/`](git/README.zh.md) | 只读仓库观察：seam、本地 provider、其供血的 Web git 面板 |
 | [`fs/`](fs/README.zh.md) | 文件系统能力系列：seam、本地实现、面向模型的文件工具、发现工具 |
 | [`lsp/`](lsp/README.zh.md) | LSP 能力系列：seam、通用 stdio 提供方和 `lsp` 工具 |
 | [`skill/`](skill/README.zh.md) | skill 能力系列：提供方注册表、本地提供方、面向模型的目录/loader |

@@ -2105,6 +2105,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [
       'client-ui-sidebar-agents AgentsBody',
       'client-ui-sidebar-files FilesBody',
+      'client-ui-sidebar-git GitBody',
       'client-ui-sidebar-right GuideBody',
       'client-ui-sidebar-tasks TasksBody',
       'client-ui-sidebar-textpreview TextPreview',

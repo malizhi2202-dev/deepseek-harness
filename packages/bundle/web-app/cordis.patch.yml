@@ -110,6 +110,17 @@
     - id: workspace-files
       name: '@deepseek-ai/dsh-api-workspace-files'
 
+    # Read-only git observation service, provided locally for the
+    # workspace-git endpoint below. Temporary with it.
+    - id: git-local
+      name: '@deepseek-ai/dsh-git-local'
+
+    # Read-only git observation inside the session workspace root over Typert
+    # Remote. Temporary until the version-line migration replaces it with the
+    # upstream git plugin.
+    - id: workspace-git
+      name: '@deepseek-ai/dsh-api-workspace-git'
+
     # Configuration-surface reads and writes over Typert Remote. Each method
     # reports an actionable error when its settings-domain provider is absent.
     - id: settings-controller
@@ -243,6 +254,12 @@
     # session derived, read from the full session list.
     - id: ui-sidebar-agents
       name: '@deepseek-ai/dsh-client-ui-sidebar-agents'
+
+    # The right Sidebar's git tab type: one bounded read-only observation of
+    # the repository containing the session's workspace. Temporary until the
+    # version-line migration replaces it with the upstream git plugin.
+    - id: ui-sidebar-git
+      name: '@deepseek-ai/dsh-client-ui-sidebar-git'
 
     - id: ui-settings
       name: '@deepseek-ai/dsh-client-ui-settings'

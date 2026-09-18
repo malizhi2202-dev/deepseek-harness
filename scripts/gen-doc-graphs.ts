@@ -200,6 +200,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Serves stat, paged text, byte windows, directory listings, and the change feed for files inside a Session\'s workspace root, confined by lstat, containment, and a stat re-check.',
   },
   {
+    key: 'workspaceGit',
+    pkg: 'api-workspace-git',
+    title: 'Host workspace git Remote service',
+    mode: 'core',
+    note: 'Answers the bounded observation of the repository containing the session workspace root over the generated Remote namespace, for the Web git panel; it is a bounded-lifetime companion that retires with the seam it serves.',
+  },
+  {
     key: 'workspaceController',
     pkg: 'api-workspace-controller',
     title: 'Host Workspace Remote controller',
@@ -551,6 +558,15 @@ const SERVICE_ROLES: ServiceRole[] = [
     consumers: ['tool-fs'],
     companions: ['fs-observation-policy'],
     note: 'tool-fs executes read/write/edit through ctx.fs; fs-sandbox fences mutations by the shared sandbox mode; fs-observation-policy contributes observed-state checks through the fs/* event gate.',
+  },
+  {
+    key: 'git',
+    pkg: 'git',
+    title: 'Repository observation seam',
+    mode: 'seam',
+    implementations: ['git-local'],
+    consumers: ['api-workspace-git'],
+    note: 'One bounded read-only snapshot of the repository containing a working directory; git-local reads it with the host git. A bounded-lifetime seam that retires with the upstream git plugin that replaces it.',
   },
   {
     key: 'compaction',

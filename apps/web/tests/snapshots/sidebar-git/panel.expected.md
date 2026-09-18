@@ -1,0 +1,17 @@
+- img
+- text: workspace
+- button "Reload":
+  - img
+- paragraph: Current state
+- text: main At commit {{seedOid}}
+- paragraph: Branches
+- list:
+  - listitem: main
+- paragraph: Commit history
+- list:
+  - listitem: first {{seedOid}} e2e · {{seedDay}}
+- paragraph: Working-tree changes
+- text: 0 staged · 1 unstaged · 1 untracked
+- list:
+  - listitem: unstaged modified src/app.ts
+  - listitem: untracked notes.txt
