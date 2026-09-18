@@ -139,8 +139,8 @@
 
 本循环约定**最多三轮**，三轮均已通过审核门并落盘。第 3 轮结束时仍拆得出有事实依据的新子议题，但按约定**不擅自开第 4 轮**；以下是交接给下一阶段的清单（不属于本循环）。
 
-1. **动作的 principal 与权限模型**（架构师开工前必答项）：`kill(id, caller)` 要求 caller 是 job owner，而"用户点击"没有独立 principal ⇒ 未定义前，停后台 job 这类动作不能上线。
-2. **动作的可发现性**（产品经理指出的缺口只是"挪了"）：按钮只在对应面板打开时存在，其命令不进命令面板；需要决定是否把动作也登记进命令面。
+1. **动作的 principal 与权限模型**（架构师开工前必答项）：**已裁定闭项**——主体＝面板所属会话的 Agent（宿主按 sessionId 解析、客户端不携带 owner，与审批/ask-user 先例同构），并给无 actor 的域事件补 `{kind:'user'|'agent'}` 来源标量（对齐 typed cancel 先例）；job 级动作以连接层 P0 为发布门。详见 [../action-seam/n1-principal/05-review-record.md](../action-seam/n1-principal/05-review-record.md) 后续裁定。
+2. **动作的可发现性**（产品经理指出的缺口只是"挪了"）：**已裁定闭项**——改状态动作登记为命令、命令面全量可见（归属沿用 preset 行/host 行既有分层），可见性门控按 Rule of Three 缓做。详见 [../action-seam/n2-discoverability/05-review-record.md](../action-seam/n2-discoverability/05-review-record.md) 后续裁定。
 3. **迁移源谱系证实**：个人 fork 的 `master 47f9438` 与上游支持线的对应关系。
 4. **"迁移后免费 / 仍需自建"清单**（分析师条件）。
 5. **步级失败归因**：**已单独立项**为 `../failure-attribution/`，并于第 1 轮过审核门。原文「唯一需要格式级改动（**新增会话事件**）」**已订正**：步级「是否正常收尾」是**纯投影可判定**的谓词（`step/end` 由 `finally` 保证、正常 return 前必落 `assistant/message`），**不需要新增会话事件**；`step/end` 加**可选** `outcome` 只作为独立增补提案排队（见该议题 `04-conclusion.md` 的 R3）。
