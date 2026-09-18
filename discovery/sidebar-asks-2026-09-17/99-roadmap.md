@@ -17,7 +17,7 @@
 
 | # | 目标文件 | 改什么 | 为什么 |
 | --- | --- | --- | --- |
-| 1 | `packages/client/ui-sidebar-right/src/client/tab-registry.ts` | 给 `SidebarRightTabDefinition` 增加 `icon`、`badge`、`order` 与声明式可见性字段（default-on / available / hidden），并定义默认值与校验 | 没有 `order`，"默认可见预算"无法表达；没有 `icon`，未来降到图标轨道即不可读（VS Code 明文要求每个 View 必须有图标） |
+| 1 | `packages/client/ui-sidebar-right/src/client/tab-registry.ts` | 给 `SidebarRightTabDefinition` 增加 `icon`、`order` 与声明式可见性字段（default-on / available / hidden），并定义默认值与校验；`badge?` 与 `section?` 缓做，依据 [r2-metadata-and-visibility/03-conclusion.md](r2-metadata-and-visibility/03-conclusion.md) 第 2 条（Rule of Three） | 没有 `order`，"默认可见预算"无法表达；没有 `icon`，未来降到图标轨道即不可读（VS Code 明文要求每个 View 必须有图标） |
 | 2 | 注册表与布局 store（`ui-sidebar-right/src/client/stores.ts`、`ui-dockkit` 的 tab strip） | 按声明式可见性决定默认打开集合；strip 增加溢出入口（"更多"菜单） | 现在 `+` 只打开 guide 页，芯片 44–170px 溢出无菜单，类型一多即不可发现 |
 | 3 | 新增卫生门禁（`scripts/`） | 输出所有 kind 的 section/order/default，对重复 `order` 与超预算的默认开启报错 | 把"默认开启"从隐式排序变成可机器检查的预算；今天重复 `order` 静默通过 |
 | 4 | `docs/` 或 `.agents/notes/` | 记录"新增 kind 需拥有独立 `dsh-resource://<type>/…` 地址域"的准入判据 | 从源头控制右栏容量，避免用新增 kind 解决本可以是一个镜头的问题 |

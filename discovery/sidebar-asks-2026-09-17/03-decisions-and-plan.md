@@ -8,14 +8,14 @@
 | 2 | Git 面板路线 | **先查上游是否已修 API，能修则启用** | 先做只读调查（`@linxin666/dsh-client-ui-git-graph` 已装但被禁用），得出"可启用 / 需移植 / 只能自建"三选一 |
 | 3 | 「git 即为记忆」的含义 | **三者合成一条「记忆时间线」**（git 历史 + 检查点 + memos 知识库） | 三个选项中**最重的一个**：必须有统一时间口径与**逐条来源标注**，否则三源混看即误导（对应竞品规则"推断 vs 声明必须分开标注"）。列为**独立议题** |
 | 4 | 成本观察口径 | **token/耗时/上下文占用 + 未定价态 + 可编辑价表** | 与"只展示派生事实"一致；金额一律标 estimate、历史不回填、与实际账单分离 |
-| 5 | 元数据先行 + 准入判据 | **采纳** | 执行顺序硬前提：先补 `icon/badge/order` 与声明式可见性预算，确立"新增 kind 需独立 `dsh-resource://` 地址域"，再加面板 |
+| 5 | 元数据先行 + 准入判据 | **采纳** | 执行顺序硬前提：先补 `icon`、`order` 与声明式可见性预算，确立"新增 kind 需独立 `dsh-resource://` 地址域"，再加面板 |
 
 ## 二、由五问推出的执行顺序
 
 ### Do now（必须先做，且决定后面一切）
 
-1. **tab 类型补元数据**：`icon`、`badge`、`order`（+ 声明式可见性：default-on / available / hidden），并配一门卫生门禁输出所有 kind 的 section/order/default，对重复 `order` 与超预算默认开启报错。
-2. **确立准入判据**：新增 kind 需拥有独立 `dsh-resource://<type>/…` 地址域；写入文档与门禁。
+1. **tab 类型补元数据**：`icon`、`order`（+ 声明式可见性：default-on / available / hidden），并配一门卫生门禁输出所有 kind 的区段（由 `order` 派生）／order／默认态，对重复 `order` 与超预算默认开启报错；`badge?` 与 `section?` 缓做，依据 [r2-metadata-and-visibility/03-conclusion.md](r2-metadata-and-visibility/03-conclusion.md) 第 2 条（Rule of Three）。
+2. **确立准入判据**：**认领地址的 tab 类型**需拥有独立 `dsh-resource://<type>/…` 地址域；**页类型豁免**（按 kind 打开、不认地址），否则该判据会拒绝它自己所促成的页类型。已写入文档与门禁。
 3. **只读调查**：`@linxin666/dsh-client-ui-git-graph` 上游是否已修（已装但被 `disabled`）。
 
 ### Next（价值项，按此顺序）
