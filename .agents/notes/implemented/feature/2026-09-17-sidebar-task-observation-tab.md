@@ -22,7 +22,7 @@ Four decisions inside the body are worth stating.
 
 **The progress trough uses `--dsw-alias-bg-layer-1`, not the elevated `-2`.** `ui-theme`'s scrollbar audit fails any stylesheet that scrolls while referencing an elevated surface it does not rebind, because the scrollbar thumb rung then differs from the surface in the dark palette only. The panel's own surface is transparent, so rebinding the thumb to the l2 rung would state something false about it; using the base rung is the truthful choice, and the audit's own definition of the elevated set excludes it.
 
-**The tab is a page type claiming no address**, reached from its guide entry at order 20, so it opens the way the file tree does and nothing in `ui-sidebar-right` needs to know this package exists. It is composed as a core `web-app` row rather than a profile-local plugin, which is what makes it available to every Web deployment.
+**The tab is a page type claiming no address and declares `visibility: 'default-on'` at order 10 with its own `icon`,** so a fresh surface opens it beside the guide and the strip's type picker draws it first ([the default-visible set](../architecture/2026-09-17-sidebar-right-default-visible-set.md)). Its guide entry at order 20 stays, which is how a user brings it back after closing it. Nothing in `ui-sidebar-right` needs to know this package exists. It is composed as a core `web-app` row rather than a profile-local plugin, which is what makes it available to every Web deployment.
 
 ## Alternatives considered
 

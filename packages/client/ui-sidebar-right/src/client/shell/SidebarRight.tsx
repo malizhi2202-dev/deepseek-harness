@@ -12,9 +12,12 @@
  * the panel. A fullscreen opening reserves its underlying track only after
  * the panel covers the frame, without animating those hidden columns.
  *
- * The panel has no header of its own: its two controls — presentation switch
- * and collapse — ride the docking kit's chrome seat at the end of the top-right
- * pane's tab strip, so the strip is the panel's whole top edge. The way back in
+ * The panel has no header of its own: its controls — the type picker, the
+ * presentation switch, and the collapse — ride the docking kit's chrome seat at
+ * the end of the top-right pane's tab strip, so the strip is the panel's whole
+ * top edge. The type picker is the strip's overflow entry: it lists the page
+ * types a user can open, in their declared `order`, which is how a type the
+ * surface does not show stays reachable. The way back in
  * while collapsed is not here either: it is one button in the conversation
  * header (`ExpandButton.tsx`), because it exists only while this panel is
  * hidden. Floating panels portal out because they must cross the column and the
@@ -27,7 +30,7 @@
  * signal, actions — is read through the slot-owned useTabInfo hook. The Tab
  * domain follows each session's store commits, including sessions off screen.
  */
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import type {
@@ -36,10 +39,12 @@ import type {
 // The frame declares the `rightbar` seat this component fills.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { DockIntents, DockMode, FloatRect, TabId, TabRecord, TabRenderer } from '@deepseek-ai/dsh-client-ui-dockkit'
-import { canSplit, dockPaneIds, DockSurface, findPaneContentTab, FloatLayer } from '@deepseek-ai/dsh-client-ui-dockkit'
+import { canSplit, dockPaneIds, DockSurface, findPaneContentTab, FloatLayer, topRightPaneId } from '@deepseek-ai/dsh-client-ui-dockkit'
 import type { HalvesFit, LayoutState, PaneId } from '@deepseek-ai/dsh-client-ui-dockkit'
+import { IconEllipsisOutline16, Menu, type MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { GUIDE_KIND, pageAddress } from '../contract/seed.ts'
+import { DEFAULT_ORDER } from '../contract/visibility.ts'
 import { dockLabels } from '../labels.ts'
 import type { SidebarRightOpenTabOptions } from '../service.ts'
 import type { SidebarRightTabDefinition } from '../tab-registry.ts'
@@ -248,11 +253,86 @@ function CloseGlyph(): ReactNode {
   )
 }
 
-/** The panel's two controls, placed by the kit at the top-right pane's strip end. */
-function PanelChrome({ sessionId, fullscreen, autoFullscreen, actions, t }: Pick<PanelProps, 'sessionId' | 'actions' | 't' | 'fullscreen' | 'autoFullscreen'>): ReactNode {
+/**
+ * The strip's overflow entry: the rows of the type menu, in the order the types
+ * declared.
+ *
+ * Only page types are offered. A viewer is opened by resolving an address — a
+ * file, a link, a mention — so a menu that names kinds has nothing to give it.
+ * @param types - every registered type, in registration order.
+ * @param skipKind - the kind the pane's own add control already opens.
+ * @returns the menu rows, one per offered kind.
+ */
+function typePickerRows(types: readonly SidebarRightTabDefinition[], skipKind: string): readonly MenuEntry[] {
+  return types
+    .filter(definition => definition.patterns === undefined
+      && definition.kind !== skipKind
+      && definition.visibility !== 'hidden')
+    .sort((left, right) => (left.order ?? DEFAULT_ORDER) - (right.order ?? DEFAULT_ORDER))
+    .map((definition): MenuEntry => {
+      const Icon = definition.icon
+      return {
+        id: definition.kind,
+        label: definition.title(pageAddress(definition.kind)),
+        ...Icon === undefined ? {} : { icon: <Icon size={16} /> },
+      }
+    })
+}
+
+/**
+ * The type picker: a menu of the page types a user can open in this pane.
+ *
+ * The kit's add control opens the pane's guide; this is how a user reaches a
+ * type the surface does not show — the ones a fresh surface does not open, and
+ * the ones its owner closed.
+ */
+function TypePicker({
+  paneId, openTab, useTabTypes, t,
+}: Pick<PanelProps, 'openTab' | 'useTabTypes' | 't'> & {
+  /** The pane the picked type opens in. */
+  readonly paneId: PaneId
+}): ReactNode {
+  const [open, setOpen] = useState(false)
+  const types = useTabTypes(definitions => definitions)
+  return (
+    <Menu
+      open={open}
+      anchor={(
+        <button
+          type="button"
+          className={css.iconButton}
+          aria-label={t('chrome.moreTypes')}
+          aria-haspopup="menu"
+          title={t('chrome.moreTypes')}
+          data-sidebar-right-type-picker
+          onClick={() => { setOpen(!open) }}
+        >
+          <IconEllipsisOutline16 />
+        </button>
+      )}
+      items={typePickerRows(types, GUIDE_KIND)}
+      align="end"
+      portal
+      onSelect={(kind) => {
+        setOpen(false)
+        openTab(kind, { paneId })
+      }}
+      onClose={() => { setOpen(false) }}
+    />
+  )
+}
+
+/** The panel's controls, placed by the kit at the top-right pane's strip end. */
+function PanelChrome({
+  sessionId, fullscreen, autoFullscreen, actions, t, paneId, openTab, useTabTypes,
+}: Pick<PanelProps, 'sessionId' | 'actions' | 't' | 'fullscreen' | 'autoFullscreen' | 'openTab' | 'useTabTypes'> & {
+  /** The pane this chrome belongs to, where a picked type opens. */
+  readonly paneId: PaneId
+}): ReactNode {
   const next: DockMode = fullscreen ? 'push' : 'fullscreen'
   return (
     <>
+      <TypePicker paneId={paneId} openTab={openTab} useTabTypes={useTabTypes} t={t} />
       <button
         type="button"
         className={css.iconButton}
@@ -285,7 +365,9 @@ function PanelChrome({ sessionId, fullscreen, autoFullscreen, actions, t }: Pick
  * anchored to the frame's right edge and slid off it while collapsed.
  */
 function SidebarPanel(panel: PanelProps & { width: number; panelRef: RefObject<HTMLDivElement> }): ReactNode {
-  const { sessionId, surface, actions, t, renderSlot, openTab, width, reportRoom, fullscreen, autoFullscreen, panelRef } = panel
+  const {
+    sessionId, surface, actions, t, renderSlot, openTab, useTabTypes, width, reportRoom, fullscreen, autoFullscreen, panelRef,
+  } = panel
   const { expanded } = surface.layout
   return (
     <div
@@ -313,7 +395,18 @@ function SidebarPanel(panel: PanelProps & { width: number; panelRef: RefObject<H
           renderTabTitle={titlesFor(panel)}
           renderTabMenuItems={(tab, dismiss) =>
             renderSlot('sidebar.right.tab.menu.item', { tab, dismiss })}
-          chrome={<PanelChrome sessionId={sessionId} fullscreen={fullscreen} autoFullscreen={autoFullscreen} actions={actions} t={t} />}
+          chrome={(
+            <PanelChrome
+              sessionId={sessionId}
+              fullscreen={fullscreen}
+              autoFullscreen={autoFullscreen}
+              actions={actions}
+              t={t}
+              paneId={topRightPaneId(surface.layout)}
+              openTab={openTab}
+              useTabTypes={useTabTypes}
+            />
+          )}
           onRoom={reportRoom}
         />
       </div>

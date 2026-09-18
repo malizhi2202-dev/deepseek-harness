@@ -19,7 +19,7 @@
 | [`client/resources`](../../packages/client/resources/README.zh.md) | `ctx.resources`、`useResource`、协议 → 值类型的花名册 `ResourceProtocolMap` |
 | [`api/workspace-files`](../../packages/api/workspace-files/README.zh.md) | Host `ctx.workspaceFiles`、`workspaceFiles` Remote 命名空间与 Client `file` 资源提供者 |
 | [`util/workspace-path`](../../packages/util/workspace-path/README.zh.md) | 文件地址语法：`fileAddressFor`、`parseFileAddress` |
-| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.zh.md)、[`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.zh.md) | 内置的 `text` 与 `files` 类型 |
+| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.zh.md)、[`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.zh.md)、[`client/ui-sidebar-tasks`](../../packages/client/ui-sidebar-tasks/README.zh.md) | 内置的 `text`、`files` 与 `tasks` 类型 |
 
 ## 地址
 
@@ -38,12 +38,21 @@ tab 身份是 `(kind, address)` 二元组：注册表的认领把地址原文用
 | 字段 | 含义 |
 |---|---|
 | `id` | 该实现的身份，在所有注册中唯一；包名是自然取值（`@deepseek-ai/dsh-client-ui-sidebar-files`）。正文与标题坑位按它注册。 |
-| `kind` | 类型的判别名：它的 tab 是什么，也是 `openTab` 点名的对象。不唯一——extension 可以接管 builtin 的 kind。内置 kind 为 `guide`、`text`、`files`。 |
+| `kind` | 类型的判别名：它的 tab 是什么，也是 `openTab` 点名的对象。不唯一——extension 可以接管 builtin 的 kind。内置 kind 为 `guide`、`text`、`files`、`tasks`。 |
 | `patterns` | 可选的资源地址 glob；按 kind 打开的页面类型省略。含 `:` 的模式匹配整个地址（`dsh-resource://file/**`）；不含的匹配 URL 的路径部分且任意深度都中（`*.md`），不是 URL 的地址不会命中此类模式。匹配不分大小写、不隐藏 dotfile；语法为 picomatch 的 POSIX 方言。 |
 | `priority` | 三档字面量之一：`extension`（缺省且最高：产品之外的类型压过所有内置查看器）、`builtin`（随产品发布的类型）、`fallback`（任何更具体的类型都应压过的纯内容查看器）。 |
 | `canOpen(address)` | 可选的同步否决，对 glob 命中生效；每次路由决策都会调用。 |
 | `title(address)` | chip 文本，在 tab 打开时捕获进布局记录，之后不再改写。 |
 | `guide` | 可选的引导页入口框：`{ order, title(), description(), icon? }`。点一框即把贡献它的类型作为页面打开；省略即不上引导页。 |
+| `icon` | 可选字形，tab 条的类型选择器画在该类型一行上。`default-on` 类型必填，好让自动打开的 tab 仍可辨认。 |
+| `order` | 类型在页面类型中的排位：类型选择器按升序列出，新面板也按它打开自己的 `default-on` 类型。产品内类型取 0 到 999；产品之外的类型自 1000 起（`THIRD_PARTY_ORDER_MIN`）。 |
+| `visibility` | 在用户开口之前，该类型想要占多少栏：`default-on`（新面板自动打开它的页面）、`available`（缺省：选择器列出它，用户开口才打开）、`hidden`（不自动打开，选择器也不列出；它的引导页入口框与 `openTab` 仍可到达）。 |
+
+新面板诞生时带着自己的引导页，以及每个 `default-on` 类型各一个 tab，按 `order` 升序落在第一个格子里；这些 tab 属于初始布局，因此回退止步于它们，关掉其中一个也不会被撤销。最多三个类型可声明 `default-on`（`contract/visibility.ts` 中的 `MAX_DEFAULT_VISIBLE_TABS`）：注册表中越过该上限的那次注册抛错，评审中由 `verify-sidebar-right-tab-types` 拒绝该声明。`default-on` 类型必须声明 `icon` 且必须是页面类型——查看器没有自己的页面可开，注册表直接拒绝这一组合，而不是少开几个 tab 却仍声称按声明执行。除此之外没有别的东西决定默认集：既不是注册顺序，也不是一份 kind 名单。
+
+新 kind 的准入只有一个条件：它必须独占自己的 `dsh-resource://<type>/` 地址域，且不认领别的域。页面类型豁免，因为它按 kind 打开、不认领任何地址；内置的 `guide`、`files`、`tasks` 正是因此不声明 `patterns`。`verify-sidebar-right-tab-types` 读取每一份已发布定义，把整个名册以 `kind`、区段、order、默认状态、地址域列出，并在定义违反上述任何一条规则时报错。
+
+tab 条的类型选择器是面板自己进入该列的入口：chrome 里的一个菜单，按 `order` 升序列出已注册的页面类型并画出各自的 `icon`，选中即对所在格子调用 `openTab(kind, { paneId })`。它略去引导页（tab 条的添加控件负责打开它）与所有 `hidden` 类型；查看器永远不列出，因为它靠解析地址打开。
 
 路由是一次排序认领。`candidates(address)` 对模式命中且未被 `canOpen` 否决的类型排序：先按档，再按最长命中模式的长度，最后按注册顺序。`claim(address, kind?)` 取第一个候选，或直接用点名的 `kind`——跳过它的 glob，但 `canOpen` 仍生效——返回 `{ kind, contentId: address, title }`。没有任何类型认领的地址会抛错：这是接线错误，不是用户错误。
 
@@ -82,7 +91,7 @@ export function apply(ctx: Context): void {
 | `kind`（仅 `openResource`） | 点名打开类型而不排候选；该 kind 的生效实现打开地址，它的 `canOpen` 仍生效。 |
 | `params` | 给正文的导航参数，作为 `navigation.params` 送达。`openResource` 按资源类型经声明合并表 `SidebarRightResourceParamsMap` 定型（文本预览声明 `{ line?: number }`）；`openTab<K>` 按 kind 经 `SidebarRightTabParamsMap` 定型，未声明的 kind 为 `undefined`；正文读到的是二者联合 `SidebarRightNavigationParams`。值按约定为 JSON 形状，运行时不校验。 |
 
-落位是调用方的选项，从不是类型的属性。会话区调 `openResource(fileAddressFor(sessionId, cwd, path))`，`read` 工具行另加 `{ params: { line } }`（来自调用的 1 起 `offset`）；引导页入口框调 `tab.actions.openTab(entry.kind, { replaceTab: true })`；文件树的行调 `tab.actions.openResource(address)`；tab 条的新增控件调 `openTab('guide', { paneId, revealIfOpened: false })`。
+落位是调用方的选项，从不是类型的属性。会话区调 `openResource(fileAddressFor(sessionId, cwd, path))`，`read` 工具行另加 `{ params: { line } }`（来自调用的 1 起 `offset`）；引导页入口框调 `tab.actions.openTab(entry.kind, { replaceTab: true })`；文件树的行调 `tab.actions.openResource(address)`；tab 条的新增控件调 `openTab('guide', { paneId, revealIfOpened: false })`；tab 条的类型选择器按 `order` 列出 `available` 与 `default-on` 的页面类型，调 `openTab(kind, { paneId })`。
 
 `close(tabId)` 关闭一个 tab；`active()` 返回活动 pane 的活动 tab；`isExpanded()` 与 `toggleExpanded()` 读取与翻转这一列，翻转记入序列。无会话时读操作返回 `undefined` 或 `false`；写操作需要已挂载的会话面，没有时抛错而不是写进没人绘制的面。
 
@@ -119,9 +128,10 @@ Host 的 `ctx.workspaceFiles` 服务与生成的 `workspaceFiles` Remote 命名�
 
 ## 内置类型
 
-- **`guide`**——`builtin`，以 `openTab('guide')` 打开。居中标题、一行说明，以及已注册类型贡献的每个 `guide` 入口一框、按 `order` 排列；点一框即在引导 tab 的位置把贡献它的类型作为页面打开。每个 pane 最多一个引导 tab，每个新 pane 都种入一个，tab 条的新增控件只在本 pane 没有引导时出现（[引导](../../packages/client/ui-sidebar-right/README.zh.md#the-guide)）。
-- **`text`**——`fallback`，`dsh-resource://file/**`。经 `useResource<'file'>` 读元数据、经 `read` 按页读文件行；每次导航都响应 `params.line`；页、滚动与换行放在自己的 store 里（[README](../../packages/client/ui-sidebar-textpreview/README.zh.md)）。
-- **`files`**——`builtin`，以 `openTab('files')` 打开。工作区目录树，经 `list` 懒加载，用 `tab.actions.openResource(fileAddressFor(sessionId, root, path))` 在自己所在 pane 打开文件（[README](../../packages/client/ui-sidebar-files/README.zh.md)）。
+- **`guide`**——`builtin`、`available`、order 100，以 `openTab('guide')` 打开。居中标题、一行说明，以及已注册类型贡献的每个 `guide` 入口一框、按 `order` 排列；点一框即在引导 tab 的位置把贡献它的类型作为页面打开。每个 pane 最多一个引导 tab，每个新 pane 都种入一个，tab 条的新增控件只在本 pane 没有引导时出现（[引导](../../packages/client/ui-sidebar-right/README.zh.md#the-guide)）。
+- **`text`**——`fallback`、`available`、order 300，`dsh-resource://file/**`。经 `useResource<'file'>` 读元数据、经 `read` 按页读文件行；每次导航都响应 `params.line`；页、滚动与换行放在自己的 store 里（[README](../../packages/client/ui-sidebar-textpreview/README.zh.md)）。
+- **`files`**——`builtin`、`available`、order 200，以 `openTab('files')` 打开。工作区目录树，经 `list` 懒加载，用 `tab.actions.openResource(fileAddressFor(sessionId, root, path))` 在自己所在 pane 打开文件（[README](../../packages/client/ui-sidebar-files/README.zh.md)）。
+- **`tasks`**——`builtin`、`default-on`、order 10，以 `openTab('tasks')` 打开。会话的 todo 列表及进度摘要，其后是后台任务，均从浏览器状态读取；因此新面板会在引导页旁自动打开它（[README](../../packages/client/ui-sidebar-tasks/README.zh.md)）。
 
 <a id="not-built"></a>
 ## 不做
@@ -134,4 +144,5 @@ Host 的 `ctx.workspaceFiles` 服务与生成的 `workspaceFiles` Remote 命名�
 - 打开时点名某个实现：`openResource` 最多点名一个 kind，由该 kind 的生效实现应答。
 - 服务上的地址查找（`find`）：调用方用 `revealIfOpened` 打开，由停靠面去重。
 - Sidebar 自身 `sidebar://<kind>` 记账之外的导航地址；其语法等导航控制器整体做时再定。
-- 面向用户的撤销、内容导航栈、tab 图标与关闭限制（[暂缓](../../.agents/notes/implemented/feature/2026-09-04-right-sidebar-docking-infrastructure.zh.md#deferred)）。
+- 可配置的默认可见预算：`MAX_DEFAULT_VISIBLE_TABS` 是固定的产品上限，没有任何设置能改「新面板自动打开哪些类型」。
+- 面向用户的撤销、内容导航栈、类型选择器之外的类型字形与关闭限制（[暂缓](../../.agents/notes/implemented/feature/2026-09-04-right-sidebar-docking-infrastructure.zh.md#deferred)）。

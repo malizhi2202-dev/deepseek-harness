@@ -3,14 +3,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent } from '@testing-library/react'
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { SlotTestRuntime } from '@deepseek-ai/dsh-client-test-runtime'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import type { IconProps } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PaneId, SplitId, TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
 import { dockPaneIds, getPane } from '@deepseek-ai/dsh-client-ui-dockkit'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { apply, inject } from '../src/client/index.ts'
 import { intentsFor } from '../src/client/shell/SidebarRight.tsx'
+import { en, zh } from '../src/client/locales.ts'
 import type { SidebarRightTabInfo, SidebarRightTabMenuOwnerProps } from '../src/client/contract/slots.ts'
 import type { createSidebarRightStore } from '../src/client/stores.ts'
 
@@ -462,6 +465,89 @@ describe('slot-owned useTabInfo', () => {
     expect(dockPaneIds(h.layout())).toHaveLength(1)
     expect(splitButtons()).toHaveLength(1)
     expect(splitButtons()[0]?.disabled).toBe(false)
+  })
+})
+
+describe('the strip type picker', () => {
+  /** A glyph the picker can draw, distinguishable from every shipped one. */
+  function TestGlyph({ size }: IconProps): ReactNode {
+    return <svg data-test-glyph={size} />
+  }
+
+  /** Every picker row, in the order the menu draws them. */
+  function rows(): HTMLElement[] {
+    return [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+  }
+
+  /** Register the page types a picker can offer, plus one viewer and one hidden type. */
+  function registerTypes(h: Awaited<ReturnType<typeof mountSeat>>): void {
+    act(() => {
+      h.runtime.ctx.sidebarRightTabs.register({
+        id: 'test/tasks', kind: 'tasks', priority: 'builtin', order: 10, visibility: 'default-on',
+        icon: TestGlyph, title: () => 'Todo',
+      })
+      h.runtime.ctx.sidebarRightTabs.register({
+        id: 'test/files', kind: 'files', priority: 'builtin', order: 200, visibility: 'available',
+        icon: TestGlyph, title: () => 'Files',
+      })
+      h.runtime.ctx.sidebarRightTabs.register({
+        id: 'test/plain', kind: 'plain', priority: 'builtin', title: () => 'Plain',
+      })
+      h.runtime.ctx.sidebarRightTabs.register({
+        id: 'test/extra', kind: 'extra', priority: 'builtin', title: () => 'Extra',
+      })
+      h.runtime.ctx.sidebarRightTabs.register({
+        id: 'test/secret', kind: 'secret', priority: 'builtin', order: 400, visibility: 'hidden',
+        title: () => 'Secret',
+      })
+    })
+  }
+
+  it('offers the page types in order with their declared glyphs, and opens the picked one in the pane', async () => {
+    const h = await mountSeat()
+    h.open()
+    registerTypes(h)
+    const trigger = element(h.view.container, '[data-sidebar-right-type-picker]')
+    expect([en['chrome.moreTypes'], zh['chrome.moreTypes']]).toContain(trigger.getAttribute('aria-label'))
+    expect(trigger.getAttribute('aria-haspopup')).toBe('menu')
+    expect(rows()).toEqual([])
+    fireEvent.click(trigger)
+    // The guide is skipped (the strip's add control opens it), the viewer claims no kind, and the
+    // hidden type is not offered.
+    // `plain` and `extra` declare no order, so they sort at the default between the two.
+    expect(rows().map(row => row.textContent)).toEqual(['Todo', 'Plain', 'Extra', 'Files'])
+    expect(rows()[0]?.querySelector('[data-test-glyph="16"]')).not.toBeNull()
+    expect(rows()[1]?.querySelector('[data-test-glyph]')).toBeNull()
+    const recorded = h.instance.getSnapshot().bySession[SESSION]!.history.entries.length
+    fireEvent.click(rows()[3]!)
+    expect(h.controller.active()!.kind).toBe('files')
+    expect(rows()).toEqual([])
+    expect(h.instance.getSnapshot().bySession[SESSION]?.history.entries).toHaveLength(recorded + 1)
+  })
+
+  it('closes on Escape and on a press outside without opening anything', async () => {
+    const h = await mountSeat()
+    h.open()
+    registerTypes(h)
+    const active = h.controller.active()!.id
+    const trigger = element(h.view.container, '[data-sidebar-right-type-picker]')
+    fireEvent.click(trigger)
+    expect(rows()).toHaveLength(4)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(rows()).toEqual([])
+    fireEvent.click(trigger)
+    expect(rows()).toHaveLength(4)
+    fireEvent.pointerDown(document.body)
+    expect(rows()).toEqual([])
+    expect(h.controller.active()!.id).toBe(active)
+  })
+
+  it('seeds a session opened after a default-on type registered, through the real plugin graph', async () => {
+    const h = await mountSeat()
+    registerTypes(h)
+    await act(async () => { h.actions.open(OTHER) })
+    const layout = h.instance.getSnapshot().bySession[OTHER]!.layout
+    expect(getPane(layout, layout.rootId).tabs.map(id => layout.tabs[id]?.kind)).toEqual(['guide', 'tasks'])
   })
 })
 

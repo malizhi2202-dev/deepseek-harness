@@ -11,11 +11,13 @@ import { describe, expect, it, vi } from 'vitest'
 import type { LayoutState, PaneId, TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
 import { dockPaneIds, findTabPane, getPane, getSplit } from '@deepseek-ai/dsh-client-ui-dockkit'
 import { createSidebarRightStore } from '../src/client/stores.ts'
+import type { SidebarRightSeedTab } from '../src/client/contract/seed.ts'
 
 const SESSION = 's-test'
+const OTHER = 's-other'
 
 function harness() {
-  const instance = createSidebarRightStore(() => 'Start').create()
+  const instance = createSidebarRightStore({ title: () => 'Start', tabs: () => [] }).create()
   instance.actions.open(SESSION)
   const surface = () => {
     const held = instance.getSnapshot().bySession[SESSION]
@@ -268,5 +270,63 @@ describe('createSidebarRightStore — the guide\'s uniqueness', () => {
     actions.placeTab(SESSION, guide(), pane, 2)
     expect(getPane(layout(), pane).tabs.at(-1)).toBe(guide())
     expect(Object.values(layout().tabs).filter(tab => tab.kind === 'guide')).toHaveLength(1)
+  })
+})
+
+describe('createSidebarRightStore — the default-visible seed', () => {
+  const tasks: SidebarRightSeedTab = { kind: 'tasks', contentId: 'sidebar://tasks', title: 'Todo' }
+  const agents: SidebarRightSeedTab = { kind: 'agents', contentId: 'sidebar://agents', title: 'Agents' }
+
+  /** A store whose fresh surfaces open the given page tabs, and one opened session. */
+  function seeded(tabs: () => readonly SidebarRightSeedTab[]) {
+    const instance = createSidebarRightStore({ title: () => 'Start', tabs }).create()
+    instance.actions.open(SESSION)
+    const surface = instance.getSnapshot().bySession[SESSION]
+    if (surface === undefined) throw new Error('expected a surface')
+    return { instance, surface }
+  }
+
+  /** Kinds of one docked pane, in strip order. */
+  function kinds(layout: LayoutState, paneId: string): (string | undefined)[] {
+    return getPane(layout, paneId as PaneId).tabs.map(id => layout.tabs[id]?.kind)
+  }
+
+  it('seats the default-visible tabs after the guide, in order, and leaves the first one showing', () => {
+    const { surface } = seeded(() => [tasks, agents])
+    const pane = getPane(surface.layout, surface.layout.rootId)
+    expect(kinds(surface.layout, pane.id)).toEqual(['guide', 'tasks', 'agents'])
+    const active = pane.activeTabId
+    if (active === undefined) throw new Error('expected an active tab')
+    expect(surface.layout.tabs[active]?.kind).toBe('tasks')
+    expect(surface.history.entries).toEqual([])
+  })
+
+  it('reads the seed per surface, so a session opened later gets the types registered by then', () => {
+    let tabs: readonly SidebarRightSeedTab[] = []
+    const instance = createSidebarRightStore({ title: () => 'Start', tabs: () => tabs }).create()
+    instance.actions.open(SESSION)
+    expect(kinds(instance.getSnapshot().bySession[SESSION]!.layout, instance.getSnapshot().bySession[SESSION]!.layout.rootId))
+      .toEqual(['guide'])
+    tabs = [tasks]
+    instance.actions.open(OTHER)
+    const later = instance.getSnapshot().bySession[OTHER]!
+    expect(kinds(later.layout, later.layout.rootId)).toEqual(['guide', 'tasks'])
+  })
+
+  it('cannot be stepped away, and settling a pane never reopens a closed one', () => {
+    const { instance, surface } = seeded(() => [tasks, agents])
+    const pane = getPane(surface.layout, surface.layout.rootId)
+    const seededKind = (kind: string) => {
+      const layout = instance.getSnapshot().bySession[SESSION]!.layout
+      const tab = Object.values(layout.tabs).find(held => held.kind === kind)
+      if (tab === undefined) throw new Error(`expected a ${kind} tab`)
+      return tab
+    }
+    instance.actions.undo(SESSION)
+    expect(kinds(instance.getSnapshot().bySession[SESSION]!.layout, pane.id)).toEqual(['guide', 'tasks', 'agents'])
+    instance.actions.closeTab(SESSION, seededKind('tasks').id)
+    expect(kinds(instance.getSnapshot().bySession[SESSION]!.layout, pane.id)).toEqual(['guide', 'agents'])
+    instance.actions.closeTab(SESSION, seededKind('agents').id)
+    expect(kinds(instance.getSnapshot().bySession[SESSION]!.layout, pane.id)).toEqual(['guide'])
   })
 })

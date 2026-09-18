@@ -40,6 +40,11 @@ export function basenameOf(address: string): string {
 
 /**
  * The text type's registry definition.
+ *
+ * A viewer, so nothing opens it by itself: `available` keeps it out of the
+ * default-visible set, and its `order` places it in the product band after the
+ * page types without ever reaching the type picker, which offers the kinds a
+ * user can open without an address.
  * @returns the definition to register.
  */
 export function textDefinition(): SidebarRightTabDefinition {
@@ -48,6 +53,8 @@ export function textDefinition(): SidebarRightTabDefinition {
     kind: TEXTPREVIEW_KIND,
     patterns: ['dsh-resource://file/**'],
     priority: 'fallback',
+    order: 300,
+    visibility: 'available',
     canOpen: address => parseFileAddress(address) !== undefined,
     title: basenameOf,
   }

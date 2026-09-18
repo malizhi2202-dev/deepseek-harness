@@ -19,7 +19,7 @@ A tab type is two registrations that share one `kind`: a static definition in `c
 | [`client/resources`](../../packages/client/resources/README.md) | `ctx.resources`, `useResource`, the protocol → value roster `ResourceProtocolMap` |
 | [`api/workspace-files`](../../packages/api/workspace-files/README.md) | Host `ctx.workspaceFiles`, the `workspaceFiles` Remote namespace, and the Client `file` resource provider |
 | [`util/workspace-path`](../../packages/util/workspace-path/README.md) | The file address grammar: `fileAddressFor`, `parseFileAddress` |
-| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.md), [`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.md) | The shipped `text` and `files` types |
+| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.md), [`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.md), [`client/ui-sidebar-tasks`](../../packages/client/ui-sidebar-tasks/README.md) | The shipped `text`, `files`, and `tasks` types |
 
 ## Addresses
 
@@ -38,12 +38,21 @@ Tab identity is the pair `(kind, address)`: the registry's claim uses the addres
 | Field | Meaning |
 |---|---|
 | `id` | The implementation's identity, unique across every registration; a package name is the natural value (`@deepseek-ai/dsh-client-ui-sidebar-files`). It is the key the body and title register under. |
-| `kind` | The type's discriminator: what its tabs are, and what `openTab` names. Not unique — an extension may take over a builtin's kind. The shipped kinds are `guide`, `text`, `files`. |
+| `kind` | The type's discriminator: what its tabs are, and what `openTab` names. Not unique — an extension may take over a builtin's kind. The shipped kinds are `guide`, `text`, `files`, and `tasks`. |
 | `patterns` | Optional resource-address globs the type recognizes; a page type opened by kind omits them. A pattern containing `:` matches the whole address (`dsh-resource://file/**`); one without matches the URL's path at any depth (`*.md`), and an address that is not a URL matches no such pattern. Matching is case-insensitive and does not hide dotfiles; the syntax is picomatch's POSIX dialect. |
 | `priority` | One of three literal bands: `extension` (the default and the highest: a type from outside the product outranks every shipped viewer), `builtin` (types shipped with the product), `fallback` (plain-content viewers anything more specific should beat). |
 | `canOpen(address)` | Optional synchronous veto of a glob match; it runs on every routing decision. |
 | `title(address)` | The chip's text, captured into the layout record when the tab opens and never rewritten. |
 | `guide` | Optional entry boxes for the guide page: `{ order, title(), description(), icon? }`. Picking a box opens the contributing type as a page; omit to stay off the page. |
+| `icon` | Optional glyph the strip's type picker draws on the type's row. Required for a `default-on` type, so the tab a surface opens by itself stays recognizable. |
+| `order` | Where the type ranks among the page types: the type picker lists them in ascending order, and a fresh surface opens its `default-on` types in it. Core types number from 0 to 999; a type from outside the product starts at 1000 (`THIRD_PARTY_ORDER_MIN`). |
+| `visibility` | How much of the column the type wants before a user asks for it: `default-on` (a fresh surface opens its page by itself), `available` (the default: the picker lists it and the type opens on request), or `hidden` (nothing opens it by itself and the picker omits it; its guide boxes and `openTab` still reach it). |
+
+A surface is born with its guide and one tab per `default-on` type, in ascending `order`, in the first pane; those tabs are part of the initial layout, so stepping back stops at them and closing one is not undone. At most three types may declare `default-on` (`MAX_DEFAULT_VISIBLE_TABS` in `contract/visibility.ts`): the registry throws on the registration that would exceed it, and `verify-sidebar-right-tab-types` refuses the declaration in review. A `default-on` type must declare an `icon` and must be a page type — a viewer has no page of its own to open, and the registry refuses the combination rather than seating fewer tabs than the declaration promised. Nothing else decides the default set: not registration order, not a list of kinds.
+
+A new kind is admitted on one condition: it must own its own `dsh-resource://<type>/` address domain, and claim no other. A page type is exempt, because it is opened by kind and recognizes no address; the shipped `guide`, `files`, and `tasks` types declare no `patterns` for exactly that reason. `verify-sidebar-right-tab-types` reads every shipped definition, states the whole roster as `kind`, section, order, default state, and address domain, and fails on a definition that breaks a rule above.
+
+The strip's type picker is the panel's own entry into the column: a menu in its chrome that lists the registered page types in ascending `order` with their `icon`, and calls `openTab(kind, { paneId })` for its own pane. It omits the guide, which the strip's add control opens, and every `hidden` type; a viewer is never listed, because it is opened by resolving an address.
 
 Routing is a ranked claim. `candidates(address)` ranks the types whose patterns match and whose `canOpen` does not veto: by band, then by the length of the longest matched pattern, then by registration order. `claim(address, kind?)` picks the first candidate, or the named `kind` outright — its globs are skipped, its `canOpen` still applies — and returns `{ kind, contentId: address, title }`. An address no type claims throws: it is a wiring mistake, not a user error.
 
@@ -82,7 +91,7 @@ Two opens are the navigation controller, and every way into the column calls one
 | `kind` (`openResource` only) | Name the opening type instead of ranking claims; its implementation in force opens the address, and its `canOpen` still applies. |
 | `params` | Navigation parameters for the body, delivered as `navigation.params`. `openResource` types them by resource type through the merge-extensible `SidebarRightResourceParamsMap` (the text preview declares `{ line?: number }`); `openTab<K>` types them by kind through `SidebarRightTabParamsMap`, `undefined` for a kind that declares none; a body reads `SidebarRightNavigationParams`, the union of both. Values are JSON-shaped by convention and not validated at run time. |
 
-Placement is the caller's option, never a type's property. The conversation calls `openResource(fileAddressFor(sessionId, cwd, path))` and, from a `read` tool row, adds `{ params: { line } }` from the call's 1-based `offset`; a guide entry box calls `tab.actions.openTab(entry.kind, { replaceTab: true })`; a file-tree row calls `tab.actions.openResource(address)`; the strip's add control calls `openTab('guide', { paneId, revealIfOpened: false })`.
+Placement is the caller's option, never a type's property. The conversation calls `openResource(fileAddressFor(sessionId, cwd, path))` and, from a `read` tool row, adds `{ params: { line } }` from the call's 1-based `offset`; a guide entry box calls `tab.actions.openTab(entry.kind, { replaceTab: true })`; a file-tree row calls `tab.actions.openResource(address)`; the strip's add control calls `openTab('guide', { paneId, revealIfOpened: false })`; the strip's type picker lists the `available` and `default-on` page types in `order` and calls `openTab(kind, { paneId })`.
 
 `close(tabId)` closes a tab; `active()` returns the active pane's active tab; `isExpanded()` and `toggleExpanded()` read and flip the column, the flip recorded in the sequence. Reads answer for the no-Session case with `undefined` or `false`; writes need a mounted Session surface and throw without one rather than write into a surface nobody draws.
 
@@ -119,9 +128,10 @@ The Host `ctx.workspaceFiles` service and the generated `workspaceFiles` Remote 
 
 ## Shipped types
 
-- **`guide`** — `builtin`, opened as `openTab('guide')`. A centred title, one line, and one entry box per `guide` entry the registered types contributed, in `order`; picking a box opens the contributing type as a page in the guide tab's place. A pane holds at most one guide tab, every new pane is seeded with one, and the strip's add control appears only while its pane has none ([guide](../../packages/client/ui-sidebar-right/README.md#the-guide)).
-- **`text`** — `fallback`, `dsh-resource://file/**`. Reads metadata through `useResource<'file'>` and the file's lines by page through `read`; honours `params.line` on every navigation; keeps pages, scroll, and wrap in its own store ([README](../../packages/client/ui-sidebar-textpreview/README.md)).
-- **`files`** — `builtin`, opened as `openTab('files')`. The workspace directory tree, listed lazily through `list`, opening a file with `tab.actions.openResource(fileAddressFor(sessionId, root, path))` into its own pane ([README](../../packages/client/ui-sidebar-files/README.md)).
+- **`guide`** — `builtin`, `available`, order 100, opened as `openTab('guide')`. A centred title, one line, and one entry box per `guide` entry the registered types contributed, in `order`; picking a box opens the contributing type as a page in the guide tab's place. A pane holds at most one guide tab, every new pane is seeded with one, and the strip's add control appears only while its pane has none ([guide](../../packages/client/ui-sidebar-right/README.md#the-guide)).
+- **`text`** — `fallback`, `available`, order 300, `dsh-resource://file/**`. Reads metadata through `useResource<'file'>` and the file's lines by page through `read`; honours `params.line` on every navigation; keeps pages, scroll, and wrap in its own store ([README](../../packages/client/ui-sidebar-textpreview/README.md)).
+- **`files`** — `builtin`, `available`, order 200, opened as `openTab('files')`. The workspace directory tree, listed lazily through `list`, opening a file with `tab.actions.openResource(fileAddressFor(sessionId, root, path))` into its own pane ([README](../../packages/client/ui-sidebar-files/README.md)).
+- **`tasks`** — `builtin`, `default-on`, order 10, opened as `openTab('tasks')`. The session's todo list with its progress summary, then its background jobs, both read from browser state; a fresh surface therefore opens it beside the guide ([README](../../packages/client/ui-sidebar-tasks/README.md)).
 
 <a id="not-built"></a>
 ## Not built
@@ -134,4 +144,5 @@ The Host `ctx.workspaceFiles` service and the generated `workspaceFiles` Remote 
 - Naming an implementation when opening: `openResource` names a kind at most, and the kind's implementation in force answers.
 - An address lookup on the service (`find`): a caller opens with `revealIfOpened` and lets the surface de-duplicate.
 - Navigation addresses beyond the Sidebar's own `sidebar://<kind>` bookkeeping; their grammar waits for the navigation controller as a whole.
-- A user-facing undo, a content navigation stack, tab icons, and closing restrictions ([deferred](../../.agents/notes/implemented/feature/2026-09-04-right-sidebar-docking-infrastructure.md#deferred)).
+- A configurable default-visible budget: `MAX_DEFAULT_VISIBLE_TABS` is a fixed product ceiling, and no setting edits which types a surface opens by itself.
+- A user-facing undo, a content navigation stack, type glyphs outside the type picker, and closing restrictions ([deferred](../../.agents/notes/implemented/feature/2026-09-04-right-sidebar-docking-infrastructure.md#deferred)).

@@ -403,13 +403,14 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     await page.locator('[data-sample="bash"] ~ div [data-terminal] [class*="_copyButton_"]').first().click()
     await expect.poll(() => frame.getAttribute('data-rightbar-collapsed'), { timeout: 5_000 }).toBe('true')
     // Read summaries are file links: one click opens the file as a text-preview
-    // tab in the right Sidebar, which expands to show it beside the guide tab.
+    // tab in the right Sidebar, which expands to show it beside the guide and
+    // the tasks tab a fresh surface seats.
     const fileLink = page.locator('[data-variant="read"] button').first()
     await fileLink.waitFor({ timeout: 10_000 })
     await fileLink.click()
     await expect.poll(() => frame.getAttribute('data-rightbar-collapsed'), { timeout: 5_000 }).toBe(null)
     const column = page.locator('[data-rightbar-col]')
-    await expect.poll(() => column.locator('[data-dockkit-tab-title]').count(), { timeout: 5_000 }).toBe(2)
+    await expect.poll(() => column.locator('[data-dockkit-tab-title]').count(), { timeout: 5_000 }).toBe(3)
     // Put the column back so later cases start from the default frame.
     await column.locator('[data-sidebar-right-toggle]').click()
     await expect.poll(() => frame.getAttribute('data-rightbar-collapsed'), { timeout: 5_000 }).toBe('true')

@@ -11,14 +11,21 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { SidebarRightTabRegistry } from '../src/client/tab-registry.ts'
 import type { SidebarRightTabDefinition } from '../src/client/tab-registry.ts'
+import { MAX_DEFAULT_VISIBLE_TABS } from '../src/client/contract/visibility.ts'
 
-/** A type recognizing `patterns`, titled by its kind. */
+/** A type recognizing `patterns`, titled by its kind; an empty list makes it a page type. */
 function typeFor(
   kind: string,
   patterns: readonly string[],
   extra: Partial<Omit<SidebarRightTabDefinition, 'kind' | 'patterns'>> = {},
 ): SidebarRightTabDefinition {
-  return { id: `test/${kind}`, kind, patterns, title: address => `${kind}:${address}`, ...extra }
+  return {
+    id: `test/${kind}`,
+    kind,
+    ...patterns.length === 0 ? {} : { patterns },
+    title: address => `${kind}:${address}`,
+    ...extra,
+  }
 }
 
 /** Kinds of the ranked candidates, best first. */
@@ -282,5 +289,61 @@ describe('SidebarRightTabRegistry — lifetime', () => {
     expect(registry.entries()).toBe(first)
     registry.register(typeFor('guide', ['sidebar://guide']))
     expect(registry.entries()).not.toBe(first)
+  })
+})
+
+describe('SidebarRightTabRegistry — the default-visible set', () => {
+  it('seats only the default-on page types, in order, titled at read time', () => {
+    const registry = new SidebarRightTabRegistry(new Context())
+    registry.register(typeFor('files', [], { order: 200, visibility: 'available' }))
+    registry.register(typeFor('tasks', [], { order: 20, visibility: 'default-on', title: () => 'Todo' }))
+    registry.register(typeFor('text', ['dsh-resource://file/**']))
+    registry.register(typeFor('agents', [], { order: 10, visibility: 'default-on', title: () => 'Agents' }))
+    expect(registry.defaultTabs()).toEqual([
+      { kind: 'agents', contentId: 'sidebar://agents', title: 'Agents' },
+      { kind: 'tasks', contentId: 'sidebar://tasks', title: 'Todo' },
+    ])
+  })
+
+  it('is empty while no registration declares default-on, and stable between reads', () => {
+    const registry = new SidebarRightTabRegistry(new Context())
+    registry.register(typeFor('files', [], { order: 200, visibility: 'available' }))
+    registry.register(typeFor('secret', [], { order: 300, visibility: 'hidden' }))
+    const first = registry.defaultTabs()
+    expect(first).toEqual([])
+    expect(registry.defaultTabs()).not.toBe(first)
+  })
+
+  it('refuses a default-on viewer, which has no page of its own to open', () => {
+    const registry = new SidebarRightTabRegistry(new Context())
+    expect(() => registry.register(typeFor('text', ['dsh-resource://file/**'], { visibility: 'default-on' })))
+      .toThrow(/default-on but recognizes addresses/)
+  })
+
+  it('refuses a fourth default-on type once the budget is taken, whatever its band', () => {
+    const registry = new SidebarRightTabRegistry(new Context())
+    for (const kind of ['tasks', 'agents', 'goals']) {
+      registry.register(typeFor(kind, [], { visibility: 'default-on' }))
+    }
+    expect(() => registry.register(typeFor('files', [], { visibility: 'default-on', priority: 'builtin' })))
+      .toThrow(new RegExp(`exceeds the default-visible budget of ${MAX_DEFAULT_VISIBLE_TABS}`))
+  })
+
+  it('counts a kind once when an extension takes over a default-on builtin', () => {
+    const registry = new SidebarRightTabRegistry(new Context())
+    registry.register(typeFor('tasks', [], { id: 'builtin/tasks', visibility: 'default-on', priority: 'builtin' }))
+    registry.register(typeFor('tasks', [], { id: 'extension/tasks', visibility: 'default-on' }))
+    registry.register(typeFor('agents', [], { visibility: 'default-on' }))
+    registry.register(typeFor('goals', [], { visibility: 'default-on' }))
+    expect(registry.defaultTabs().map(tab => tab.kind)).toEqual(['tasks', 'agents', 'goals'])
+    expect(() => registry.register(typeFor('files', [], { visibility: 'default-on' }))).toThrow(/budget/)
+  })
+
+  it('frees the budget when a default-on type is disposed', () => {
+    const registry = new SidebarRightTabRegistry(new Context())
+    const kinds = ['tasks', 'agents', 'goals']
+    const disposers = kinds.map(kind => registry.register(typeFor(kind, [], { visibility: 'default-on' })))
+    disposers[0]!()
+    expect(() => registry.register(typeFor('files', [], { visibility: 'default-on' }))).not.toThrow()
   })
 })

@@ -17,6 +17,10 @@ export const TASKS_ID = '@deepseek-ai/dsh-client-ui-sidebar-tasks'
 
 /**
  * The tasks type's registry definition.
+ *
+ * `default-on`: a fresh surface opens this tab, because the session's own
+ * progress is what a user watches without asking. That makes its `icon`
+ * required, and its `order` seats it ahead of every type a user has to open.
  * @param t - namespace-bound translate, read fresh on every label call.
  * @returns the definition to register.
  */
@@ -25,6 +29,9 @@ export function tasksDefinition(t: TranslateNS<'sidebarTasks'>): SidebarRightTab
     id: TASKS_ID,
     kind: TASKS_KIND,
     priority: 'builtin',
+    order: 10,
+    visibility: 'default-on',
+    icon: IconChecklistOutline14,
     title: () => t('type.label'),
     guide: [{
       order: 20,

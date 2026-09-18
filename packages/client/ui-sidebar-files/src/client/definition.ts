@@ -18,6 +18,10 @@ export const FILES_ID = '@deepseek-ai/dsh-client-ui-sidebar-files'
 
 /**
  * The files type's registry definition.
+ *
+ * `available`: nothing opens the tree by itself, and the type picker draws it
+ * with the same glyph its guide box carries, so a user who has closed the tab
+ * finds it again.
  * @param t - namespace-bound translate, read fresh on every label call.
  * @returns the definition to register.
  */
@@ -26,6 +30,9 @@ export function filesDefinition(t: TranslateNS<'sidebarFiles'>): SidebarRightTab
     id: FILES_ID,
     kind: FILES_KIND,
     priority: 'builtin',
+    order: 200,
+    visibility: 'available',
+    icon: IconFolderClose16,
     title: () => t('type.label'),
     guide: [{
       order: 10,

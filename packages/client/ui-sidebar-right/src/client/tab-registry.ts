@@ -21,6 +21,14 @@
  * builtin resumes when the extension unregisters. Everything else colliding on
  * a kind throws, as does a second registration of an `id`.
  *
+ * A definition also declares how much of the column it wants before a user asks
+ * for it. `visibility` says whether a fresh surface opens it (`default-on`),
+ * offers it in the strip's type picker (`available`, the default), or keeps it
+ * out of the picker (`hidden`); `order` ranks the declared types; and `icon` is
+ * the glyph the picker draws. The `default-on` set is bounded by
+ * `MAX_DEFAULT_VISIBLE_TABS`, and a registration that would exceed it throws
+ * rather than silently seating fewer tabs than the declaration promised.
+ *
  * Thunked copy (`title`, `guide[].title`) is read again on every use, so a
  * language change needs no re-registration.
  */
@@ -31,6 +39,10 @@ import { notifySubscribers } from '@deepseek-ai/dsh-client-store'
 // The POSIX build: the browser bundle must not reach for node's `path`, and
 // addresses are `/`-separated regardless of the host platform.
 import picomatch from 'picomatch/posix'
+import type { SidebarRightSeedTab } from './contract/seed.ts'
+import { pageSeedTab } from './contract/seed.ts'
+import type { SidebarRightTabVisibility } from './contract/visibility.ts'
+import { DEFAULT_ORDER, DEFAULT_VISIBILITY, MAX_DEFAULT_VISIBLE_TABS } from './contract/visibility.ts'
 
 /**
  * How strongly a type wants an address it recognizes, as one of three literal
@@ -123,6 +135,33 @@ export interface SidebarRightTabDefinition {
   readonly title: (address: string) => string
   /** Entry boxes for the guide page. Omit to stay off it. */
   readonly guide?: readonly SidebarRightGuideEntry[]
+  /**
+   * The type's glyph, drawn wherever the column names it without a body — the
+   * strip's type picker today, an icon-only strip if the column ever narrows to
+   * one. Required for a `default-on` type: the tab it opens by itself has to
+   * stay recognizable among the chips already there.
+   */
+  readonly icon?: ComponentType<IconProps>
+  /**
+   * Where the type ranks in the column's own sequence, ascending: the order a
+   * fresh surface seats its `default-on` tabs in, and the order the type picker
+   * lists types in. Registration order breaks a tie.
+   *
+   * Bands: `0`–`DEFAULT_ON_ORDER_MAX` belongs to `default-on` types,
+   * `DEFAULT_ORDER`–`THIRD_PARTY_ORDER_MIN - 1` to the rest of this product's
+   * types, and `THIRD_PARTY_ORDER_MIN` upward is held for types shipped from
+   * outside the product. Defaults to `DEFAULT_ORDER`, the first slot a type a
+   * user has to open may take. `verify-sidebar-right-tab-types` requires a
+   * shipped definition to name it and rejects a repeated value.
+   */
+  readonly order?: number
+  /**
+   * How much of the column the type asks for before a user opens it; see
+   * `SidebarRightTabVisibility` for the three states. Defaults to `available`,
+   * which opens nothing by itself — the behavior of a definition that declares
+   * no visibility at all.
+   */
+  readonly visibility?: SidebarRightTabVisibility
 }
 
 /** What a routing decision settles on: who draws the address, and as what. */
@@ -167,6 +206,16 @@ interface KindSlot {
  */
 function coexists(slot: KindSlot, band: SidebarRightTabPriority): boolean {
   return band !== 'fallback' && slot.inForce.band !== 'fallback' && slot.inForce.band !== band && slot.shadowed === undefined
+}
+
+/** The visibility a definition is in, declared or defaulted. */
+function visibilityOf(definition: SidebarRightTabDefinition): SidebarRightTabVisibility {
+  return definition.visibility ?? DEFAULT_VISIBILITY
+}
+
+/** The order a definition ranks at, declared or defaulted. */
+function orderOf(definition: SidebarRightTabDefinition): number {
+  return definition.order ?? DEFAULT_ORDER
 }
 
 /** How a candidate ranked, kept only while `candidates` is sorting. */
@@ -241,6 +290,7 @@ export class SidebarRightTabRegistry {
     const { id, kind } = definition
     const band = definition.priority ?? DEFAULT_BAND
     if (this.ids.has(id)) throw new Error(`sidebarRight: tab type id "${id}" is already registered`)
+    if (visibilityOf(definition) === 'default-on') this.admitDefaultVisible(definition)
     const held = this.kinds.get(kind)
     if (held !== undefined && !coexists(held, band)) {
       throw new Error(`sidebarRight: tab kind "${kind}" is already registered (${held.inForce.band})`)
@@ -263,6 +313,25 @@ export class SidebarRightTabRegistry {
       }
     }, `sidebarRight.tabs.register(${JSON.stringify(id)})`)
     return () => { void dispose() }
+  }
+
+  /** Refuse a `default-on` type the column cannot seat, rather than seeding a surface it cannot honor. */
+  private admitDefaultVisible(definition: SidebarRightTabDefinition): void {
+    if (definition.patterns !== undefined) {
+      throw new Error(`sidebarRight: tab type "${definition.id}" declares itself default-on but recognizes addresses; only a page type opens by itself`)
+    }
+    if (this.defaultVisibleCount(definition.kind) >= MAX_DEFAULT_VISIBLE_TABS) {
+      throw new Error(`sidebarRight: tab type "${definition.id}" exceeds the default-visible budget of ${MAX_DEFAULT_VISIBLE_TABS}`)
+    }
+  }
+
+  /** How many kinds other than `exceptKind` have a default-visible type in force. */
+  private defaultVisibleCount(exceptKind: string): number {
+    let count = 0
+    for (const [kind, slot] of this.kinds) {
+      if (kind !== exceptKind && visibilityOf(slot.inForce.definition) === 'default-on') count += 1
+    }
+    return count
   }
 
   /** Add a registration to its kind's slot, the higher band in force; `coexists` has already admitted it. */
@@ -313,6 +382,22 @@ export class SidebarRightTabRegistry {
    */
   guide(): readonly SidebarRightGuideBox[] {
     return this.guideEntries
+  }
+
+  /**
+   * The page tabs a fresh surface opens for the `default-on` types, in `order`.
+   *
+   * Read when a surface is minted rather than captured at registration, so a
+   * type registering after the store was built still seeds the surfaces minted
+   * after it, and its title is read in the language in force then. The guide is
+   * absent: every pane seeds one of its own.
+   * @returns one seed tab per default-visible kind.
+   */
+  defaultTabs(): readonly SidebarRightSeedTab[] {
+    return this.active()
+      .filter(entry => visibilityOf(entry.definition) === 'default-on')
+      .sort((left, right) => orderOf(left.definition) - orderOf(right.definition))
+      .map(entry => pageSeedTab(entry.definition.kind, entry.definition.title))
   }
 
   /**

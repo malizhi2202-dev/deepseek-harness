@@ -27,6 +27,9 @@ interface SidebarRightTabDefinition {
   readonly canOpen?: (address: string) => boolean       // veto after a glob matched
   readonly title: (address: string) => string           // chip text, captured at open time
   readonly guide?: readonly SidebarRightGuideEntry[]    // entry boxes on the guide page
+  readonly icon?: ComponentType<IconProps>              // glyph the strip's type picker draws
+  readonly order?: number                               // rank among the page types
+  readonly visibility?: SidebarRightTabVisibility        // 'default-on' | 'available' | 'hidden'
 }
 ```
 
@@ -37,6 +40,8 @@ interface SidebarRightTabDefinition {
 `priority` is one of three literal bands, spelled as strings so that a type from another package needs no runtime import: `extension` is the band of a type from outside the product and the highest, so a type that declares nothing outranks every viewer shipped here; `builtin` is the ordinary band for shipped types; `fallback` is the plain-content position that anything more specific should beat, which VS Code's text editor holds implicitly and our text preview holds explicitly. `candidates(address)` returns every type whose globs match and whose `canOpen` does not veto, ranked by band, then by the length of the longest pattern that matched, then by registration order. `claim(address, kind?)` takes the best candidate, or the named kind's type in force when the caller overrides (its globs are not consulted; naming the type is the decision), and throws for an address nothing will open — a wiring mistake, not a user error. `get(kind)` returns the type in force; `entries()` and `guide()` list the types and their guide boxes in force; `subscribe` observes changes.
 
 `title(address)` and `guide[].title()` are thunks read on every use, so a language change needs no re-registration. The registry itself is a plain object provided at `apply`'s top level **without** `Service.tracker`: a tracker would rebind `this.ctx` to the caller's context, and a cross-package `register()` would then add its effect to the caller's fiber while that fiber is the active scope, stalling the browser boot with no error.
+
+`order`, `visibility`, and `icon` say where the type stands in the column: `order` ranks page types for the strip's type picker, `visibility` states whether a fresh surface opens the type by itself (`default-on`), lists it (`available`, the default), or keeps it out of that list (`hidden`), and `icon` is the glyph drawn on the picker's row. `defaultTabs()` is the default-visible set the store seeds each new surface with. The budget on that set, the bands `order` may take, and the address-domain rule a new kind is admitted under belong to the [default-visible set decision](2026-09-17-sidebar-right-default-visible-set.md).
 
 ### Bodies and titles: keyed Slot seats under the definition's `id`
 
@@ -80,7 +85,7 @@ Addresses come in two families that never mix. Resource addresses are the resour
 
 ### Entry points
 
-The conversation's `openFile(path, { line? })` — tool-row path links, produced-file chips, closing-message mentions — encodes the path as a file resource address for the Session, and calls `openResource` with `params.line` when the caller knows one; the `read` tool row passes the line its `offset` argument started from. The strip's `+` calls `openTab('guide', { paneId, revealIfOpened: false })` for the pane it sits in; a guide entry box calls `tab.actions.openTab(entry.kind, { replaceTab: true })`; a file-tree row calls `tab.actions.openResource(address)`, which lands in the tree's own pane.
+The conversation's `openFile(path, { line? })` — tool-row path links, produced-file chips, closing-message mentions — encodes the path as a file resource address for the Session, and calls `openResource` with `params.line` when the caller knows one; the `read` tool row passes the line its `offset` argument started from. The strip's `+` calls `openTab('guide', { paneId, revealIfOpened: false })` for the pane it sits in, and the type picker beside it calls `openTab(kind, { paneId })`; a guide entry box calls `tab.actions.openTab(entry.kind, { replaceTab: true })`; a file-tree row calls `tab.actions.openResource(address)`, which lands in the tree's own pane.
 
 ## Alternatives considered
 
@@ -111,7 +116,7 @@ The conversation's `openFile(path, { line? })` — tool-row path links, produced
 
 ## Testing
 
-`ui-sidebar-right` specs cover the registry (bands, extension-over-builtin with resumption, `id` and same-band collisions, glob and path matching, `canOpen`, ranking and tiebreaks), both opens (normal, edge, and failure paths including the wrong scheme and an unregistered kind), `replaceTab` as one history entry, the seat resolving a kind to the implementation in force and back, `useTabInfo()` including `tab.visible` under collapse and floating, and the operational methods with their no-op and throw cases. The Web e2e suite drives the guide, the file tree, and a file open through the real plugin graph in Chromium. Both suites are keyless.
+`ui-sidebar-right` specs cover the registry (bands, extension-over-builtin with resumption, `id` and same-band collisions, glob and path matching, `canOpen`, ranking and tiebreaks, the default-visible set and its budget), both opens (normal, edge, and failure paths including the wrong scheme and an unregistered kind), `replaceTab` as one history entry, the seat resolving a kind to the implementation in force and back, `useTabInfo()` including `tab.visible` under collapse and floating, the type picker's rows and picks, and the operational methods with their no-op and throw cases. `verify-sidebar-right-tab-types` reads the shipped definitions and fails on a broken order, budget, or address-domain rule. The Web e2e suite drives the guide, the file tree, and a file open through the real plugin graph in Chromium. Both suites are keyless.
 
 ## Deferred
 

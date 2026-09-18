@@ -27,6 +27,9 @@ interface SidebarRightTabDefinition {
   readonly canOpen?: (address: string) => boolean       // veto after a glob matched
   readonly title: (address: string) => string           // chip text, captured at open time
   readonly guide?: readonly SidebarRightGuideEntry[]    // entry boxes on the guide page
+  readonly icon?: ComponentType<IconProps>              // glyph the strip's type picker draws
+  readonly order?: number                               // rank among the page types
+  readonly visibility?: SidebarRightTabVisibility        // 'default-on' | 'available' | 'hidden'
 }
 ```
 
@@ -36,7 +39,7 @@ interface SidebarRightTabDefinition {
 
 `priority` 是三个字面量档位之一，写成字符串，好让别的包的类型不需要任何运行时引入：`extension` 是来自产品之外的类型的档位也是最高档，所以什么都不声明的类型压过这里随包交付的每个查看器；`builtin` 是随包类型的常规档；`fallback` 是任何更具体的东西都应压过的纯内容位置，VS Code 的文本编辑器隐含地占据它，我们的文本预览明确地占据它。`candidates(address)` 返回 glob 命中且 `canOpen` 未否决的每个类型，按档位、再按命中的最长 pattern 长度、再按注册顺序排序。`claim(address, kind?)` 取最佳候选，或在调用方指定时取该 kind 生效的类型（不查它的 glob；点名即决定），对无人愿开的地址抛错——这是接线错误，不是用户错误。`get(kind)` 返回生效类型；`entries()` 与 `guide()` 列出生效类型及其引导入口；`subscribe` 观察变化。
 
-`title(address)` 与 `guide[].title()` 是每次使用时重读的 thunk，语言切换无需重新注册。注册表本身是 `apply` 顶层提供的普通对象，**不带** `Service.tracker`：tracker 会把 `this.ctx` 重绑到调用方上下文，跨包 `register()` 就会在调用方 fiber 仍是活动作用域时往它上加 effect，浏览器启动会无声卡死。
+`title(address)` 与 `guide[].title()` 是每次使用时重读的 thunk，语言切换无需重新注册。注册表本身是 `apply` 顶层提供的普通对象，**不带** `Service.tracker`：tracker 会把 `this.ctx` 重绑到调用方上下文，跨包 `register()` 就会在调用方 fiber 仍是活动作用域时往它上加 effect，浏览器启动会无声卡死。`order`、`visibility` 与 `icon` 说明该类型在栏里的地位：`order` 为 tab 条的类型选择器给页面类型排位，`visibility` 声明新停靠面是自动打开该类型（`default-on`）、列出它（`available`，缺省），还是把它挡在该列表之外（`hidden`），`icon` 是画在选择器那一行上的字形。`defaultTabs()` 就是 store 用来种入每个新停靠面的默认可见集。该集合的预算、`order` 可用的分段，以及新 kind 准入所依的地址域规则，属于[默认可见集那条决定](2026-09-17-sidebar-right-default-visible-set.zh.md)。
 
 ### 正文与标题：按定义 `id` keyed 的 Slot 坑位
 
@@ -80,7 +83,7 @@ interface SidebarRightTabParamsMap {}        // key: kind — a page type declar
 
 ### 入口
 
-会话区的 `openFile(path, { line? })`——工具行路径链接、产出文件 chip、收尾消息提及——把路径编码为该 Session 的文件资源地址并调用 `openResource`，调用方知道行号时带 `params.line`；`read` 工具行传入其 `offset` 参数起始的行。tab 条的「+」为所在格调用 `openTab('guide', { paneId, revealIfOpened: false })`；引导入口框调用 `tab.actions.openTab(entry.kind, { replaceTab: true })`；文件树的一行调用 `tab.actions.openResource(address)`，落在树自己的格里。
+会话区的 `openFile(path, { line? })`——工具行路径链接、产出文件 chip、收尾消息提及——把路径编码为该 Session 的文件资源地址并调用 `openResource`，调用方知道行号时带 `params.line`；`read` 工具行传入其 `offset` 参数起始的行。tab 条的「+」为所在格调用 `openTab('guide', { paneId, revealIfOpened: false })`，它旁边的类型选择器调用 `openTab(kind, { paneId })`；引导入口框调用 `tab.actions.openTab(entry.kind, { replaceTab: true })`；文件树的一行调用 `tab.actions.openResource(address)`，落在树自己的格里。
 
 ## Alternatives considered
 
@@ -111,7 +114,7 @@ interface SidebarRightTabParamsMap {}        // key: kind — a page type declar
 
 ## Testing
 
-`ui-sidebar-right` 的 spec 覆盖注册表（档位、extension 压 builtin 及恢复、`id` 与同档冲突、glob 与路径匹配、`canOpen`、排序与平局）、两种打开（正常、边界与失败路径，含错误 scheme 与未注册 kind）、`replaceTab` 记一条历史、座位把 kind 解析到生效实现并回退、`useTabInfo()` 含折叠与浮窗下的 `tab.visible`、以及操作型方法的 no-op 与抛错情形。Web e2e 套件在 Chromium 里经真实插件图驱动引导页、文件树与一次文件打开。两套均无需密钥。
+`ui-sidebar-right` 的 spec 覆盖注册表（档位、extension 压 builtin 及恢复、`id` 与同档冲突、glob 与路径匹配、`canOpen`、排序与平局、默认可见集及其预算）、两种打开（正常、边界与失败路径，含错误 scheme 与未注册 kind）、`replaceTab` 记一条历史、座位把 kind 解析到生效实现并回退、`useTabInfo()` 含折叠与浮窗下的 `tab.visible`、类型选择器的行与选中、以及操作型方法的 no-op 与抛错情形。`verify-sidebar-right-tab-types` 读取已发布定义，并在 order、预算或地址域规则被破坏时报错。Web e2e 套件在 Chromium 里经真实插件图驱动引导页、文件树与一次文件打开。两套均无需密钥。
 
 ## Deferred
 

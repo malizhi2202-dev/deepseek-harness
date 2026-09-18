@@ -27,7 +27,7 @@ function hookOf<T>(inst: { subscribe: (fn: () => void) => () => void; getSnapsho
  * documented cast keeps the harness to what is actually exercised.
  */
 function mountButton() {
-  const instance = createSidebarRightStore(() => 'Start').create()
+  const instance = createSidebarRightStore({ title: () => 'Start', tabs: () => [] }).create()
   const props = {
     sessionId: SESSION,
     useStore: hookOf(instance),

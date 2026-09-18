@@ -42,6 +42,17 @@ function appFrame(page: Page) {
   return page.locator('[style*="grid-template-columns"]').first()
 }
 
+/**
+ * Pick the guide tab in the first pane.
+ *
+ * A fresh surface opens on the first tab the registry reports as `default-on`,
+ * so the guide's entry boxes are only on screen once the guide is picked.
+ */
+async function pickGuide(page: Page): Promise<void> {
+  await page.locator('[data-rightbar-col] [data-dockkit-pane]').first()
+    .locator('[data-dockkit-tab]').filter({ hasText: 'Start' }).click()
+}
+
 /** Render the two column-resize handles without platform-dependent coordinates. */
 async function handleSnapshot(page: Page): Promise<string> {
   const handles = await page.locator('[class*="handle"]').evaluateAll(elements =>
@@ -239,6 +250,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     // CSS width assigned by the grid solver.
     await expect.poll(() => sidebarSnapshot(page), { timeout: 5_000 })
       .toMatchObject({ mode: 'push', panelContentWidth: normalWidth, panelOuterWidth: normalWidth + 1, resizeHandleWidth: 8 })
+    await pickGuide(page)
     await column.locator('[data-sidebar-right-guide-entry="files"]').click()
     await column.locator('[data-files-state="tree"]').waitFor({ timeout: 15_000 })
     await column.locator('[data-dockkit-add-tab]').click()
@@ -249,7 +261,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     await panes.first().locator('[data-dockkit-tab]').filter({ hasText: 'Files' }).click()
     await expect.poll(() => panes.first().locator('[data-files-state="tree"]').count()).toBe(1)
     const retainedA = await paneSnapshot(page)
-    expect(retainedA.map(pane => pane.tabs.map(tab => tab.title))).toEqual([['Files', 'Start'], ['Start']])
+    expect(retainedA.map(pane => pane.tabs.map(tab => tab.title))).toEqual([['Files', 'Tasks', 'Start'], ['Start']])
     await checkpoint('A normal: two panes')
 
     await column.locator('[data-sidebar-right-mode="fullscreen"]').click()
@@ -268,6 +280,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     await expect.poll(() => detailsTrack(page)).toBe(0)
     await open()
     expect(await panel.getAttribute('data-sidebar-right-panel')).toBe('push')
+    await pickGuide(page)
     await column.locator('[data-sidebar-right-guide-entry="files"]').click()
     const workspaceDirectory = column.locator('[data-files-entry="directory"] > button').filter({ hasText: /^workspace$/ })
     await workspaceDirectory.waitFor({ timeout: 15_000 })
@@ -276,7 +289,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     await expect.poll(() => column.locator('[data-files-row="loading"]').count()).toBe(0)
     expect(await column.locator('[data-files-row="failed"]').count()).toBe(0)
     const retainedB = await paneSnapshot(page)
-    expect(retainedB.map(pane => pane.tabs.map(tab => tab.title))).toEqual([['Files']])
+    expect(retainedB.map(pane => pane.tabs.map(tab => tab.title))).toEqual([['Files', 'Tasks']])
     await close()
     await checkpoint('B closed: independent pane and expanded workspace directory')
 

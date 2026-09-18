@@ -65,12 +65,14 @@ kind: "package-reference"
 
 状态只在内存中。刷新会让每个会话回到折叠的默认态；切换会话则让每个停靠面留在原处。
 
+新停靠面是一个格子，里面装着引导页，以及注册表报告为 `default-on` 的每个类型一个 tab，按 `order` 升序排列，并聚焦其中第一个。这些 tab 属于初始布局、不属于任何记录条目，因此回退止步于会话诞生时的样子，关掉其中一个也不会被随后的 settle 撤销。注册表的默认开启集由 store 的 seed（`SurfaceSeed`）为每个新停靠面重新读取，因此会话打开之前注册的类型会被种入该会话。
+
 <a id="extension-seats"></a>
 ## 扩展席位
 
 tab 类型分两阶段注册，随包发布的引导类型走的正是别的包的类型走的同一条公开路径（`ui-sidebar-textpreview` 是活的证明）。两个阶段都在类型自己的 `ctx.effect` 里，因此注册与创建它的插件同生共死。
 
-1. **类型**——`ctx.sidebarRightTabs.register({ id, kind, patterns?, priority?, canOpen?, title, guide? })`，一份没有运行时钩子的静态声明，返回 disposer。`id` 是这个实现在 tab 系统里的身份，在全部注册中唯一（包名是天然取值；随包引导页是 `@deepseek-ai/dsh-client-ui-sidebar-right/guide`）：一旦 extension 可以接管 builtin 的 kind，kind 就不再唯一，所以实现要自己命名，同一 `id` 的第二次注册会 throw。资源类型给出 `patterns`，即作用于 `dsh-resource://` 地址的 glob：含 `:` 的匹配整个地址（`dsh-resource://file/**`）；不含的匹配 URI 路径的任意深度且忽略大小写（`*.md`），不是 URI 的地址不匹配任何这类模式。页类型——引导页、文件树——不给出模式，按 kind 打开。`canOpen(address)` 否决一次命中。`title(address)` 是 tab chip 的文字，在 tab 打开时捕获。`guide` 列出引导页的入口框；选中一个即把贡献它的类型作为页打开。一个 `kind` 最多承载一份 `builtin` 与一份 `extension` 注册（extension 生效；它离开后 builtin 恢复）；kind 上的其它任何撞名都 throw。`id` 同时也是该类型正文与标题注册时用的 key，因此 extension 与它接管的 builtin 各占一个格位，席位渲染生效的那个。
+1. **类型**——`ctx.sidebarRightTabs.register({ id, kind, patterns?, priority?, canOpen?, title, guide?, icon?, order?, visibility? })`，一份没有运行时钩子的静态声明，返回 disposer。`id` 是这个实现在 tab 系统里的身份，在全部注册中唯一（包名是天然取值；随包引导页是 `@deepseek-ai/dsh-client-ui-sidebar-right/guide`）：一旦 extension 可以接管 builtin 的 kind，kind 就不再唯一，所以实现要自己命名，同一 `id` 的第二次注册会 throw。资源类型给出 `patterns`，即作用于 `dsh-resource://` 地址的 glob：含 `:` 的匹配整个地址（`dsh-resource://file/**`）；不含的匹配 URI 路径的任意深度且忽略大小写（`*.md`），不是 URI 的地址不匹配任何这类模式。页类型——引导页、文件树——不给出模式，按 kind 打开。`canOpen(address)` 否决一次命中。`title(address)` 是 tab chip 的文字，在 tab 打开时捕获。`guide` 列出引导页的入口框；选中一个即把贡献它的类型作为页打开。一个 `kind` 最多承载一份 `builtin` 与一份 `extension` 注册（extension 生效；它离开后 builtin 恢复）；kind 上的其它任何撞名都 throw。`id` 同时也是该类型正文与标题注册时用的 key，因此 extension 与它接管的 builtin 各占一个格位，席位渲染生效的那个。`order` 给类型在页类型中排位，`visibility` 说明在用户开口之前它想要占多少栏：`default-on` 让每个新停靠面自动打开它的页，`available`（缺省）让它在 tab 条的类型选择器里列出，`hidden` 让它不出现在该列表里，但它的引导页入口框与 `openTab` 仍可到达。最多 `MAX_DEFAULT_VISIBLE_TABS` 个类型可以是 `default-on`，且这样的类型必须声明 `icon` 且必须是页类型；注册表会在破坏任一条规则的那次注册上 throw，`verify-sidebar-right-tab-types` 也会在评审中拒绝该声明。另一个字段 `patterns` 承载新 kind 的准入规则：它独占一个 `dsh-resource://<type>/` 域且不认领别的域；页类型豁免，因为它不认领任何地址。
 2. **正文**——`ctx.slots.register({ name: 'sidebar.right.pane.tab', key: definition.id }, Body)` 通过框架注入的 `useTabInfo()` 读取 `{ sidebar, panel, tab }`。`sidebar` 提供开合与全屏信息，`panel.id` 命名所在格，`tab` 包含原记录字段、`visible`、`navigation`、`signal` 和 `actions`。这些字段不再作为平铺owner props传入；类型自己的store仍使用 `useStore`/`actions`。可选标题注册及引导替换共享该hook；未注册标题时使用打开时保存的文本。
 
 由哪个类型打开资源遵循编辑器解析器的惯例：`patterns` 命中的类型先按 `priority` 档排序——`extension`（产品外的类型，最高档，也是未命名时的默认）、`builtin`、`fallback`（任何更具体的类型都应胜过的通用查看器）——再按命中模式的长度，再按注册顺序；`canOpen` 会剔除候选。各档是字符串字面量，因此别的包里的类型不需要从这里做运行时导入。`candidates(address)` 返回排序，`claim(address, kind?)` 返回决定；指定 `kind` 时跳过它的 glob 但保留它的 `canOpen`。
@@ -80,7 +82,7 @@ tab 类型分两阶段注册，随包发布的引导类型走的正是别的包�
 <a id="ctxsidebarright"></a>
 ## `ctx.sidebarRight`
 
-`openResource(address, options?)` 与 `openTab(kind, options?)` 是导航控制器，进入该列的每条路都调用其中之一：会话区的文件链接与工具行的行号引用（`openResource(fileAddress, { params: { line } })`），tab 条的添加控件与引导入口框（`openTab`），文件树的行（`tab.actions.openResource`）。资源地址是 `dsh-resource://<type>/…` URI；不带 `options.kind` 时由注册表认领（glob 与 `canOpen`，最高档胜出），带它时由该 kind 生效的类型打开。页按 kind 命名；tab 记录在本包拼出、别处无人书写的地址下（`contract/seed.ts`）。两者以同一组步骤作为一条历史运行：已展示同一 (kind, contentId) 的 tab 被聚焦，除非 `revealIfOpened: false`；否则新 tab 落到 `options.replaceTab` 所在的格与位置（并关掉那个 tab），再退而落到 `options.paneId`，再退而落到活跃停靠格；面板展开，因为用户看不到的内容不算打开。随后 Tab 域记录这次导航——`params` 以 `navigation.params` 抵达正文，`revision` 递增——不进布局历史。`params` 按所开之物定型：某资源类型的查看器把自己那项并入 `SidebarRightResourceParamsMap`（文本预览声明 `{ line?: number }`）；接受参数的页类型按其 kind 并入 `SidebarRightTabParamsMap`；值约定为 JSON 形状，运行时不校验。`dsh-resource://` 之外的地址、无人认领的地址、或未注册的 kind 都会 throw：那是接线错误，不是用户错误。
+`openResource(address, options?)` 与 `openTab(kind, options?)` 是导航控制器，进入该列的每条路都调用其中之一：会话区的文件链接与工具行的行号引用（`openResource(fileAddress, { params: { line } })`），tab 条的添加控件、它的类型选择器与引导入口框（`openTab`），文件树的行（`tab.actions.openResource`）。资源地址是 `dsh-resource://<type>/…` URI；不带 `options.kind` 时由注册表认领（glob 与 `canOpen`，最高档胜出），带它时由该 kind 生效的类型打开。页按 kind 命名；tab 记录在本包拼出、别处无人书写的地址下（`contract/seed.ts`）。两者以同一组步骤作为一条历史运行：已展示同一 (kind, contentId) 的 tab 被聚焦，除非 `revealIfOpened: false`；否则新 tab 落到 `options.replaceTab` 所在的格与位置（并关掉那个 tab），再退而落到 `options.paneId`，再退而落到活跃停靠格；面板展开，因为用户看不到的内容不算打开。随后 Tab 域记录这次导航——`params` 以 `navigation.params` 抵达正文，`revision` 递增——不进布局历史。`params` 按所开之物定型：某资源类型的查看器把自己那项并入 `SidebarRightResourceParamsMap`（文本预览声明 `{ line?: number }`）；接受参数的页类型按其 kind 并入 `SidebarRightTabParamsMap`；值约定为 JSON 形状，运行时不校验。`dsh-resource://` 之外的地址、无人认领的地址、或未注册的 kind 都会 throw：那是接线错误，不是用户错误。
 
 `close(tabId)` 关闭一个 tab；`active()` 读取活动 tab。`isExpanded()` 与 `toggleExpanded()` 读取并驱动该列的展开；形态切换是面板自己的控件，不属于这个接口。布局操作供以编程方式安排该列的调用方使用，每个都像它替代的手势一样被记录：`focus(tabId)` 聚焦一个 tab 及其格；`split(paneId?)` 在与 tab 条控件相同的格预算与空间规则下分栏一个停靠格（默认活跃格），返回新格的 id，做不到时返回 `undefined`——且不记录任何东西；`float(tabId, rect?)` 把停靠 tab 浮出为浮窗；`dock(paneId)` 把浮窗放回活跃停靠格。不存在的 tab 或格、或已处于调用目标状态的，都原样不动。该接口只暴露操作：没有布局快照、没有操作日志、没有按地址查找。`_undo()` / `_redo()` 步进已挂载停靠面的历史；它们是 `@internal`——序列没有面向用户的控件，这两个只为测试存在。命令需要一个已挂载的会话停靠面；没有时它们 throw，而不是写进一个没人绘制的面里。
 
@@ -93,6 +95,8 @@ Tab域按（Session，Tab id）保留导航、中止信号与绑定动作；私�
 ## 引导页
 
 引导 tab 是一个居中标题、其下一行说明，以及各已注册类型贡献的每个 `guide` 条目一个入口框，按 `order` 排列。选中一个框会调用 `tab.actions.openTab(entry.kind, { replaceTab: true })`，于是引导页让位给它打开的页。一个格最多持有一个引导 tab。tab 条的添加控件只在该格没有引导 tab 时绘制，并以 `openTab('guide', { paneId, revealIfOpened: false })` 在该格打开一个，这样别的格里的引导页不会截走这次点击；把引导页开进已有引导页的格则改为聚焦它；把引导页拖入、放入或收回到这样的格会合并进去——来者关闭，该格自己的被聚焦；对引导页 `duplicateTab` 不记录任何东西。分栏或被清空的根格通过套件的工厂播种一个引导页，每个新格一个。普通的 `openTab('guide')` 保留每次打开都有的整树聚焦。产品最多保留左右两格，默认均分，分隔条限定20%～80%。宽度不足以容纳两格时不允许新分栏；已有两格时，正文拖放用于跨格移动，不再创建第三格。 达到两格上限时隐藏分栏控件；关闭回单格后恢复。
+
+tab 条进入该列的另一条路是类型选择器：面板 chrome 里的一个按钮，列出注册表持有的页类型，跳过引导页（添加控件负责打开它）与任何 `hidden` 类型，按 `order` 升序排列并画出各类型声明的 `icon`。选中一行会对该按钮所在的格子调用 `openTab(kind, { paneId })`，这就是停靠面没有自动打开的类型仍然可达的方式。
 
 <a id="copy"></a>
 ## 文案
@@ -119,6 +123,7 @@ None; this package neither assembles nor sends a provider request.
 - **引导页文案是草稿**，等待产品评审；文字住在 `locales.ts`。
 - **标题在打开时固定。** 类型的 `title(address)` 被捕获进记录；会变的标题只来自可选的标题席位。
 - **没有内容导航栈。** 后退回放的是布局操作；编辑器式的「已访问内容」前进/后退尚未构建。
+- **默认可见预算是常量。** `MAX_DEFAULT_VISIBLE_TABS` 固定在 `contract/visibility.ts`，由注册表与门禁读取；没有任何 `Config` 字段或设置能提高它，因此部署方无法决定一个新停靠面自己打开几个 tab。
 
 <a id="dev-note"></a>
 ### 开发备注

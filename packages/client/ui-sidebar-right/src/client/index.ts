@@ -43,7 +43,9 @@ import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
 export type { RightbarSeatProps, SidebarRightInjected, SidebarRightPresentation } from './shell/SidebarRight.tsx'
 export type { GuideBodyProps, GuideInjected } from './tabs/guide/GuideBody.tsx'
 export type { ExpandButtonProps } from './shell/ExpandButton.tsx'
-export type { SidebarRightState, SurfaceState } from './stores.ts'
+export type { SidebarRightState, SurfaceSeed, SurfaceState } from './stores.ts'
+export type { SidebarRightSeedTab } from './contract/seed.ts'
+export type { SidebarRightTabVisibility } from './contract/visibility.ts'
 export type {
   ISidebarRight, SidebarRightBinding, SidebarRightOpenResourceOptions, SidebarRightOpenTabOptions,
   SidebarRightPlacement, SurfaceActions,
@@ -117,7 +119,12 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sidebar-right: dictionaries')
 
   ctx.effect(() => {
-    const handle = createSidebarRightStore(() => t('tab.guide.title'))
+    const handle = createSidebarRightStore({
+      title: () => t('tab.guide.title'),
+      // Read at each mint, so a type that registers after this store was built
+      // still seeds the surfaces minted after it.
+      tabs: () => tabs.defaultTabs(),
+    })
     // The runtime mints one instance of this handle per session (the scope key
     // is the session id) and caches it per key. Each is adopted as it is minted,
     // so a tab's own action reaches its session's store while another session

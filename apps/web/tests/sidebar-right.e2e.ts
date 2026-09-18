@@ -33,6 +33,12 @@ import {
 const SAMPLE_NAME = 'notes.txt'
 const SAMPLE_TEXT = 'produced by the seeded turn\nsecond line\n'
 
+/**
+ * The strip a fresh settled session opens with: the pane's guide, then the
+ * default-visible `tasks` tab the surface seats by itself.
+ */
+const SEEDED = ['Start', 'Tasks'] as const
+
 /** Where this batch's accepted product forms are archived. */
 const SHOT_DIR = fileURLToPath(new URL('../../../.artifacts/screenshots/0907-sidebar-rules', import.meta.url))
 
@@ -132,7 +138,7 @@ async function resetSidebar(page: Page): Promise<Locator> {
   const column = page.locator('[data-rightbar-col]')
   await expandOf(page).waitFor({ timeout: 15_000 })
   await ensureExpanded(page, column)
-  await expect.poll(async () => await tabTitles(column)).toEqual(['Start'])
+  await expect.poll(async () => await tabTitles(column)).toEqual([...SEEDED])
   await width(column)
   return column
 }
@@ -398,18 +404,21 @@ describe('web e2e: shipped right Sidebar', () => {
       const addTab = column.locator('[data-dockkit-add-tab]')
       expect(await addTab.count()).toBe(0)
       await page.getByRole('button', { name: `Open ${SAMPLE_NAME}` }).click()
-      await expect.poll(async () => await tabTitles(column)).toEqual(['Start', SAMPLE_NAME])
+      await expect.poll(async () => await tabTitles(column)).toEqual([...SEEDED, SAMPLE_NAME])
       await column.locator('[data-dockkit-tab-close]').first().click()
-      await expect.poll(async () => await tabTitles(column)).toEqual([SAMPLE_NAME])
+      await expect.poll(async () => await tabTitles(column)).toEqual([...SEEDED.slice(1), SAMPLE_NAME])
       await expect.poll(async () => await addTab.count()).toBe(1)
       expect(await centreY('[data-dockkit-add-tab]')).toBe(textLine)
       await addTab.click()
-      await expect.poll(async () => await tabTitles(column)).toEqual([SAMPLE_NAME, 'Start'])
+      await expect.poll(async () => await tabTitles(column)).toEqual([...SEEDED.slice(1), SAMPLE_NAME, 'Start'])
       await expect.poll(async () => await column.locator('[data-sidebar-right-guide]').count()).toBe(1)
       await expect.poll(async () => await addTab.count()).toBe(0)
-      // Back to the seeded shape the cases below start from.
-      await column.locator('[data-dockkit-tab-close]').first().click()
-      await expect.poll(async () => await tabTitles(column)).toEqual(['Start'])
+      // Close the file again: the tasks tab the surface opened by itself and the
+      // guide this case added back are what the pane keeps. The cases below
+      // reload, so they start from the seeded strip regardless.
+      await column.locator('[data-dockkit-tab]').filter({ hasText: SAMPLE_NAME })
+        .locator('[data-dockkit-tab-close]').click()
+      await expect.poll(async () => await tabTitles(column)).toEqual([...SEEDED.slice(1), 'Start'])
       await shot(page, '02-squeezed-panel')
 
       expect(tripwire.pageErrors).toEqual([])
@@ -648,12 +657,12 @@ describe('web e2e: shipped right Sidebar', () => {
       // text type claims the address.
       const chip = page.getByRole('button', { name: `Open ${SAMPLE_NAME}` })
       await chip.click()
-      await expect.poll(async () => await tabTitles(column)).toEqual(['Start', SAMPLE_NAME])
+      await expect.poll(async () => await tabTitles(column)).toEqual([...SEEDED, SAMPLE_NAME])
 
       // Opening the same content again focuses rather than duplicating.
       await panes.first().locator('[data-dockkit-tab]').first().click()
       await chip.click()
-      await expect.poll(async () => await tabTitles(column)).toEqual(['Start', SAMPLE_NAME])
+      await expect.poll(async () => await tabTitles(column)).toEqual([...SEEDED, SAMPLE_NAME])
 
       // The body arrives through the text type's keyed registration, and its
       // content came over the wire from the real file.
@@ -780,13 +789,13 @@ describe('web e2e: shipped right Sidebar', () => {
       const first = panes.first()
       const strip = first.locator('[data-dockkit-strip]')
       await page.getByRole('button', { name: `Open ${SAMPLE_NAME}` }).click()
-      await expect.poll(async () => await tabTitles(first)).toEqual(['Start', SAMPLE_NAME])
+      await expect.poll(async () => await tabTitles(first)).toEqual([...SEEDED, SAMPLE_NAME])
       const order = await tabTitles(first)
       // The insertion index is measured against chip midpoints, not strip width.
       await dragTo(page, first.locator('[data-dockkit-tab]').last(),
         await pointIn(first.locator('[data-dockkit-tab]').first(), 0.25, 0.5),
         strip.locator('[data-dockkit-caret="0"]'))
-      await expect.poll(async () => await tabTitles(first)).toEqual([...order].reverse())
+      await expect.poll(async () => await tabTitles(first)).toEqual([order.at(-1), ...order.slice(0, -1)])
 
       // 2. Cross-pane move into a second pane: the tab leaves one pane's strip
       //    for another's.
@@ -875,6 +884,8 @@ describe('web e2e: shipped right Sidebar', () => {
       // The last pane cannot be dropped, so closing everything in it reseeds
       // the guide: the surface always has one tab to look at.
       await closeAllIn(panes.first())
+      // A reseed opens the guide alone: the default-visible tabs belong to the
+      // surface a session is born with, not to every empty pane.
       await expect.poll(async () => await tabTitles(column)).toEqual(['Start'])
       expect(await column.locator('[data-sidebar-right-guide]').count()).toBe(1)
 
@@ -949,12 +960,15 @@ describe('web e2e: shipped right Sidebar', () => {
         await expandOf(zhPage).click()
 
         const guide = column.locator('[data-sidebar-right-guide]')
+        await expect.poll(async () => await tabTitles(column)).toEqual(['开始', '任务'])
+        // A fresh surface opens on the tasks tab, so the guide's copy reaches the
+        // screen only once the guide is picked.
+        await column.locator('[data-dockkit-tab]').filter({ hasText: '开始' }).click()
         await expect.poll(async () => await guide.count()).toBe(1)
         // Wait for the track, not just the panel: the copy is only legible once
         // the column has the width, and a screenshot taken mid-transition reads
         // as a layout defect that is not there.
         expect(await width(column)).toBeGreaterThan(300)
-        await expect.poll(async () => await tabTitles(column)).toEqual(['开始'])
         await expect.poll(async () => await guide.locator('p').first().innerText())
           .toBe('侧栏用来放你想一直看着的东西。')
         await shot(zhPage, '05-guide-copy-zh')

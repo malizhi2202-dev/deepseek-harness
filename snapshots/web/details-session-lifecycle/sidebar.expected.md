@@ -30,6 +30,10 @@
           "selected": true
         },
         {
+          "title": "Tasks",
+          "selected": false
+        },
+        {
           "title": "Start",
           "selected": false
         }
@@ -76,6 +80,10 @@
         {
           "title": "Files",
           "selected": true
+        },
+        {
+          "title": "Tasks",
+          "selected": false
         },
         {
           "title": "Start",
@@ -126,6 +134,10 @@
           "selected": true
         },
         {
+          "title": "Tasks",
+          "selected": false
+        },
+        {
           "title": "Start",
           "selected": false
         }
@@ -174,6 +186,10 @@
         {
           "title": "Files",
           "selected": true
+        },
+        {
+          "title": "Tasks",
+          "selected": false
         }
       ]
     }
@@ -209,6 +225,10 @@
         {
           "title": "Files",
           "selected": true
+        },
+        {
+          "title": "Tasks",
+          "selected": false
         },
         {
           "title": "Start",
@@ -259,6 +279,10 @@
         {
           "title": "Files",
           "selected": true
+        },
+        {
+          "title": "Tasks",
+          "selected": false
         }
       ]
     }
@@ -294,6 +318,10 @@
         {
           "title": "Files",
           "selected": true
+        },
+        {
+          "title": "Tasks",
+          "selected": false
         },
         {
           "title": "Start",
@@ -344,6 +372,10 @@
           "selected": true
         },
         {
+          "title": "Tasks",
+          "selected": false
+        },
+        {
           "title": "Start",
           "selected": false
         }
@@ -390,6 +422,10 @@
         {
           "title": "Files",
           "selected": true
+        },
+        {
+          "title": "Tasks",
+          "selected": false
         },
         {
           "title": "Start",
@@ -440,6 +476,10 @@
           "selected": true
         },
         {
+          "title": "Tasks",
+          "selected": false
+        },
+        {
           "title": "Start",
           "selected": false
         }
@@ -486,6 +526,10 @@
         {
           "title": "Files",
           "selected": true
+        },
+        {
+          "title": "Tasks",
+          "selected": false
         },
         {
           "title": "Start",
