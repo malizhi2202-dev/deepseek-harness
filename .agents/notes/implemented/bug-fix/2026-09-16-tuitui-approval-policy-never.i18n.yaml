@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-16-tuitui-approval-policy-never.md
-2026-09-16-tuitui-approval-policy-never.md: 31de3986035c12dba7b9f34ddd7ab3ffef8ec98c
-2026-09-16-tuitui-approval-policy-never.zh.md: 3cf5a8efe43b7cbc98e0ba2cfa29d149070e306e
+2026-09-16-tuitui-approval-policy-never.md: af1b5cfb7357351dc0964893f11285fe1638c622
+2026-09-16-tuitui-approval-policy-never.zh.md: 143236b0e3607d93c35704db0205044a1d937b9e

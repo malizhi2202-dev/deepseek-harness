@@ -1,55 +1,57 @@
-# 右侧栏能力清单：发现循环产物
+# Right Sidebar Capability Inventory: Discovery Loop Output
 
-日期：2026-09-17
-状态：**已获人工审核通过**（第⑤步审核门，2026-09-17），文档可落盘，代码仍未改动。
-议题来源：产品负责人（中文）在会话中逐条提出的右侧栏诉求，加一条后补需求。
+English | [中文](README.zh.md)
 
-## 议题原话（逐字保留，不改字）
+Date: 2026-09-17
+Status: **approved by human review** (the step ⑤ review gate, 2026-09-17); the documents may land, the code is still unchanged.
+Topic source: the right-sidebar requests the product owner (writing in Chinese) raised one by one in a session, plus one follow-up request.
 
-1. 「右边栏除了文件 需要添加 / 任务观测 / 终端 / 成本观察 / 评估观察 / git检查和观察类似于Git Workbench git即为记忆 / 运行其他模型的插件 比如gpt5.6 claude-code的模型（因为pi转发目前运行报错）/ archiy / 先去dsh官方插件库查看有么有符合的 没有符合的插件自己开发」
-2. 「先在验证实例上验证 没问题了再从主实例确认」（同义更正版：「先在验证实例上验证 没问题了再重启主实例」；原话中的端口号分别指「重启主实例」与「在验证实例上」，此处统一以主实例/验证实例表述）
-3. 「任务观测评估 失败原因根因分析 之间的级联关系 / 任务图谱查看」
-4. 「/bmad-discovery-loop 审核下我提的这些1 是否合理 2 有啥补充 3 可否优化 不是一上来就写代码 头脑风暴 创意补充」
-5. 后补需求：「在加一个需求展示 展示代理之间树状关系 叫智能体派生面板」
-6. 会话中已做的选择：任务图谱 = 子代理/任务世系图；评估 = 只展示派生事实；主实例 = 先别重启。第⑤步审核门新增五问决策见 `03-decisions-and-plan.md`。
+## The request as originally worded (preserved verbatim, no wording changed)
 
-## 方法与硬约束
+1. 「右边栏除了文件 需要添加 / 任务观测 / 终端 / 成本观察 / 评估观察 / git检查和观察类似于Git Workbench git即为记忆 / 运行其他模型的插件 比如gpt5.6 claude-code的模型（因为pi转发目前运行报错）/ archiy / 先去dsh官方插件库查看有么有符合的 没有符合的插件自己开发」 — "Besides files, the right Sidebar needs to add: task observation / terminal / cost observation / evaluation observation / git inspection and observation similar to Git Workbench, where git is memory / plugins that run other models, such as gpt5.6 and claude-code models (pi forwarding currently reports an error) / archiy / first check the official dsh plugin registry for anything that fits, and develop the plugin yourself when nothing fits."
+2. 「先在验证实例上验证 没问题了再从主实例确认」（同义更正版：「先在验证实例上验证 没问题了再重启主实例」；原话中的端口号分别指「重启主实例」与「在验证实例上」，此处统一以主实例/验证实例表述） — "Validate on the validation instance first; once that is fine, confirm on the main instance" (an equivalent corrected wording: "validate on the validation instance first; once that is fine, restart the main instance"; the ports named in the original wording mean "restart the main instance" and "on the validation instance" respectively, so both are stated here as main instance / validation instance).
+3. 「任务观测评估 失败原因根因分析 之间的级联关系 / 任务图谱查看」 — "The cascading relationship between task observation, evaluation, and failure root-cause analysis / viewing the task graph."
+4. 「/bmad-discovery-loop 审核下我提的这些1 是否合理 2 有啥补充 3 可否优化 不是一上来就写代码 头脑风暴 创意补充」 — "/bmad-discovery-loop, review these points I raised: 1 whether they make sense, 2 what to add, 3 what to improve; do not jump straight into writing code — brainstorm and add ideas."
+5. Follow-up request: 「在加一个需求展示 展示代理之间树状关系 叫智能体派生面板」 — "Add one more requirement display that shows the tree relationship between agents, called the agent-derivation panel."
+6. Choices already made in the session: the task graph = the subagent/task lineage graph; evaluation = show derived facts only; the main instance = do not restart it for now. The five decisions added by the step ⑤ review gate are in `03-decisions-and-plan.md`.
 
-本目录是一个 BMAD 发现循环（`bmad-discovery-loop`）的产物。议题先拆成有据可查的子议题，每个子议题走五步流：①头脑风暴 → ②竞品/技术调研 → ③结论与建议 → ④专家团评审 → ⑤人工审核门。
+## Method and hard constraints
 
-- **全程只读**：未修改、未新建、未删除仓库或 `$DSH_HOME` 内的任何源码、配置、测试、脚本。唯一写入是本目录（审核通过后）与 `/tmp/bmad-discovery/`（过程记录）。
-- **不写代码**：本目录只描述结论、决策与执行顺序，不含实现。
-- **证据分级**：每条事实标注来源 —— 【复核】由主 agent 直接跑命令/读文件确认；【子代理】由子代理读代码确认（附 file:line，未逐条复跑）；【联网】竞品文档，附 URL；【未验证】明确标注。
+This directory is the output of a BMAD discovery loop (`bmad-discovery-loop`). The topic is first split into subtopics that rest on evidence, and each subtopic runs a five-step flow: ① brainstorm → ② competitive/technical research → ③ conclusion and recommendation → ④ expert-panel review → ⑤ human review gate.
 
-## 结论摘要（先看这五条）
+- **Read-only throughout**: no source, config, test, or script in the repository or `$DSH_HOME` was modified, created, or deleted. The only writes are this directory (after approval) and `/tmp/bmad-discovery/` (process records).
+- **No code**: this directory describes only conclusions, decisions, and execution order; it contains no implementation.
+- **Evidence grading**: every fact names its source — 【复核】 (rechecked) confirmed by the main agent running the command or reading the file directly; 【子代理】 (subagent) confirmed by a subagent reading the code (with file:line, not re-run one by one); 【联网】 (web) competitor documentation, with its URL; 【未验证】 (unverified) marked explicitly.
 
-1. **第三方插件 `dsh-better-sidebar` 是「已安装但已禁用」**，核心右侧栏才是负责人实际使用的表面，`ui-sidebar-tasks`（任务观测 V1）在其真实 profile 中可达。任何"生态已覆盖终端/Git/后台任务"的论证在当前启用集合内不成立。
-2. **无需重启主实例**：运行实例已经按请求分发新模块（启动时间早于最后一次构建，manifest 仍含该行且可取回）。把验证实例作为主实例的子进程并共用 `DSH_HOME` 时，重启会连带杀掉它。
-3. **智能体派生面板必须复用既有派生逻辑**：世系树已存在于会话头部（一个 336×560 的浮层），`flattenLineage` 已在 `@deepseek-ai/dsh-api-session-controller` 内；新面板的价值来自**用全量会话摘要（`byId`）建树**，而不是重画同一棵懒加载树。
-4. **成本与评估不缺数据、只缺入口**：`SessionListEntry.projectionValues` 已携带 `tokenUsage`/`sessionStats`/`contextPressure`/`contextBreakdown`/`turnOutline` 等；唯一宿主缺口是"全会话失败计数"（一个投影单元，无新会话事件、无格式版本变更）。
-5. **有两条因果可证、一条不可证**：子代理世系（父→子）与同会话轮次先后可证；"任务级依赖（A 失败导致 B 阻塞）"在 DSH 无依赖模型的前提下不可证，任何画成依赖边的做法都是伪造。
+## Conclusion summary (read these five first)
 
-## 文档索引
+1. **The third-party plugin `dsh-better-sidebar` is installed but disabled**, so the core right Sidebar is the surface the owner actually uses, and `ui-sidebar-tasks` (task observation V1) is reachable in that real profile. Any argument that "the ecosystem already covers terminal/Git/background jobs" does not hold within the currently enabled set.
+2. **The main instance needs no restart**: the running instance already dispatches new modules on request (it started before the last build, and the manifest still carries that row and can fetch it). When the validation instance runs as a child process of the main instance and shares `$DSH_HOME`, a restart kills it as well.
+3. **The agent-derivation panel must reuse the existing derivation logic**: the lineage tree already exists in the Session header (a 336×560 overlay), and `flattenLineage` already lives inside `@deepseek-ai/dsh-api-session-controller`; the new panel's value comes from **building the tree from the full Session summaries (`byId`)**, not from redrawing the same lazy-loading tree.
+4. **Cost and evaluation lack an entry point, not data**: `SessionListEntry.projectionValues` already carries `tokenUsage`/`sessionStats`/`contextPressure`/`contextBreakdown`/`turnOutline` and others; the only host gap is a whole-Session failure count (one projection unit, with no new session event and no format-version change).
+5. **Two causalities are provable and one is not**: subagent lineage (parent → child) and the order of turns within one Session are provable; "task-level dependency (A failing blocks B)" is not provable while DSH has no dependency model, and drawing it as a dependency edge is fabrication.
 
-| 文件 | 内容 |
+## Document index
+
+| File | Content |
 | --- | --- |
-| `01-verified-facts.md` | 已核实事实（含三处对早期判断的纠正）与证据 |
-| `02-subissues.md` | 六个子议题 S1–S6 的五步流记录与结论 |
-| `03-decisions-and-plan.md` | 五问决策、执行顺序（Do now / Next / Later / 冻结 / 砍掉）、验收标准、开放决策 |
-| `04-competitive-evidence.md` | 第②步竞品调研证据（一手文档 URL）与可转移/不可转移判断 |
-| `05-risks-and-gates.md` | 风险清单、流程修正、实现时的门禁要求 |
+| `01-verified-facts.md` | Verified facts (including three corrections of earlier judgments) with their evidence |
+| `02-subissues.md` | The five-step flow records and conclusions for the six subtopics S1–S6 |
+| `03-decisions-and-plan.md` | The five decisions, the execution order (Do now / Next / Later / frozen / dropped), the acceptance criteria, and the open decisions |
+| `04-competitive-evidence.md` | The step ② competitive-research evidence (first-party documentation URLs) and the transferable/not-transferable verdicts |
+| `05-risks-and-gates.md` | The risk list, the process corrections, and the gate requirements for implementation |
 
-## 循环状态（诚实记录）
+## Loop status (honest record)
 
-| 子议题 | ①   | ②   | ③   | ④   | ⑤   |
+| Subtopic | ①   | ②   | ③   | ④   | ⑤   |
 | --- | --- | --- | --- | --- | --- |
-| S1 任务观测形态 | 完成 | 完成 | 完成 | 完成 | 通过 |
-| S2 核心自研 vs 生态已装 | 完成 | 完成 | 完成 | 完成 | 通过 |
-| S3 成本/评估数据可得性 | 完成 | 完成 | 完成 | 完成 | 通过 |
-| S4 不属右栏的三项归属 | 完成 | 完成 | 完成 | 完成 | 通过 |
-| S5 右栏容量与导航 | 完成 | 完成 | 完成 | 完成 | 通过 |
-| S6 智能体派生面板 | 完成 | 部分（S6 的 ① 内已含浮层/文件树先例与 file:line 证据，未单独跑调研） | 本文件与 `02` | 未单独跑（五问决策已覆盖其位置） | 通过（位置已定，设计细节待补） |
+| S1 task-observation form | done | done | done | done | passed |
+| S2 core-built vs ecosystem already installed | done | done | done | done | passed |
+| S3 availability of cost/evaluation data | done | done | done | done | passed |
+| S4 where the three non-sidebar items belong | done | done | done | done | passed |
+| S5 right-sidebar capacity and navigation | done | done | done | done | passed |
+| S6 agent-derivation panel | done | partial (S6's step ① already carries the overlay/file-tree precedents and file:line evidence, so its research was not run separately) | this file and `02` | not run separately (the five decisions already cover its position) | passed (position settled, design details outstanding) |
 
-S6 的 ① 自报一条**可被反驳的承重论证**：只有 tab 类型能拥有 guide 条目（`SidebarRightTabDefinition.guide[].{order,title,description,icon}`），所以"智能体派生面板"必须是一个独立 kind，否则负责人的命名需求在"+"页里不可发现。若产品接受它只作为镜头标签、不需要可发现的名字，更便宜的可逆路径重新打开 —— 这条建议在实现前做一次对抗性检验。
+Step ① of S6 self-reports one **falsifiable load-bearing argument**: only a tab type can own a guide entry (`SidebarRightTabDefinition.guide[].{order,title,description,icon}`), so the "agent-derivation panel" must be an independent kind, or else the owner's naming requirement cannot be discovered on the "+" page. If the product accepts it as a lens label only and needs no discoverable name, the cheaper reversible path opens again — this recommendation gets one adversarial test before implementation.
 
-下一轮候选子议题（本目录不含其结论）：记忆时间线（git + 检查点 + memos 三源合成）、终端（含安全边界）、其他模型接入（CLI 作为一等 LLM 路由）、`sessionOutcomes` 聚合归属、git-graph 上游修复状态。
+Candidate subtopics for the next round (their conclusions are not in this directory): the memory timeline (git + checkpoints + memos combined from three sources), the terminal (with its security boundary), other-model access (the CLI as a first-class LLM route), ownership of the `sessionOutcomes` aggregation, and the upstream repair status of git-graph.

@@ -20,6 +20,7 @@ The robot credentials configure the real WebSocket + HTTP transport; tests injec
 - [Composition](#composition)
 - [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 -----
 
@@ -116,5 +117,15 @@ None introduced by the bridge: the system prompt, tool schemas, and model prefix
 - The reference bridge's per-run `/status` history turn count and AI `/tree` text routing are not reproduced.
 
 The wire parsing (`parseEvent`, `parseInteractiveCallback`, `splitMessage`, `guessChatType`) and the file-tree workbench are ports of `tui_coding_agent_bridge`; the divergences above are the only behavioral differences.
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>
 
 **Runtime invariant:** No companion is published: this bridge owns no independently observable package-local relation beyond the Loader-composition test and the transport seam's decode rules, which the unit tests cover.

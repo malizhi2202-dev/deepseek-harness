@@ -17,7 +17,7 @@ kind: "package-reference"
 - [它读什么](#what-it-reads)
 - [模型体验](#model-experience)
 - [已知限制与待办](#known-limitations-and-deferred-work)
-- [开发说明](#dev-note)
+- [开发备注](#dev-note)
 
 -----
 
@@ -60,7 +60,7 @@ kind: "package-reference"
 - **没有时间信息。** 不绘制任务的开始与结束时间，因此也不需要时长格式化；面板报告的是状态，不是耗时。
 
 <a id="dev-note"></a>
-### 开发说明
+### 开发备注
 
 <details>
 <summary>给维护者的工作上下文 —— 点击展开</summary>

@@ -20,7 +20,7 @@ The turn therefore never ended. The bridge's per-chat `busy` flag, which only `t
 
 The Session's sandbox still comes from the card's `permissionPreset`, so granting the chat wider access stays an explicit deployment choice rather than a side effect of removing the prompt.
 
-The pin reuses the established answer for a Session nobody can answer: [delegated subagents](2026-08-10-subagent-approval-pinned-never.md) pin `'never'` for the same reason, through a durable `approval/policy` event. That note's `source: 'delegation'` is deliberately not reused — the event declares `source` as that one delegation marker and reads an absent source as a runtime switch, which is what an ingress switching a Session's policy at creation is.
+The pin reuses the established answer for a Session nobody can answer: [delegated subagents](../feature/2026-08-10-subagent-approval-pinned-never.md) pin `'never'` for the same reason, through a durable `approval/policy` event. That note's `source: 'delegation'` is deliberately not reused — the event declares `source` as that one delegation marker and reads an absent source as a runtime switch, which is what an ingress switching a Session's policy at creation is.
 
 ## Alternatives considered
 

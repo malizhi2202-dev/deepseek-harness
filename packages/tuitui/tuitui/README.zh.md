@@ -20,6 +20,7 @@ kind: "package-reference"
 - [装配](#composition)
 - [模型体验](#model-experience)
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 -----
 
@@ -119,5 +120,16 @@ kind: "package-reference"
 - 参考桥接器的单次 `/status` 历史轮数和 AI `/tree` 文本路由未被复现。
 
 线路解析（`parseEvent`、`parseInteractiveCallback`、`splitMessage`、`guessChatType`）与文件树工作台由 `tui_coding_agent_bridge` 移植而来；上文所列差异是仅有的行为差异。
+
+<a id="dev-note"></a>
+
+### 开发备注
+
+<details>
+<summary>给维护者的工作上下文 —— 点击展开</summary>
+
+无。
+
+</details>
 
 **运行期不变量：** 不发布 companion：该桥不拥有除 Loader 装配测试与传输接缝解码规则之外的任何可独立观测的包内关系，而这些已由单元测试覆盖。

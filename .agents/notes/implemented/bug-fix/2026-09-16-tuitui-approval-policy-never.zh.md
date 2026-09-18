@@ -20,7 +20,7 @@ tuitui 的 Session 按部署的权限预设创建，而该预设的审批旋钮�
 
 Session 的沙箱仍来自卡片的 `permissionPreset`，因此给聊天更宽权限依旧是显式的部署选择，而不是解除提示的副作用。
 
-该钉死复用了「无人能作答的 Session」已有的答案：[被委派的子代理](2026-08-10-subagent-approval-pinned-never.md) 出于同样的原因通过持久化的 `approval/policy` 事件钉死 `'never'`。那条笔记的 `source: 'delegation'` 被刻意不复用——该事件把 `source` 声明为唯一的委派标记，并把缺失 source 读作运行时切换，而入口在创建时切换 Session 策略正是运行时切换。
+该钉死复用了「无人能作答的 Session」已有的答案：[被委派的子代理](../feature/2026-08-10-subagent-approval-pinned-never.zh.md) 出于同样的原因通过持久化的 `approval/policy` 事件钉死 `'never'`。那条笔记的 `source: 'delegation'` 被刻意不复用——该事件把 `source` 声明为唯一的委派标记，并把缺失 source 读作运行时切换，而入口在创建时切换 Session 策略正是运行时切换。
 
 ## 考虑过的替代方案
 
