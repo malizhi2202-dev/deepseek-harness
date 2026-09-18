@@ -28,7 +28,7 @@
 ### Later / 独立议题
 
 - **记忆时间线**（决策 3）：git 历史 + 检查点 + memos 三源合成，需统一时间与逐条来源标注。
-- **终端**：核心无 client 半边、web 组合未挂 terminal 插件 ⇒ 需新宿主行 + 客户端面板 + PTY 依赖；**且有安全边界**（若把 `--trusted-host` 放宽到非回环 authority，浏览器会话即可拿到 shell）。
+- **终端**：核心无 client 半边仍真，但「web 组合未挂 terminal 插件」为假——Web 的 agent 平面由每会话 preset 组装终端行（minimal agent preset），只读观察面板因此无需新宿主行与额外 PTY 依赖；**安全边界仍在**（若把 `--trusted-host` 放宽到非回环 authority，浏览器会话即可拿到 shell），且 PTY 今天有日志而无审批；授权边界已闭闸（只读＝2a 的 owner 映射、写入＝preset 组合且不在本期），见 [r2-terminal/05-review-record.md](r2-terminal/05-review-record.md) 后续订正与 [r7-terminal-write-authority/05-review-record.md](r7-terminal-write-authority/05-review-record.md)。
 - **其他模型接入**：CLI 作为一等 LLM 路由的 adapter（今天 `claude-code` 只能是被委托的子代理）。
 
 ### 冻结

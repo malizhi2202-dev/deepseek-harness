@@ -53,7 +53,7 @@
 | --- | --- | --- |
 | 1 | "新建投影单元优于扩 `session-stats`，因为后者有回填/schema 代价" | **不存在回填**：缓存行 "never authoritative, only a fold shortcut"，版本不匹配即丢弃并按完整日志重折。结论不变，理由更换为**语义**（性能域不该承载结果域；每加维度都要再 bump `stateVersion`） |
 | 2 | S2 方向「Git 事实资源地址化」 | **推翻**：资源地址是"当前值流"，不带时间不带顺序，不可能承载历史 |
-| 3 | "`terminal-bash`/`tool-terminal` 只挂 sdk-minimal" | **推翻**：`tool-terminal` 在任何 bundle/preset 都未挂载；且 `ctx.terminals` 无 push 流、无 resize（有界回溯分页）⇒ 真终端＝新 host 能力 |
+| 3 | "`terminal-bash`/`tool-terminal` 只挂 sdk-minimal" | **推翻**：`tool-terminal` 在任何 bundle/preset 都未挂载；且 `ctx.terminals` 无 push 流、无 resize（有界回溯分页）⇒ 真终端＝新 host 能力。**r7 后续订正**：工具未挂载半句仍真，但本行据以立论的两前提被推翻——「Web 面不挂终端行」为假（Web 的 agent 平面由每会话 preset 组装终端行：`packages/preset/agent-presets/presets/minimal/agent.cordis.yml:25` 起 `terminals`/`pty`/`terminal-bash`），「传输面无 WebSocket」为假（网关既有复用路由：`packages/api/gateway/src/index.ts:206`）；只读面板前置 (1) 因此已满足，写入形态另行闭闸为不在本期（[r2-terminal/05-review-record.md](r2-terminal/05-review-record.md) 后续订正、[r7-terminal-write-authority/](r7-terminal-write-authority/)） |
 | 4 | C2 因果"插件被 API 掀翻" | **因果翻转**：上游在跑甚至跑在前面，成因是检出线 `0.1.3-alpha.2` 落在受支持线之间 ⇒ 答案是"对齐版本线" |
 | 5 | 竞品证据「Temporal 用顶层 `failure_info`」 | 规则对、**字段位置错**（它是 `Failure` 的 oneof，不是 `WorkflowExecutionInfo` 字段）；"仅为终止时设置"未验证，已删 |
 | 6 | 负责人选择「git + 检查点 + memos 三者合成一条记忆时间线」 | **技术修正**：分源泳道 + 用户显式勾选；V1 只做检查点 lane（git 无接缝、memory 是 profile 级无法归属会话） |
@@ -94,7 +94,7 @@
 
 - **Git 面板**：取决于 P2 —— A 迁移后用上游（0.19.x 已依赖核心右栏包，是呈现层 owner）；B 留在当前线则核心自建，须显式标注"有期限的临时物"，且注意**核心根本没有 git 接缝**（自建＝新造 Service Definition / Provider / Consumer 三角）。
 - **其他模型接入**：CLI 作为一等 LLM 路由的 adapter。
-- **真终端写入形态**：须先解决 transport 分帧与 resize 缺口，并回答"多用户机器上的授权边界"。
+- **真终端写入形态**：已走完独立发现循环并闭闸——写入口**不在本期**，授权＝preset 组合（「组合即授权」，客户端门控只作呈现不作执法）；允许抢占活动 send，但须补可区分的结算语义；重开的四项前置（威胁模型文档、「无审批即无事件、命令受会话沙箱策略」签认、抢占结算明细、只读半边先有可观察对象）见 [r7-terminal-write-authority/05-review-record.md](r7-terminal-write-authority/05-review-record.md)。
 - **第 3 轮首项**：「从观测到动作」的动作闭环（PM 连续两轮提出的同一缺口）。
 
 ## 四、第 3 轮结论（动作闭环 + 迁移裁决，均已过审核门）
