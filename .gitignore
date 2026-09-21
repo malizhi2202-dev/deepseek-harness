@@ -43,3 +43,4 @@ apps/web/dist/
 worktrees/
 .agents/worktrees/
 .typert-*/
+website/.vitepress/config.*.timestamp-*.mjs
