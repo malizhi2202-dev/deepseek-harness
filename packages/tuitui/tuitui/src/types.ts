@@ -12,12 +12,17 @@ export type ChatType = 'dm' | 'group' | 'channel'
 export interface IncomingMessage {
   /** Stable per-conversation identity (user account, group id, or `teams_...`). */
   readonly chatId: string
+  /** Conversation scope: a direct message, a group, or a channel. */
   readonly chatType: ChatType
+  /** The conversation's display name. */
   readonly chatName: string
   /** Sender's Tuitui account; empty for some team-post shapes. */
   readonly userId: string
+  /** Sender's display name. */
   readonly userName: string
+  /** The platform's message identity, which the bridge deduplicates inbound messages by. */
   readonly messageId: string
+  /** The message's text content. */
   readonly text: string
   /** Media URLs (images, files, voice, video) attached to the message. */
   readonly mediaUrls: readonly string[]
@@ -29,15 +34,21 @@ export interface IncomingMessage {
 
 /** One button or form callback from an interactive message (the /tree card). */
 export interface IncomingCallback {
+  /** Stable per-conversation identity of the conversation holding the card. */
   readonly chatId: string
+  /** Conversation scope of the conversation holding the card. */
   readonly chatType: ChatType
+  /** The pressing user's Tuitui account. */
   readonly userId: string
+  /** The pressing user's display name. */
   readonly userName: string
+  /** The interactive message's platform identity, which an in-place card update replaces. */
   readonly messageId: string
   /** The JSON-encoded action value carried by the pressed button. */
   readonly actionValue: string
   /** Concatenated form-field text, when the card carried an input. */
   readonly fieldsText: string
+  /** Lossless parsed callback body for diagnostics. */
   readonly raw: Record<string, unknown>
 }
 
