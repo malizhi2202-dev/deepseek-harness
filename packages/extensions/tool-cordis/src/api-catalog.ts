@@ -1041,6 +1041,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'git',
+    summary: 'Abstract git observation service.',
+    description: 'Abstract git observation service. Subclass, implement observe, and load the subclass as a plugin — it registers as `ctx.git` (one implementation per context; loading a second throws, which is cordis\' standard duplicate-service behavior).\n\nImplementations must honor these semantics:\n\n- observe resolves `absent` for a directory outside any git work tree; that is an answer, not a failure.\n- Every list in the snapshot is cut to MAX_OBSERVATION_ITEMS with its truncated flag set when the bound dropped entries.\n- `signal` aborts the read; an aborted read rejects with the abort reason.\n- Nothing in the implementation writes to the repository.',
+    methods: [
+      {
+        signature: 'abstract observe(cwd: string, signal: AbortSignal): Promise<GitObservation>',
+        description: 'Observe the git repository that contains one working directory.',
+        parameters: [{ name: 'cwd', description: 'the directory to observe from; the repository\'s work-tree root is whatever git reports for it, not necessarily the directory itself.' }, { name: 'signal', description: 'caller cancellation.' }],
+        returns: 'the repository\'s bounded snapshot, or `absent` outside any work tree.',
+      },
+    ],
+  },
+  {
     key: 'goals',
     summary: 'Goal service (`ctx.goals`) backed exclusively by the owning session log.',
     description: 'Goal service (`ctx.goals`) backed exclusively by the owning session log.',
@@ -2921,6 +2934,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the file\'s absolute path, current version, and byte size.',
       },
       {
+        signature: '@Remote async write( agent: Agent, path: string, content: string, expectedVersion: string, signal: AbortSignal, ): Promise<WorkspaceFileStat>',
+        description: 'Replace one regular file\'s complete text inside the Agent\'s workspace.\n\nThe write is guarded by the version the caller read: a file that no longer carries it fails with `workspace-file/stale-version` and keeps its content. The guard is applied twice on purpose — once against the stat this method takes, so the common conflict is decided before any content is written, and once by the backend\'s atomic write at that same version, so a change landing in between is refused rather than clobbered.',
+        parameters: [{ name: 'agent', description: 'target Agent resolved from the Session identity on the wire.' }, { name: 'path', description: 'workspace path, absolute or relative to the workspace root.' }, { name: 'content', description: 'the complete new file text.' }, { name: 'expectedVersion', description: 'the `version` the caller\'s read reported.' }, { name: 'signal', description: 'caller cancellation.' }],
+        returns: 'the written file\'s absolute path, new version, and byte size.',
+      },
+      {
         signature: '@Remote async list(agent: Agent, path: string, signal: AbortSignal): Promise<WorkspaceDirectoryListing>',
         description: 'List the direct children of one directory inside the Agent\'s workspace.',
         parameters: [{ name: 'agent', description: 'target Agent resolved from the Session identity on the wire.' }, { name: 'path', description: 'workspace path, absolute or relative to the workspace root.' }, { name: 'signal', description: 'caller cancellation.' }],
@@ -2931,6 +2950,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Stream every `fs/observed` observation of a file inside the Agent\'s workspace. Only Agent filesystem operations report here; the OS is not watched.',
         parameters: [{ name: 'agent', description: 'target Agent resolved from the Session identity on the wire.' }, { name: 'signal', description: 'generation cancellation.' }],
         returns: '`ready` once the Host observation queue is active and the workspace root is resolved, then queued and live observations in emission order.',
+      },
+    ],
+  },
+  {
+    key: 'workspaceGit',
+    summary: 'Host Remote service reading one workspace\'s repository state through `ctx.git`.',
+    description: 'Host Remote service reading one workspace\'s repository state through `ctx.git`.',
+    methods: [
+      {
+        signature: '@Remote async observe(agent: Agent, signal: AbortSignal): Promise<GitObservation>',
+        description: 'Observe the repository that contains the Agent\'s workspace root.\n\nThe observation is one bounded read, not a subscription: a consumer asks again when it wants a fresher answer, and aborting the call abandons the read without leaving any state behind.',
+        parameters: [{ name: 'agent', description: 'target Agent resolved from the Session identity on the wire.' }, { name: 'signal', description: 'caller cancellation.' }],
+        returns: 'the repository\'s bounded snapshot, or `absent` when the workspace root is not inside a git work tree.',
       },
     ],
   },
@@ -3772,6 +3804,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type BrandedNumber<B extends string> = number & {\n    readonly [BRAND]: B;\n};',
   },
   {
+    name: 'ChatType',
+    declaration: 'export type ChatType = \'dm\' | \'group\' | \'channel\';',
+  },
+  {
     name: 'ClientArtifactBaseline',
     declaration: 'export interface ClientArtifactBaseline {\n    readonly path: string;\n    readonly mtimeMs: number;\n    readonly size: number;\n}',
   },
@@ -4256,6 +4292,34 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface GenericResultView {\n    card: \'generic\';\n    title?: string;\n    content?: ContentBlock[];\n}',
   },
   {
+    name: 'GitBranch',
+    declaration: 'export interface GitBranch {\n    readonly name: string;\n    readonly tip: string;\n}',
+  },
+  {
+    name: 'GitChangeKind',
+    declaration: 'export type GitChangeKind = \'added\' | \'copied\' | \'deleted\' | \'modified\' | \'renamed\' | \'type-changed\' | \'unmerged\';',
+  },
+  {
+    name: 'GitCommit',
+    declaration: 'export interface GitCommit {\n    readonly oid: string;\n    readonly parents: readonly string[];\n    readonly author: string;\n    readonly authoredAt: string;\n    readonly subject: string;\n}',
+  },
+  {
+    name: 'GitHeadState',
+    declaration: 'export interface GitHeadState {\n    readonly oid?: string;\n    readonly branch?: string;\n    readonly upstream?: string;\n    readonly ahead?: number;\n    readonly behind?: number;\n}',
+  },
+  {
+    name: 'GitObservation',
+    declaration: 'export type GitObservation = {\n    readonly kind: \'absent\';\n} | {\n    readonly kind: \'repository\';\n} & GitRepositorySnapshot;',
+  },
+  {
+    name: 'GitRepositorySnapshot',
+    declaration: 'export interface GitRepositorySnapshot {\n    readonly root: string;\n    readonly head: GitHeadState;\n    readonly branches: readonly GitBranch[];\n    readonly branchesTruncated: boolean;\n    readonly history: readonly GitCommit[];\n    readonly historyTruncated: boolean;\n    readonly worktree: readonly GitWorktreeEntry[];\n    readonly worktreeTruncated: boolean;\n}',
+  },
+  {
+    name: 'GitWorktreeEntry',
+    declaration: 'export type GitWorktreeEntry = {\n    readonly kind: \'changed\';\n    readonly path: string;\n    readonly origPath?: string;\n    readonly staged?: GitChangeKind;\n    readonly unstaged?: GitChangeKind;\n} | {\n    readonly kind: \'untracked\';\n    readonly path: string;\n};',
+  },
+  {
     name: 'GoalActivation',
     declaration: 'export type GoalActivation = \'armed\' | \'disarmed\';',
   },
@@ -4318,6 +4382,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ImageVariantId',
     declaration: 'export type ImageVariantId = Branded<\'ImageVariantId\'>;',
+  },
+  {
+    name: 'IncomingMessage',
+    declaration: 'export interface IncomingMessage {\n    readonly chatId: string;\n    readonly chatType: ChatType;\n    readonly chatName: string;\n    readonly userId: string;\n    readonly userName: string;\n    readonly messageId: string;\n    readonly text: string;\n    readonly mediaUrls: readonly string[];\n    readonly replyToMessageId?: string;\n    readonly raw: Record<string, unknown>;\n}',
   },
   {
     name: 'IndexInjection',

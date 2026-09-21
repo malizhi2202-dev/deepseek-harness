@@ -78,6 +78,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   fileUploads: 'attachment.md',
   fileReferences: 'session-reference.md',
   fs: 'filesystem.md',
+  git: 'workspace.md',
   goals: 'goal.md',
   inspector: 'extensions.md',
   webServer: 'web-server.md',
@@ -124,6 +125,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   workspaceRegistry: 'workspace.md',
   workspaceController: 'workspace.md',
   workspaceFiles: 'workspace.md',
+  workspaceGit: 'workspace.md',
   directoryPickerController: 'workspace.md',
 }
 

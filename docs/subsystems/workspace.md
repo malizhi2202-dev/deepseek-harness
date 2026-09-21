@@ -183,6 +183,32 @@ Host service backing the generated `ctx.remote.directoryPicker` namespace. The s
 
 Source: [`packages/api/workspace-controller/src/directory-picker.ts`](../../packages/api/workspace-controller/src/directory-picker.ts)
 
+<a id="ctxgit--gitobserver-abstract-seam"></a>
+
+### `ctx.git` — `GitObserver` (abstract seam)
+
+Abstract git observation service. Subclass, implement observe, and load the subclass as a plugin — it registers as `ctx.git` (one implementation per context; loading a second throws, which is cordis' standard duplicate-service behavior).
+
+Implementations must honor these semantics:
+
+- observe resolves `absent` for a directory outside any git work tree; that is an answer, not a failure.
+- Every list in the snapshot is cut to MAX_OBSERVATION_ITEMS with its truncated flag set when the bound dropped entries.
+- `signal` aborts the read; an aborted read rejects with the abort reason.
+- Nothing in the implementation writes to the repository.
+
+```ts cordis-catalog
+/**
+ * Observe the git repository that contains one working directory.
+ * @param cwd - the directory to observe from; the repository's work-tree root
+ *   is whatever git reports for it, not necessarily the directory itself.
+ * @param signal - caller cancellation.
+ * @returns the repository's bounded snapshot, or `absent` outside any work tree.
+ */
+abstract observe(cwd: string, signal: AbortSignal): Promise<GitObservation>
+```
+
+Source: [`packages/git/git/src/index.ts`](../../packages/git/git/src/index.ts)
+
 <a id="ctxworkspacecontroller--workspacecontroller"></a>
 
 ### `ctx.workspaceController` — `WorkspaceController`
@@ -280,6 +306,24 @@ Host Remote service over the composed filesystem, confined to one workspace.
 @Remote async stat(agent: Agent, path: string, signal: AbortSignal): Promise<WorkspaceFileStat>
 
 /**
+ * Replace one regular file's complete text inside the Agent's workspace.
+ *
+ * The write is guarded by the version the caller read: a file that no longer
+ * carries it fails with `workspace-file/stale-version` and keeps its content.
+ * The guard is applied twice on purpose — once against the stat this method
+ * takes, so the common conflict is decided before any content is written, and
+ * once by the backend's atomic write at that same version, so a change
+ * landing in between is refused rather than clobbered.
+ * @param agent - target Agent resolved from the Session identity on the wire.
+ * @param path - workspace path, absolute or relative to the workspace root.
+ * @param content - the complete new file text.
+ * @param expectedVersion - the `version` the caller's read reported.
+ * @param signal - caller cancellation.
+ * @returns the written file's absolute path, new version, and byte size.
+ */
+@Remote async write( agent: Agent, path: string, content: string, expectedVersion: string, signal: AbortSignal, ): Promise<WorkspaceFileStat>
+
+/**
  * List the direct children of one directory inside the Agent's workspace.
  * @param agent - target Agent resolved from the Session identity on the wire.
  * @param path - workspace path, absolute or relative to the workspace root.
@@ -303,6 +347,31 @@ Host Remote service over the composed filesystem, confined to one workspace.
 Types: [Agent](core.md)
 
 Source: [`packages/api/workspace-files/src/index.ts`](../../packages/api/workspace-files/src/index.ts)
+
+<a id="ctxworkspacegit--workspacegit"></a>
+
+### `ctx.workspaceGit` — `WorkspaceGit`
+
+Host Remote service reading one workspace's repository state through `ctx.git`.
+
+```ts cordis-catalog
+/**
+ * Observe the repository that contains the Agent's workspace root.
+ *
+ * The observation is one bounded read, not a subscription: a consumer asks
+ * again when it wants a fresher answer, and aborting the call abandons the
+ * read without leaving any state behind.
+ * @param agent - target Agent resolved from the Session identity on the wire.
+ * @param signal - caller cancellation.
+ * @returns the repository's bounded snapshot, or `absent` when the workspace
+ *   root is not inside a git work tree.
+ */
+@Remote async observe(agent: Agent, signal: AbortSignal): Promise<GitObservation>
+```
+
+Types: [Agent](core.md)
+
+Source: [`packages/api/workspace-git/src/index.ts`](../../packages/api/workspace-git/src/index.ts)
 
 <a id="ctxworkspaceregistry--workspaceregistry"></a>
 
