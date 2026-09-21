@@ -62,7 +62,26 @@ registry 可达，新增依赖可安装。
 
 ## 六、对 T3 的直接影响
 
-- 飞书：可用官方 SDK，但要注意 `__dirname` 在 ESM 打包形态下的问题（`01-verified-facts.md`）。
+- 飞书：可用官方 SDK，模块形态的隐患**已实查并降级**，见下节。
 - 钉钉：全新；`dingtalk-stream` 官方 SDK 存在，优先评估直接采用。
 - QQ / 微信：按官方协议自行实现；QQ 需要 token 缓存 + 额度记账；微信需要长轮询入站 + 二维码送进浏览器（对应 `dsh-authorization` 的一条流程）。
 - 每个渠道都要有自己的 markdown 降级与分段（平台差异真实存在，参考实现为 QQ 与微信各写了一份）。
+
+## 七、飞书官方 SDK 的模块形态：实查结论（订正第六节）
+
+查 npm registry 得 `@larksuiteoapi/node-sdk@1.74.0` 的真实形态：
+
+| 字段 | 值 | 含义 |
+| --- | --- | --- |
+| `type` | **无** | 没有 `"type": "module"` |
+| `main` | `./lib/index.js` | Node 解析到的就是这个 **CJS** 产物 |
+| `module` | `./es/index.js` | 只有打包器认这个字段，Node **忽略** |
+| `exports` | **无** | 因此没有条件导出可走 |
+| `dependencies` | `qs`、`ws`、`axios`、`protobufjs`、`lodash.merge/pickby/identity` | 为一条长连接 + 发消息引入的依赖面偏重 |
+
+**先前记的「`__dirname` 在 ESM 下有问题」这条判断过重，订正如下**：既然没有 `exports` 也没有 `type: module`，Node 从 ESM 里 `import` 它时走的是 **`main` 的 CJS 产物**，`__dirname` 在那个产物里是**正常可用**的。真正的风险只在于**我们自己的打包器**把它内联进 ESM 输出时，`__dirname` 会失去意义——这是打包配置问题，不是采用与否的问题。
+
+**而且本仓库已有同形态依赖在先**，所以这不是新的阻塞：`node-pty`（`packages/subprocess/subprocess-local` 的直接依赖）与 `protobufjs` 都是 `type` 缺省、`main` 指向 CJS、**无 `exports`**。CJS-only 依赖在本仓库是可用的既有事实。
+
+**因此飞书的取舍收敛为一个成本问题，不是可行性问题**：官方 SDK 能删掉手写 WebSocket 长连接、事件解密与重连的代码，代价是 7 个传递依赖（含 `axios` 与 `protobufjs`）与一次打包形态验证；参考实现选择了手写（`feishu-sdk.ts` 782 行）。T3 实现时按「依赖优先于手写」的仓库政策先试官方 SDK，并在同一变更里证明它在 `tsx` ESM 源码启动与 tsdown 产物两条路径下都能加载。
+
