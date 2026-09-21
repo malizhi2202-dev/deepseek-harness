@@ -1,5 +1,5 @@
 ---
-description: "Workspace file service for the web GUI: paged read, byte windows, stat, directory listing, and the Agent-write change feed inside the Session workspace root, exposed as the workspaceFiles Remote namespace."
+description: "Workspace file service for the web GUI: paged read, byte windows, stat, directory listing, guarded whole-file writes, and the Agent-write change feed inside the Session workspace root, exposed as the workspaceFiles Remote namespace."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`@deepseek-ai/dsh-api-workspace-files` owns the Host `ctx.workspaceFiles` service and the generated Client `workspaceFiles` Remote namespace: `read` returns one page of lines from a UTF-8 text file, `readBytes` returns one window of raw bytes from any regular file, `stat` returns a file's version and size without its content, `list` returns one directory's direct children, and `changes` streams every filesystem observation an Agent makes inside the Session's workspace root. All five run over the composed `ctx.fs` and confine themselves to the workspace root the sandbox policy resolves for the addressed Session; the filesystem backend's own cwd never decides. Client packages reach the namespace through the [`api-remotes`](../../api/remotes/README.md) assembly. The package's `./client` export registers the `file` resource provider that turns `stat` and `changes` into live file metadata for `useResource<'file'>`; the Sidebar's file tree tab lists directories through `list`.
+`@deepseek-ai/dsh-api-workspace-files` owns the Host `ctx.workspaceFiles` service and the generated Client `workspaceFiles` Remote namespace: `read` returns one page of lines from a UTF-8 text file, `readBytes` returns one window of raw bytes from any regular file, `stat` returns a file's version and size without its content, `write` replaces one file's whole text under the version the caller read, `list` returns one directory's direct children, and `changes` streams every filesystem observation an Agent makes inside the Session's workspace root. All of them run over the composed `ctx.fs` and confine themselves to the workspace root the sandbox policy resolves for the addressed Session; the filesystem backend's own cwd never decides. Client packages reach the namespace through the [`api-remotes`](../../api/remotes/README.md) assembly. The package's `./client` export registers the `file` resource provider that turns `stat` and `changes` into live file metadata for `useResource<'file'>`; the Sidebar's file tree tab lists directories through `list`, and its text tab edits through `write`.
 
 ## Table of Contents
 
@@ -25,19 +25,20 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount the package beside `dsh-fs`, `dsh-sandbox-policy`, and the Typert Gateway; the bundle does so right after the Session Controller. Every method takes the Session identity on the wire, so a Client calls `remote.workspaceFiles.read(agent, path, range, signal)`, `stat(agent, path, signal)`, `readBytes(agent, path, range, signal)`, `list(agent, path, signal)`, or `changes(agent, signal)` and never names a root itself.
+Mount the package beside `dsh-fs`, `dsh-sandbox-policy`, and the Typert Gateway; the bundle does so right after the Session Controller. Every method takes the Session identity on the wire, so a Client calls `remote.workspaceFiles.read(agent, path, range, signal)`, `stat(agent, path, signal)`, `readBytes(agent, path, range, signal)`, `write(agent, path, content, expectedVersion, signal)`, `list(agent, path, signal)`, or `changes(agent, signal)` and never names a root itself.
 
 | Method | Returns | Purpose |
 |---|---|---|
 | `stat(path)` | `WorkspaceFileStat { absolutePath, version, bytes? }` | Identity, version, and size of one regular file, without content |
 | `read(path, { offset?, limit? })` | `WorkspaceFileText` = stat + `{ offset, text, lines, eof }` | One window of lines from a UTF-8 text file; `lines` counts them, so one empty line and a page past the end read differently |
 | `readBytes(path, { offset?, length? })` | `WorkspaceFileBytes` = stat + `{ offset, data, eof }` | One window of raw bytes from any regular file, base64-encoded |
+| `write(path, content, expectedVersion)` | `WorkspaceFileStat` | Replace one file's complete text, refused when its version moved |
 | `list(path)` | `WorkspaceDirectoryListing { path, entries, truncated }` | Direct children of one directory |
 | `changes()` | stream of `WorkspaceFileWatchFrame` | Subscription readiness, then Agent observations inside the workspace root |
 
 ### Addressing and paths
 
-`read`, `stat`, and `list` accept a workspace path that is absolute or relative to the Session's workspace root. Two path vocabularies leave the service, and each method uses exactly one: `read`, `stat`, and `changes` report a file as its absolute path in the filesystem's execution world, symlinks resolved (`WorkspaceFileStat.absolutePath`, `WorkspaceFileChange.absolutePath`), because their consumer is the Client resource system, which follows changes by that path; `list` reports the listed directory as a workspace path relative to the root — empty for the root itself — because its consumer is a tree rooted there, and a child's path is that value joined with the entry name by `/`.
+`read`, `stat`, and `list` accept a workspace path that is absolute or relative to the Session's workspace root; so do `write` and `readBytes`, which resolve it the same way. Two path vocabularies leave the service, and each method uses exactly one: `read`, `stat`, `write`, and `changes` report a file as its absolute path in the filesystem's execution world, symlinks resolved (`WorkspaceFileStat.absolutePath`, `WorkspaceFileChange.absolutePath`), because their consumer is the Client resource system, which follows changes by that path; `list` reports the listed directory as a workspace path relative to the root — empty for the root itself — because its consumer is a tree rooted there, and a child's path is that value joined with the entry name by `/`.
 
 ### Pages
 
@@ -47,9 +48,15 @@ Mount the package beside `dsh-fs`, `dsh-sandbox-policy`, and the Typert Gateway;
 
 `read` pages by lines and never by bytes; a byte window is `readBytes`. `range.offset` is the 0-based first byte and defaults to 0; `range.length` is the largest number of bytes in the window and defaults to `maxBytes`, which it may not exceed — a longer window fails with `too-large` instead of arriving shortened, and an offset or length that is not an integer in range is a `gateway/bad-request`. The window comes back as base64 `data`, shorter than `length` at the end of the file and empty at or past it; `eof` is true when the window includes the file's last byte. Nothing is decoded and nothing is refused as binary, so an image or a NUL-laden file reads where `read` fails with `not-text`. The same `version` and `bytes` ride along as on a page.
 
+### Writing
+
+`write` is the one mutation, and it replaces the whole file: `content` becomes the file's complete text, and a caller that holds only part of a file must not call it. The guard is `expectedVersion`, the `version` the caller read — normally the one a `stat` or a page carried. The service stats the file, compares that version with the argument, and refuses with `stale-version` when they differ; when they match it hands the same value to the backend's atomic replace, which re-checks it inside the write, so a change landing between the two is refused rather than clobbered. A caller therefore never mints a version: it echoes one it was given. The written file's `absolutePath`, new `version`, and `bytes` come back as a `WorkspaceFileStat`, and the next `stat` or page reports the same version. `content` above `maxBytes` is refused whole with `too-large` rather than truncated. An empty string is a legitimate replacement: the file becomes zero bytes.
+
+The write is fenced by the addressed Session's sandbox policy, which the service resolves and passes with the write, so a Session that may not write its workspace cannot save through this method either. The agent-facing `fs/write-intent` and `fs/edit-intent` waterfalls and the read-before-edit observation policy are not on this path: those gates are dispatched by the agent's own filesystem tools, which hold an execution context this service's callers do not have, and the policy's answer for an actor with no recorded observation of the file is a create, which cannot overwrite an existing one. A caller that read the file through `read` and passes that page's version expresses the same intent the policy derives from an observation, and the backend enforces it atomically.
+
 ### The four gates
 
-Every read, stat, and listing passes four gates in this order. First, `lstat` inspects the path itself before anything follows it: a symlink, wherever it points, fails `read` and `stat` with `not-regular-file` and `list` with `not-directory`, each carrying the entry's `kind`. Second, containment: the path resolves to a target and `ctx.fs.contains(root, target)` decides, so a `..` traversal or an absolute path outside the root fails with `outside-workspace` — never a string-prefix comparison, which cannot see a realpath that leaves the root. Third, the caps: a page whose text exceeds `maxBytes` fails with `too-large` instead of arriving shortened — the file itself has no size cap — while `maxEntries` cuts a listing and sets `truncated`. Fourth, text: content that is not UTF-8 up to the end of the page, or a page that carries a NUL byte, fails with `not-text`; bytes past the page are not inspected. A missing path fails with `not-found`; an empty path is a `gateway/bad-request`.
+Every read, stat, write, and listing passes the gates below in this order. First, `lstat` inspects the path itself before anything follows it: a symlink, wherever it points, fails `read`, `stat`, and `write` with `not-regular-file` and `list` with `not-directory`, each carrying the entry's `kind`. Second, containment: the path resolves to a target and `ctx.fs.contains(root, target)` decides, so a `..` traversal or an absolute path outside the root fails with `outside-workspace` — never a string-prefix comparison, which cannot see a realpath that leaves the root. Third, the caps: a page whose text exceeds `maxBytes` fails with `too-large` instead of arriving shortened — the file itself has no size cap — while `maxEntries` cuts a listing and sets `truncated`. Fourth, text: content that is not UTF-8 up to the end of the page, or a page that carries a NUL byte, fails with `not-text`; bytes past the page are not inspected. A write passes only the first two gates and its own `maxBytes` check, because it supplies the text rather than decoding it. A missing path fails with `not-found`; an empty path is a `gateway/bad-request`.
 
 ### The change feed
 
@@ -59,7 +66,7 @@ Every read, stat, and listing passes four gates in this order. First, `lstat` in
 
 | Field | Default | Meaning |
 |---|---|---|
-| `maxBytes` | `2097152` (2 MiB) | Inclusive byte cap on one page's text and on one byte window; a larger page or window fails |
+| `maxBytes` | `2097152` (2 MiB) | Inclusive byte cap on one page's text, on one byte window, and on one write's content; a larger page, window, or write fails |
 | `maxLines` | `5000` | Default and largest page size in lines; a larger `limit` is refused |
 | `maxEntries` | `2000` | Cap on returned directory entries; the rest is dropped and reported cut |
 
@@ -67,7 +74,7 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 ### Failures
 
-Each failure is one `RemoteError` code with typed details, declared in [`src/types.ts`](src/types.ts): `workspace-file/not-found`, `workspace-file/outside-workspace`, `workspace-file/too-large` (with `limit`, the page and window cap), `workspace-file/not-text`, `workspace-file/not-regular-file` (`kind`: `directory`, `symlink`, or `other`), and `workspace-file/not-directory` (`kind`: `file`, `symlink`, or `other`). Callers branch on the code, never on message text.
+Each failure is one `RemoteError` code with typed details, declared in [`src/types.ts`](src/types.ts): `workspace-file/not-found`, `workspace-file/outside-workspace`, `workspace-file/too-large` (with `limit`, the page, window, and write cap), `workspace-file/not-text`, `workspace-file/not-regular-file` (`kind`: `directory`, `symlink`, or `other`), `workspace-file/not-directory` (`kind`: `file`, `symlink`, or `other`), and `workspace-file/stale-version` (with `path`). Callers branch on the code, never on message text.
 
 ### Client file resources
 
@@ -89,13 +96,13 @@ One supervised `changes` stream serves every followed file in a Session. Followe
 
 ### Design concept
 
-Reads through `ctx.fs` are deliberately unconfined — the sandboxing backend fences writes and edits only — so every constraint here is the service's own. A page is cut from `streamText`, which decodes and rejects non-UTF-8 chunk by chunk: the cutter counts lines before the window without keeping them, admits each in-window segment against the byte cap before buffering it, and returns at the first character past the window, so neither a huge file nor one giant line can hold more than a page in memory; the NUL scan then runs on the page. One `stat` before the stream names the version and size the page reports. The path gate runs before containment on purpose: `lstat` is path-shaped and sees the link, while `resolve` follows it; the price is that an entry outside the root reports its own kind before its position.
+Reads through `ctx.fs` are deliberately unconfined — the sandboxing backend fences writes and edits only — so every constraint here is the service's own. A page is cut from `streamText`, which decodes and rejects non-UTF-8 chunk by chunk: the cutter counts lines before the window without keeping them, admits each in-window segment against the byte cap before buffering it, and returns at the first character past the window, so neither a huge file nor one giant line can hold more than a page in memory; the NUL scan then runs on the page. One `stat` before the stream names the version and size the page reports. The path gate runs before containment on purpose: `lstat` is path-shaped and sees the link, while `resolve` follows it; the price is that an entry outside the root reports its own kind before its position. `write` reuses that same stat for its version check and passes the value on, so the service never constructs a version of its own.
 
 ### Source map
 
 | File | Role |
 |---|---|
-| [`src/index.ts`](src/index.ts) | `WorkspaceFiles`: the `workspaceFiles` service and Remote namespace, `Config`, the gates, the page cutter, `read`, `readBytes`, `stat`, `list` |
+| [`src/index.ts`](src/index.ts) | `WorkspaceFiles`: the `workspaceFiles` service and Remote namespace, `Config`, the gates, the page cutter, `read`, `readBytes`, `stat`, `write`, `list` |
 | [`src/changes.ts`](src/changes.ts) | `WorkspaceChangeFeed`: `fs/observed` subscription and one queue per open `changes` generation |
 | [`src/types.ts`](src/types.ts) | Wire types and the `RemoteErrorDetailsMap` codes, published as `./types` for Client packages |
 | [`src/client/index.ts`](src/client/index.ts), [`provider.ts`](src/client/provider.ts), [`change-feed.ts`](src/client/change-feed.ts) | Browser plugin, file metadata, and per-Session change feed |
@@ -133,7 +140,8 @@ None; this package neither assembles nor sends a provider request.
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **Agent writes only** — `changes` relays `fs/observed` emissions; a file changed by a subprocess, a shell command, or the user's editor produces no frame.
+- **Agent writes only** — `changes` relays `fs/observed` emissions; a file changed by a subprocess, a shell command, or the user's editor produces no frame. `write` deliberately emits none either: the observation record is the Agent Session's own read record, and recording a human save would let the Agent overwrite a file it never read.
+- **Whole-file replacement only** — `write` takes the complete text; there is no patch, append, or partial-range write, and a caller that has read only a page of a file cannot safely use it.
 - **Kind before position** — an entry outside the workspace whose type already disqualifies it reports `not-regular-file` or `not-directory`, not `outside-workspace`, because the path gate precedes containment.
 - **No total line count** — a page reports `eof`, not how many lines follow; a consumer that needs the total pages to the end or estimates from `bytes`.
 - **One giant line has no page** — a single line above `maxBytes` fails `too-large` at every window that includes it, because pages are cut by lines, not bytes.

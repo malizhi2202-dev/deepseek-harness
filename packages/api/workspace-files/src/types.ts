@@ -4,7 +4,7 @@
  *
  * Two path vocabularies leave here, and each method uses exactly one:
  *
- * - `read`, `readBytes`, `stat`, and `changes` name a file by its absolute path in the
+ * - `read`, `readBytes`, `stat`, `write`, and `changes` name a file by its absolute path in the
  *   filesystem's execution world, because their consumer is the Client
  *   resource system, whose `dsh-resource://file/session/<id>/<path>` address carries that
  *   same path.
@@ -152,6 +152,12 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'workspace-file/too-large': { readonly path: string; readonly limit: number }
     /** The content read so far is not decodable UTF-8 text, or the page carries NUL bytes. */
     'workspace-file/not-text': { readonly path: string }
+    /**
+     * The file no longer carries the version the caller read, so the write was
+     * refused rather than clobbering a concurrent change. The caller re-reads
+     * the file and decides what to do with the text it already holds.
+     */
+    'workspace-file/stale-version': { readonly path: string }
     /** The path is not a regular file, so it has no text to read. */
     'workspace-file/not-regular-file': {
       readonly path: string

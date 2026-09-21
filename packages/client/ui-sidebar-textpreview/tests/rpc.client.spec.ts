@@ -1,14 +1,16 @@
 /**
- * The address-to-read translation: a `dsh-resource://file/session/<id>/<path>`
- * address names the session the read runs under and the workspace-relative path
+ * The address-to-call translation: a `dsh-resource://file/session/<id>/<path>`
+ * address names the session the call runs under and the workspace-relative path
  * it hands the Host; a `dsh-resource://file/absolute/<path>` address is read
- * through the seat's own session; anything else fails loud.
+ * through the seat's own session; anything else fails loud. The two bindings
+ * pass their arguments through in the order the Remote declares them, the
+ * version included for a save.
  */
 import { describe, expect, it, vi } from 'vitest'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { createReadPage, hostFileOf } from '../src/client/rpc.ts'
-import type { WorkspaceFilesReadRemote } from '../src/client/rpc.ts'
-import { ADDRESS, FILE, PATH, SESSION, page } from './fixtures.client.ts'
+import { createReadPage, createWriteFile, hostFileOf } from '../src/client/rpc.ts'
+import type { WorkspaceFilesReadRemote, WorkspaceFilesWriteRemote } from '../src/client/rpc.ts'
+import { ADDRESS, FILE, PATH, SESSION, page, written } from './fixtures.client.ts'
 
 const SEAT = 's-seat' as SessionId
 
@@ -36,5 +38,15 @@ describe('createReadPage', () => {
     const signal = new AbortController().signal
     await expect(createReadPage({ workspaceFiles: { read } })(SESSION, PATH, 4, signal)).resolves.toEqual(page(4, ['d'], true))
     expect(read).toHaveBeenCalledWith(SESSION, PATH, { offset: 4 }, signal)
+  })
+})
+
+describe('createWriteFile', () => {
+  it('binds the guarded write to the Remote, the version ahead of the signal', async () => {
+    const write = vi.fn<WorkspaceFilesWriteRemote['workspaceFiles']['write']>(() => Promise.resolve(written('a\nB\n')))
+    const signal = new AbortController().signal
+    await expect(createWriteFile({ workspaceFiles: { write } })(SESSION, PATH, 'a\nB\n', 'v1', signal))
+      .resolves.toEqual(written('a\nB\n'))
+    expect(write).toHaveBeenCalledWith(SESSION, PATH, 'a\nB\n', 'v1', signal)
   })
 })

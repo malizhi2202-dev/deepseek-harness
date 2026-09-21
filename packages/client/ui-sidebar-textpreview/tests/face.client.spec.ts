@@ -4,15 +4,19 @@
  * reload starts over from the first line and retires the reads still out, and
  * a newer file version arriving past the first line restarts the walk. The read
  * runs under the session the file names, not the one the face was injected for.
+ *
+ * A save is the other half: it carries the text and the version it was read at,
+ * adopts what the Host wrote, and leaves the reader's text in place when the
+ * Host refuses.
  */
 import { describe, expect, it, vi } from 'vitest'
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { WorkspaceFileText } from '@deepseek-ai/dsh-api-workspace-files/types'
+import type { WorkspaceFileStat, WorkspaceFileText } from '@deepseek-ai/dsh-api-workspace-files/types'
 import { textFace } from '../src/client/face.ts'
-import type { ReadWorkspaceFilePage } from '../src/client/rpc.ts'
+import type { ReadWorkspaceFilePage, WriteWorkspaceFile } from '../src/client/rpc.ts'
 import { createTextStore } from '../src/client/store.ts'
-import { FILE, PATH, SESSION, failure, page } from './fixtures.client.ts'
+import { FILE, PATH, SESSION, failure, page, writeFailure, written } from './fixtures.client.ts'
 import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
 
 const TAB_1 = 'tab-1' as TabId
@@ -23,15 +27,22 @@ interface PendingRead {
   resolve(result: RemoteResult<WorkspaceFileText>): void
 }
 
+/** One save awaiting the spec's answer. */
+interface PendingWrite {
+  resolve(result: RemoteResult<WorkspaceFileStat>): void
+}
+
 function bench() {
   const instance = createTextStore().create()
   const pending: PendingRead[] = []
   const read = vi.fn<ReadWorkspaceFilePage>((_session, _path, offset) =>
     new Promise((resolve) => { pending.push({ offset, resolve }) }))
+  const writes: PendingWrite[] = []
+  const write = vi.fn<WriteWorkspaceFile>(() => new Promise((resolve) => { writes.push({ resolve }) }))
   // The store's own `forget`, counted: the record's end must forget a tab exactly once.
   const forget = vi.fn(instance.actions.forget)
   // Injected for another session on purpose: the address's session must win.
-  const face = textFace(read)('other-session' as SessionId, { ...instance.actions, forget })
+  const face = textFace(read, write)('other-session' as SessionId, { ...instance.actions, forget })
   /** Settle the oldest outstanding read, or the oldest one for `offset`. */
   const settle = (result: RemoteResult<WorkspaceFileText>, offset?: number): void => {
     const at = offset === undefined ? 0 : pending.findIndex(call => call.offset === offset)
@@ -39,8 +50,14 @@ function bench() {
     if (call === undefined) throw new Error('no outstanding read to settle')
     call.resolve(result)
   }
+  /** Settle the oldest outstanding save. */
+  const settleWrite = (result: RemoteResult<WorkspaceFileStat>): void => {
+    const [call] = writes.splice(0, 1)
+    if (call === undefined) throw new Error('no outstanding save to settle')
+    call.resolve(result)
+  }
   return {
-    instance, read, face, forget, settle,
+    instance, read, write, face, forget, settle, settleWrite,
     outstanding: () => pending.map(call => call.offset),
     tab: () => instance.getSnapshot().byTab[TAB_1],
   }
@@ -153,5 +170,54 @@ describe('textFace', () => {
     settle(page(1, ['A'], true, 'v2'))
     await flush()
     expect(tab()).toMatchObject({ pages: { 1: { text: 'A', lines: 1 } }, version: 'v2', eof: true })
+  })
+})
+
+describe('textFace save', () => {
+  it('sends the text with the version it was read at, then adopts what the Host wrote', async () => {
+    const { face, write, settleWrite, tab } = bench()
+    const signal = new AbortController().signal
+    face.save(TAB_1, FILE, 'a\nB\n', 'v1', signal)
+    expect(tab()?.save).toEqual({ kind: 'saving' })
+    expect(write).toHaveBeenCalledExactlyOnceWith(SESSION, PATH, 'a\nB\n', 'v1', signal)
+    settleWrite(written('a\nB\n', 'v2'))
+    await flush()
+    expect(tab()).toMatchObject({
+      draft: undefined,
+      save: { kind: 'saved' },
+      version: 'v2',
+      bytes: 4,
+      eof: true,
+      pages: { 1: { text: 'a\nB', lines: 2 } },
+    })
+  })
+
+  it('keeps the reader\'s text and records why the save was refused', async () => {
+    const { instance, face, settleWrite, tab } = bench()
+    instance.actions.edit(TAB_1, 'a', 'v1')
+    instance.actions.edited(TAB_1, 'mine')
+    face.save(TAB_1, FILE, 'mine', 'v1', new AbortController().signal)
+    settleWrite(writeFailure('workspace-file/stale-version', { path: PATH }))
+    await flush()
+    expect(instance.getSnapshot().byTab[TAB_1]?.draft?.text).toBe('mine')
+    expect(tab()?.save).toMatchObject({ kind: 'failed', failure: { code: 'workspace-file/stale-version' } })
+  })
+
+  it('writes nothing for a tab whose record already ended', async () => {
+    const { face, write } = bench()
+    const controller = new AbortController()
+    controller.abort()
+    face.save(TAB_1, FILE, 'a', 'v1', controller.signal)
+    expect(write).not.toHaveBeenCalled()
+  })
+
+  it('drops a save that settles after the record ended, leaving nothing half-recorded', async () => {
+    const { face, settleWrite, tab } = bench()
+    const controller = new AbortController()
+    face.save(TAB_1, FILE, 'a', 'v1', controller.signal)
+    controller.abort()
+    settleWrite(written('a', 'v2'))
+    await flush()
+    expect(tab()?.save).toEqual({ kind: 'saving' })
   })
 })

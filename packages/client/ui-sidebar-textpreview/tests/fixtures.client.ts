@@ -1,7 +1,7 @@
 /**
  * Shared harness for the body specs: a real store instance, a real face over a
- * scripted paged read, a scripted `useResource`, and the owner props a tab
- * record carries.
+ * scripted paged read and guarded write, a scripted `useResource`, and the
+ * owner props a tab record carries.
  *
  * The framework's standard kit is replaced by the few members these components
  * read, behind one documented cast, so the specs exercise the components and
@@ -15,11 +15,11 @@ import type { RemoteFailure, RemoteResult } from '@deepseek-ai/dsh-api-remotes/c
 import type { ResourceSnapshot } from '@deepseek-ai/dsh-client-resources/client'
 import type { WorkspaceFileResource } from '@deepseek-ai/dsh-api-workspace-files/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { WorkspaceFileText } from '@deepseek-ai/dsh-api-workspace-files/types'
+import type { WorkspaceFileStat, WorkspaceFileText } from '@deepseek-ai/dsh-api-workspace-files/types'
 import type { TextPreviewProps } from '../src/client/TextPreview.tsx'
 import { textFace } from '../src/client/face.ts'
 import type { TextInjected } from '../src/client/face.ts'
-import type { ReadWorkspaceFilePage, SessionFile } from '../src/client/rpc.ts'
+import type { ReadWorkspaceFilePage, SessionFile, WriteWorkspaceFile } from '../src/client/rpc.ts'
 import { createTextStore } from '../src/client/store.ts'
 import type { TextStore } from '../src/client/store.ts'
 import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
@@ -34,13 +34,38 @@ export const ADDRESS = 'dsh-resource://file/session/s-1/work/notes.md'
 /** What the address names, as the face receives it. */
 export const FILE: SessionFile = { sessionId: SESSION, path: PATH }
 
-/** One page the Host would return: the lines joined without a terminator, and their count. */
-export function page(offset: number, lines: readonly string[], eof: boolean, version = 'v1'): RemoteResult<WorkspaceFileText> {
-  return { ok: true, value: { absolutePath: ABSOLUTE_PATH, version, offset, text: lines.join('\n'), lines: lines.length, eof, bytes: 100 } }
+/** The UTF-8 size of one text, which the page fixtures report as the file's size. */
+export function byteLength(text: string): number {
+  return new TextEncoder().encode(text).length
+}
+
+/**
+ * One page the Host would return: the lines joined without a terminator, and
+ * their count. The byte size defaults to the page text's own, which is the
+ * whole file's size for a file with no terminator after its last line.
+ */
+export function page(
+  offset: number,
+  lines: readonly string[],
+  eof: boolean,
+  version = 'v1',
+  bytes = byteLength(lines.join('\n')),
+): RemoteResult<WorkspaceFileText> {
+  return { ok: true, value: { absolutePath: ABSOLUTE_PATH, version, offset, text: lines.join('\n'), lines: lines.length, eof, bytes } }
 }
 
 /** One failed page read. */
 export function failure(code: string, details: Record<string, unknown> = {}): RemoteResult<WorkspaceFileText> {
+  return { ok: false, error: { code, message: 'boom', details } as unknown as RemoteFailure }
+}
+
+/** One successful write: the stat the Host reports for the text it just wrote. */
+export function written(content: string, version = 'v2'): RemoteResult<WorkspaceFileStat> {
+  return { ok: true, value: { absolutePath: ABSOLUTE_PATH, version, bytes: byteLength(content) } }
+}
+
+/** One failed write. */
+export function writeFailure(code: string, details: Record<string, unknown> = {}): RemoteResult<WorkspaceFileStat> {
   return { ok: false, error: { code, message: 'boom', details } as unknown as RemoteFailure }
 }
 
@@ -76,10 +101,12 @@ export async function settle(): Promise<void> {
 export interface Harness {
   /** The live store instance both components read. */
   instance: ReturnType<TextStore['create']>
-  /** The face bound to the scripted read. */
+  /** The face bound to the scripted read and write. */
   face: TextInjected
   /** The scripted paged read. */
   read: Mock<ReadWorkspaceFilePage>
+  /** The scripted guarded write. */
+  write: Mock<WriteWorkspaceFile>
   /** The resource's `reload`. */
   reload: Mock<() => void>
   /** The tab record's lifetime. */
@@ -90,6 +117,8 @@ export interface Harness {
   props: (navigation?: { params?: unknown; revision: number }) => TextPreviewProps
   /** Script what one offset resolves to from now on. */
   script(offset: number, result: RemoteResult<WorkspaceFileText>): void
+  /** Script what every later save resolves to. */
+  scriptWrite(result: RemoteResult<WorkspaceFileStat>): void
   /** Script whether the next render's `useResource` reports a pending change. */
   setChanged(changed: boolean): void
   /** Script the next render's `useResource` as failed with `failure`, or live again with `undefined`. */
@@ -106,7 +135,11 @@ export function harness(script: Record<number, RemoteResult<WorkspaceFileText>> 
   const pages: Record<number, RemoteResult<WorkspaceFileText>> = { ...script }
   const read = vi.fn<ReadWorkspaceFilePage>((_session, _path, offset) =>
     Promise.resolve(pages[offset] ?? failure('workspace-file/not-found', { path: PATH })))
-  const face = textFace(read)(SESSION, instance.actions)
+  const answers: { write: RemoteResult<WorkspaceFileStat> } = { write: written('') }
+  const write = vi.fn<WriteWorkspaceFile>((_session, _path, content) => Promise.resolve(
+    answers.write.ok ? written(content, answers.write.value.version) : answers.write,
+  ))
+  const face = textFace(read, write)(SESSION, instance.actions)
   const reload = vi.fn<() => void>()
   const current = { changed: false, failure: undefined as RemoteFailure | undefined, snapshot: meta(false, undefined, reload) }
   const refresh = (): void => { current.snapshot = meta(current.changed, current.failure, reload) }
@@ -130,17 +163,20 @@ export function harness(script: Record<number, RemoteResult<WorkspaceFileText>> 
     actions: instance.actions,
     loadPage: face.loadPage,
     reloadPages: face.reloadPages,
+    save: face.save,
     t,
   }) as unknown as TextPreviewProps
   return {
     instance,
     face,
     read,
+    write,
     reload,
     controller,
     useResource,
     props,
     script(offset, result) { pages[offset] = result },
+    scriptWrite(result) { answers.write = result },
     setChanged(changed) { current.changed = changed; refresh() },
     setFailure(failure) { current.failure = failure; refresh() },
   }

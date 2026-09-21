@@ -1,7 +1,7 @@
 /**
  * Workspace file service: paged text reads, byte-window reads, stats, directory
- * listings, and the agent-write change feed inside one session's workspace
- * root, exposed as the `workspaceFiles` Remote namespace.
+ * listings, guarded text writes, and the agent-write change feed inside one
+ * session's workspace root, exposed as the `workspaceFiles` Remote namespace.
  *
  * Reads through `ctx.fs` are deliberately unconfined — the sandboxing backend
  * fences writes and edits only, and says so. Every constraint this service
@@ -20,6 +20,12 @@
  * goes, so the file is read only up to the first character past the page and
  * never held whole in memory; the NUL scan runs on the page itself.
  *
+ * `write` is the one mutation, and it replaces the whole file. Its guard is the
+ * version the caller read, compared here and again inside the backend's write,
+ * so a concurrent change is refused rather than clobbered. The read-before-edit
+ * policy of `fs-observation-policy` is a tool-tier gate over the agent's own
+ * observations and is not on this path; see the README.
+ *
  * This is NOT modelled on `session.openWorkspacePath`. That endpoint hands a
  * path to the local opener and leaves the effect on the machine; this one sends
  * file content across the wire, which is a different level of exposure.
@@ -29,7 +35,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-fs'
-import type { FsDirEntry, FsInfo, FsPathInfo, FsTarget } from '@deepseek-ai/dsh-fs'
+import type { FsDirEntry, FsInfo, FsPathInfo, FsTarget, FsWriteOutcome } from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { WorkspaceChangeFeed } from './changes.ts'
@@ -56,11 +62,14 @@ declare module '@deepseek-ai/cordis' {
 /** Deployment caps on one page or one listing. */
 export interface Config {
   /**
-   * Inclusive byte cap on one page's text and on one byte window.
+   * Inclusive byte cap on one page's text, on one byte window, and on one
+   * write's content.
    *
    * A page above this fails; it is not shortened, because a silently cut page
    * reads as the whole page. A byte window asking for more is refused the same
-   * way. The file itself has no size cap: a caller pages through it.
+   * way, and so is a write whose content is above it: a save is refused whole
+   * rather than truncated. The file itself has no size cap: a caller pages
+   * through it.
    */
   readonly maxBytes: number
   /** Default and largest page size in lines; a request asking for more is refused. */
@@ -236,6 +245,56 @@ export class WorkspaceFiles extends TypertRemoteService {
   }
 
   /**
+   * Replace one regular file's complete text inside the Agent's workspace.
+   *
+   * The write is guarded by the version the caller read: a file that no longer
+   * carries it fails with `workspace-file/stale-version` and keeps its content.
+   * The guard is applied twice on purpose — once against the stat this method
+   * takes, so the common conflict is decided before any content is written, and
+   * once by the backend's atomic write at that same version, so a change
+   * landing in between is refused rather than clobbered.
+   * @param agent - target Agent resolved from the Session identity on the wire.
+   * @param path - workspace path, absolute or relative to the workspace root.
+   * @param content - the complete new file text.
+   * @param expectedVersion - the `version` the caller's read reported.
+   * @param signal - caller cancellation.
+   * @returns the written file's absolute path, new version, and byte size.
+   */
+  @Remote
+  async write(
+    agent: Agent,
+    path: string,
+    content: string,
+    expectedVersion: string,
+    signal: AbortSignal,
+  ): Promise<WorkspaceFileStat> {
+    const { target, info } = await this.locateFile(agent, path, signal)
+    if (info.version !== expectedVersion) throw staleVersion(path)
+    const bytes = Buffer.byteLength(content, 'utf8')
+    if (bytes > this.config.maxBytes) {
+      throw new RemoteError(
+        'workspace-file/too-large',
+        `${bytes} bytes of "${path}" exceed the ${this.config.maxBytes} byte cap`,
+        { path, limit: this.config.maxBytes },
+      )
+    }
+    let outcome: FsWriteOutcome
+    try {
+      outcome = await this.ctx.fs.writeText(
+        target,
+        content,
+        { kind: 'replaceIfVersion', version: info.version },
+        signal,
+        this.policyOf(agent),
+      )
+    } catch (error: unknown) {
+      if (isStaleVersionRefusal(error)) throw staleVersion(path)
+      throw error
+    }
+    return { absolutePath: this.ctx.fs.processPath(target), version: outcome.version, bytes }
+  }
+
+  /**
    * List the direct children of one directory inside the Agent's workspace.
    * @param agent - target Agent resolved from the Session identity on the wire.
    * @param path - workspace path, absolute or relative to the workspace root.
@@ -304,13 +363,20 @@ export class WorkspaceFiles extends TypertRemoteService {
 
 
   /**
-   * The workspace root comes from the policy, not from the backend's own cwd
-   * default: the `minimal` preset shadows the host provider with a bare
-   * `fs-local` whose cwd differs, and resolving explicitly makes the answer
-   * the same whichever instance answers.
+   * The complete per-call sandbox policy for one Agent's Session: the mode a
+   * write is fenced by, and the workspace root every path is confined to. It
+   * comes from the policy rather than the backend's own cwd default, because
+   * the `minimal` preset shadows the host provider with a bare `fs-local`
+   * whose cwd differs; resolving explicitly makes the answer the same
+   * whichever instance answers.
    */
+  private policyOf(agent: Agent) {
+    return this.ctx.sandboxPolicy.resolve({ session: agent.session })
+  }
+
+  /** The workspace root the Agent's Session is confined to. */
   private workspaceRootOf(agent: Agent): string {
-    return this.ctx.sandboxPolicy.resolve({ session: agent.session }).workspaceRoot
+    return this.policyOf(agent).workspaceRoot
   }
 
   /**
@@ -395,6 +461,29 @@ export class WorkspaceFiles extends TypertRemoteService {
  */
 function isNotTextRefusal(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'FS_NOT_TEXT'
+}
+
+/**
+ * The backend's stale-version refusal, recognized by its code alone for the
+ * same reason as {@link isNotTextRefusal}. It reaches here when the file
+ * changed between this service's stat and the backend's guarded write.
+ */
+function isStaleVersionRefusal(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'FS_STALE_VERSION'
+}
+
+/**
+ * The one failure a guarded write earns when the file no longer carries the
+ * caller's version.
+ * @param path - the path as the caller named it.
+ * @returns the typed Remote error.
+ */
+function staleVersion(path: string): RemoteError<'workspace-file/stale-version'> {
+  return new RemoteError(
+    'workspace-file/stale-version',
+    `"${path}" changed since it was read`,
+    { path },
+  )
 }
 
 export default WorkspaceFiles

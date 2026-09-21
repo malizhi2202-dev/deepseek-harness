@@ -117,6 +117,32 @@
   background: var(--dsw-alias-bg-layer-3);
 }
 
+.action:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.action:disabled:hover {
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+/* The whole file in one field: the pane's one scroller while editing. */
+.editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px;
+  resize: none;
+  color: var(--dsw-alias-label-primary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  font-family: var(--dsw-font-mono, ui-monospace, monospace);
+  line-height: 1.6;
+  background: var(--dsw-alias-bg-base);
+  border: none;
+  outline: none;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
 /* The next page, asked for where the loaded text ends. */
 .more {
   display: block;

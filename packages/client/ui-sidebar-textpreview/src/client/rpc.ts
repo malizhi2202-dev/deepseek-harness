@@ -1,14 +1,16 @@
 /**
- * The paged read this type performs, bound to the Client Remote.
+ * The paged read and the guarded write this type performs, bound to the Client
+ * Remote.
  *
  * Content is the consumer's business: the `file` resource carries metadata only,
- * and the text arrives here one page of lines at a time. The endpoint takes a
- * session and a workspace path while a tab carries a `dsh-resource://file/`
- * address in one of two scopes, so this module also owns that translation.
+ * and the text arrives here one page of lines at a time and leaves as one whole
+ * file. The endpoint takes a session and a workspace path while a tab carries a
+ * `dsh-resource://file/` address in one of two scopes, so this module also owns
+ * that translation.
  */
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { WorkspaceFileRange, WorkspaceFileText } from '@deepseek-ai/dsh-api-workspace-files/types'
+import type { WorkspaceFileRange, WorkspaceFileStat, WorkspaceFileText } from '@deepseek-ai/dsh-api-workspace-files/types'
 import { parseFileAddress } from '@deepseek-ai/dsh-util-workspace-path'
 
 /** The slice of the Client Remote this package calls. */
@@ -32,6 +34,34 @@ export interface WorkspaceFilesReadRemote {
 }
 
 /**
+ * The slice of the Client Remote a save calls: the same namespace's `write`.
+ *
+ * The version travels with the content because the endpoint replaces the whole
+ * file: without it the Host could not tell a save based on the reader's page
+ * from one that would clobber a change made since.
+ */
+export interface WorkspaceFilesWriteRemote {
+  readonly workspaceFiles: {
+    /**
+     * Replace one file's complete text, guarded by the version the reader saw.
+     * @param sessionId - the session whose workspace resolves `path`.
+     * @param path - workspace path, absolute or relative to the workspace root.
+     * @param content - the complete new file text.
+     * @param expectedVersion - the `version` the reader's page carried.
+     * @param signal - cancels the call.
+     * @returns the written file's stat, or the failure the Host declares.
+     */
+    write(
+      sessionId: SessionId,
+      path: string,
+      content: string,
+      expectedVersion: string,
+      signal?: AbortSignal,
+    ): Promise<RemoteResult<WorkspaceFileStat>>
+  }
+}
+
+/**
  * The read one page performs, injected so the face stays host-free.
  *
  * The session travels with the call because the endpoint resolves the workspace
@@ -44,6 +74,18 @@ export type ReadWorkspaceFilePage = (
   offset: number,
   signal: AbortSignal,
 ) => Promise<RemoteResult<WorkspaceFileText>>
+
+/**
+ * The write one save performs, injected for the same reason as
+ * {@link ReadWorkspaceFilePage} and carrying the same session and path.
+ */
+export type WriteWorkspaceFile = (
+  sessionId: SessionId,
+  path: string,
+  content: string,
+  expectedVersion: string,
+  signal: AbortSignal,
+) => Promise<RemoteResult<WorkspaceFileStat>>
 
 /** The file one tab reads: the session the read runs under and the path handed to the Host. */
 export interface SessionFile {
@@ -83,4 +125,14 @@ export function hostFileOf(address: string, sessionId: SessionId): SessionFile {
  */
 export function createReadPage(remote: WorkspaceFilesReadRemote): ReadWorkspaceFilePage {
   return (sessionId, path, offset, signal) => remote.workspaceFiles.read(sessionId, path, { offset }, signal)
+}
+
+/**
+ * Bind the guarded write to one Remote face.
+ * @param remote - the Client Remote carrying the `workspaceFiles` namespace.
+ * @returns the write a save performs.
+ */
+export function createWriteFile(remote: WorkspaceFilesWriteRemote): WriteWorkspaceFile {
+  return (sessionId, path, content, expectedVersion, signal) =>
+    remote.workspaceFiles.write(sessionId, path, content, expectedVersion, signal)
 }

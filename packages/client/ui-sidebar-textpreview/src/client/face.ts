@@ -1,11 +1,12 @@
 /**
- * The preview's asynchronous half: reading pages into the store.
+ * The preview's asynchronous half: reading pages into the store, and saving an
+ * edit back to the file.
  *
- * The component never awaits anything. It asks for a page and this face performs
- * the read and writes the outcome through the store's own actions — the
- * Slot-standard `inject` form, so the write set stays the store's. The session
- * the read runs under comes from the file's address, not from the slot's
- * session: the address is the read's whole authority.
+ * The component never awaits anything. It asks for a page or a save and this
+ * face performs the call and writes the outcome through the store's own actions
+ * — the Slot-standard `inject` form, so the write set stays the store's. The
+ * session the call runs under comes from the file's address, not from the
+ * slot's session: the address is the call's whole authority.
  *
  * A tab's pages are one file version walked from the first line. Dropping them
  * — a reload, or a page of a newer version arriving past the first line, which
@@ -15,11 +16,15 @@
  * bucket and this bookkeeping, a request is not made for a record that already
  * ended, and a settlement arriving after the record is gone has nothing left to
  * write to. A tab that never read has no bucket to forget.
+ *
+ * A save is not retired by a later read: the reader asked for it explicitly, and
+ * its refusal is what keeps their text, so it settles into the store unless the
+ * record itself ended. The Host's version guard decides whether it lands.
  */
 import type { BoundActions } from '@deepseek-ai/dsh-client-store'
 import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { ReadWorkspaceFilePage, SessionFile } from './rpc.ts'
+import type { ReadWorkspaceFilePage, SessionFile, WriteWorkspaceFile } from './rpc.ts'
 import type { TextStore } from './store.ts'
 
 /** The preview's injected business face, as the body receives it. */
@@ -44,6 +49,17 @@ export interface TextInjected {
    * @param signal - the tab record's lifetime.
    */
   readonly reloadPages: (tabId: TabId, file: SessionFile, signal: AbortSignal) => void
+  /**
+   * Write the draft back to the file, guarded by the version it was read at.
+   * Success adopts the written text as the pages; a refusal leaves the draft
+   * exactly as the reader typed it and records why.
+   * @param tabId - the tab being drawn.
+   * @param file - the session and workspace path the tab's address names.
+   * @param text - the editor's complete text.
+   * @param version - the file version the draft was read at.
+   * @param signal - the tab record's lifetime.
+   */
+  readonly save: (tabId: TabId, file: SessionFile, text: string, version: string, signal: AbortSignal) => void
 }
 
 /**
@@ -57,11 +73,15 @@ interface TabReads {
 }
 
 /**
- * Bind the preview's face to one paged read.
+ * Bind the preview's face to one paged read and one guarded write.
  * @param read - the bound `workspaceFiles.read` call.
+ * @param write - the bound `workspaceFiles.write` call.
  * @returns the Slot `inject` factory: bound actions in, face out. The slot's session id is unused because the address carries its own.
  */
-export function textFace(read: ReadWorkspaceFilePage): (sessionId: SessionId, actions: BoundActions<TextStore>) => TextInjected {
+export function textFace(
+  read: ReadWorkspaceFilePage,
+  write: WriteWorkspaceFile,
+): (sessionId: SessionId, actions: BoundActions<TextStore>) => TextInjected {
   return (_sessionId: SessionId, actions: BoundActions<TextStore>): TextInjected => {
     const tabs = new Map<TabId, TabReads>()
     // Reached with a live signal only: the record's end forgets the tab's
@@ -106,6 +126,18 @@ export function textFace(read: ReadWorkspaceFilePage): (sessionId: SessionId, ac
       actions.reset(tabId)
       loadPage(tabId, file, 1, signal)
     }
-    return { loadPage, reloadPages: restart }
+    const save = (tabId: TabId, file: SessionFile, text: string, version: string, signal: AbortSignal): void => {
+      if (signal.aborted) return
+      actions.saving(tabId)
+      void write(file.sessionId, file.path, text, version, signal).then((result) => {
+        if (signal.aborted) return
+        if (!result.ok) {
+          actions.saveFailed(tabId, result.error)
+          return
+        }
+        actions.saved(tabId, text, result.value.version, result.value.bytes)
+      })
+    }
+    return { loadPage, reloadPages: restart, save }
   }
 }

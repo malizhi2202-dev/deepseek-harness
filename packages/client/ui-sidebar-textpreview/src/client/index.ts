@@ -6,8 +6,8 @@
  * seat under the definition's `id`. Nothing here reaches into the Sidebar's store, its
  * panes, or its sequence. The file's metadata comes from the standard
  * `useResource`, served by the `file` provider; the text is this type's own
- * business, read one page at a time through its face. Every import from another
- * client plugin is a type.
+ * business, read one page at a time and written back whole through its face.
+ * Every import from another client plugin is a type.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
@@ -20,7 +20,7 @@ import type { WorkspaceFileParams } from '@deepseek-ai/dsh-api-workspace-files/c
 import { TextPreview } from './TextPreview.tsx'
 import { TEXTPREVIEW_ID, textDefinition } from './definition.ts'
 import { textFace } from './face.ts'
-import { createReadPage } from './rpc.ts'
+import { createReadPage, createWriteFile } from './rpc.ts'
 import { createTextStore } from './store.ts'
 import { en, zh } from './locales.ts'
 
@@ -28,10 +28,16 @@ import { en, zh } from './locales.ts'
 // surface is `apply`, `inject`, and the store factory another registration may
 // share, plus the types a consumer of the seat or the store names.
 export type { SidebarTextpreviewKey } from './locales.ts'
-export type { TextPreviewProps } from './TextPreview.tsx'
+export type { EditRefusal, EditScope, TextPreviewProps } from './TextPreview.tsx'
 export type { TextInjected } from './face.ts'
-export type { ReadWorkspaceFilePage, SessionFile, WorkspaceFilesReadRemote } from './rpc.ts'
-export type { TextPage, TextState, TextStore, TextTabState } from './store.ts'
+export type {
+  ReadWorkspaceFilePage,
+  SessionFile,
+  WorkspaceFilesReadRemote,
+  WorkspaceFilesWriteRemote,
+  WriteWorkspaceFile,
+} from './rpc.ts'
+export type { SaveState, TextDraft, TextPage, TextState, TextStore, TextTabState } from './store.ts'
 
 /** This package's copy namespace. */
 const NS = 'sidebarTextpreview'
@@ -65,7 +71,7 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sidebar-textpreview: dictionaries')
 
   const store = createTextStore()
-  const face = textFace(createReadPage(ctx.remote))
+  const face = textFace(createReadPage(ctx.remote), createWriteFile(ctx.remote))
   ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register(
     { name: 'sidebar.right.pane.tab', key: TEXTPREVIEW_ID, locale: NS, store, inject: face },
     TextPreview,

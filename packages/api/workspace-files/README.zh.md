@@ -1,5 +1,5 @@
 ---
-description: "面向 Web GUI 的工作区文件服务：在 Session 工作区根内做分页读取、字节窗口、stat、目录列举与 Agent 写入变更流，以 workspaceFiles Remote 命名空间暴露。"
+description: "面向 Web GUI 的工作区文件服务：在 Session 工作区根内做分页读取、字节窗口、stat、目录列举、带冲突保护的整文件写入与 Agent 写入变更流，以 workspaceFiles Remote 命名空间暴露。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`@deepseek-ai/dsh-api-workspace-files` 拥有 Host 侧 `ctx.workspaceFiles` 服务与生成的 Client 侧 `workspaceFiles` Remote 命名空间：`read` 返回一个 UTF-8 文本文件的一页行，`readBytes` 返回任意普通文件的一个原始字节窗口，`stat` 返回文件的版本与大小而不带内容，`list` 返回一个目录的直接子项，`changes` 流式推送 Agent 在 Session 工作区根内做出的每一次文件系统观察。五者都经组合后的 `ctx.fs` 运行，并把自己限定在沙箱策略为被寻址 Session 解析出的工作区根内；文件系统后端自己的 cwd 从不参与判定。Client 包经 [`api-remotes`](../../api/remotes/README.zh.md) 装配触达该命名空间。本包的 `./client` 导出注册 `file` 资源提供者，把 `stat` 与 `changes` 变成 `useResource<'file'>` 的实时文件元数据；Sidebar 的文件树 tab 经 `list` 列举目录。
+`@deepseek-ai/dsh-api-workspace-files` 拥有 Host 侧 `ctx.workspaceFiles` 服务与生成的 Client 侧 `workspaceFiles` Remote 命名空间：`read` 返回一个 UTF-8 文本文件的一页行，`readBytes` 返回任意普通文件的一个原始字节窗口，`stat` 返回文件的版本与大小而不带内容，`write` 按调用方读到的版本替换一个文件的整段文本，`list` 返回一个目录的直接子项，`changes` 流式推送 Agent 在 Session 工作区根内做出的每一次文件系统观察。它们都经组合后的 `ctx.fs` 运行，并把自己限定在沙箱策略为被寻址 Session 解析出的工作区根内；文件系统后端自己的 cwd 从不参与判定。Client 包经 [`api-remotes`](../../api/remotes/README.zh.md) 装配触达该命名空间。本包的 `./client` 导出注册 `file` 资源提供者，把 `stat` 与 `changes` 变成 `useResource<'file'>` 的实时文件元数据；Sidebar 的文件树 tab 经 `list` 列举目录，其文本 tab 经 `write` 编辑。
 
 ## 目录
 
@@ -25,19 +25,20 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-把本包与 `dsh-fs`、`dsh-sandbox-policy` 和 Typert Gateway 一起挂载；bundle 把它紧随 Session Controller 之后挂载。每个方法都在线路上携带 Session 身份，Client 调用 `remote.workspaceFiles.read(agent, path, range, signal)`、`stat(agent, path, signal)`、`list(agent, path, signal)` 或 `changes(agent, signal)`，从不自己指定根。
+把本包与 `dsh-fs`、`dsh-sandbox-policy` 和 Typert Gateway 一起挂载；bundle 把它紧随 Session Controller 之后挂载。每个方法都在线路上携带 Session 身份，Client 调用 `remote.workspaceFiles.read(agent, path, range, signal)`、`stat(agent, path, signal)`、`readBytes(agent, path, range, signal)`、`write(agent, path, content, expectedVersion, signal)`、`list(agent, path, signal)` 或 `changes(agent, signal)`，从不自己指定根。
 
 | 方法 | 返回 | 用途 |
 |---|---|---|
 | `stat(path)` | `WorkspaceFileStat { absolutePath, version, bytes? }` | 一个普通文件的身份、版本与大小，不含内容 |
 | `read(path, { offset?, limit? })` | `WorkspaceFileText` = stat + `{ offset, text, lines, eof }` | UTF-8 文本文件的一个行窗口；`lines` 计行数，使单个空行与越过文件末尾的页可区分 |
 | `readBytes(path, { offset?, length? })` | `WorkspaceFileBytes` = stat + `{ offset, data, eof }` | 任意普通文件的一个原始字节窗口，base64 编码 |
+| `write(path, content, expectedVersion)` | `WorkspaceFileStat` | 替换一个文件的整段文本，版本已变时拒绝 |
 | `list(path)` | `WorkspaceDirectoryListing { path, entries, truncated }` | 一个目录的直接子项 |
 | `changes()` | `WorkspaceFileWatchFrame` 流 | 订阅就绪确认，随后为工作区根内的 Agent 观察 |
 
 ### 寻址与路径
 
-`read`、`stat` 与 `list` 接受工作区路径，可以是绝对路径，也可以是相对于 Session 工作区根的路径。离开服务的路径词汇有两套，每个方法只用其中一套：`read`、`stat` 与 `changes` 以文件系统执行环境中的绝对路径报告文件，符号链接已解析（`WorkspaceFileStat.absolutePath`、`WorkspaceFileChange.absolutePath`），因为其消费方是 Client 资源系统，它按这条路径跟随变更；`list` 以相对于根的工作区路径报告被列举目录——根自身为空串——因为其消费方是一棵以根为起点的树，子项路径就是该值与条目名以 `/` 连接。
+`read`、`stat` 与 `list` 接受工作区路径，可以是绝对路径，也可以是相对于 Session 工作区根的路径；`write` 与 `readBytes` 同样接受并按同一方式解析。离开服务的路径词汇有两套，每个方法只用其中一套：`read`、`stat`、`write` 与 `changes` 以文件系统执行环境中的绝对路径报告文件，符号链接已解析（`WorkspaceFileStat.absolutePath`、`WorkspaceFileChange.absolutePath`），因为其消费方是 Client 资源系统，它按这条路径跟随变更；`list` 以相对于根的工作区路径报告被列举目录——根自身为空串——因为其消费方是一棵以根为起点的树，子项路径就是该值与条目名以 `/` 连接。
 
 ### 分页
 
@@ -47,9 +48,15 @@ kind: "package-reference"
 
 `read` 按行分页，绝不按字节；字节窗口走 `readBytes`。`range.offset` 是 0 起算的首字节，缺省为 0；`range.length` 是窗口最多的字节数，缺省为 `maxBytes` 且不得超过它——更长的窗口以 `too-large` 失败而不是被截短，不是整数或越界的 offset / length 则是 `gateway/bad-request`。窗口以 base64 的 `data` 返回，到文件末尾时短于 `length`，位于或越过末尾时为空；窗口含文件最后一个字节时 `eof` 为 true。不做任何解码，也不按二进制拒绝，因此图片或含 NUL 的文件在 `read` 以 `not-text` 失败之处仍可读出。与页一样附带同一 `version` 与 `bytes`。
 
+### 写入
+
+`write` 是唯一的变更操作，而且替换整个文件：`content` 成为该文件的完整文本，只持有文件一部分的调用方不得调用它。守卫是 `expectedVersion`，即调用方读到的那个 `version`——通常来自一次 `stat` 或一页。服务先 stat 文件，把这个版本与参数比较，不一致就以 `stale-version` 拒绝；一致时把同一个值交给后端的原子替换，由它在写入内部再检查一次，于是两者之间落地的变更会被拒绝而不是被覆盖。因此调用方从不自己铸造版本，只回传别人给过它的版本。写入后文件的 `absolutePath`、新 `version` 与 `bytes` 以 `WorkspaceFileStat` 返回，之后的 `stat` 或页报告同一个版本。超过 `maxBytes` 的 `content` 整份以 `too-large` 拒绝，而不是被截短。空串是合法的替换内容：文件变成零字节。
+
+写入由被寻址 Session 的沙箱策略围栏，服务解析该策略并随写入一并传入，所以不允许写自己工作区的 Session 也无法经此方法保存。面向 Agent 的 `fs/write-intent`、`fs/edit-intent` 瀑布与「先读后改」的观察策略不在这条路径上：那些关由 Agent 自己的文件系统工具派发，它们持有本服务的调用方所没有的执行上下文，而该策略对一个没有该文件观察记录的 actor 给出的答案是新建，无法覆盖已存在的文件。经 `read` 读过该文件并传入那一页版本的调用方，表达的正是策略从观察记录推导出的同一意图，而由后端原子地强制执行。
+
 ### 四道关
 
-每次读取、stat 与列举依次过四道关。第一，`lstat` 在跟随任何东西之前检查路径本身：符号链接不论指向哪里，`read` 与 `stat` 都以 `not-regular-file`、`list` 都以 `not-directory` 拒绝，并带上条目的 `kind`。第二，包含判定：路径解析为目标后由 `ctx.fs.contains(root, target)` 裁决，所以 `..` 上溯或根外绝对路径都以 `outside-workspace` 失败——绝不做字符串前缀比较，那看不见离开根的 realpath。第三，上限：文本超过 `maxBytes` 的页以 `too-large` 失败而不是被截短送达——文件本身没有大小上限——`maxEntries` 则截断列举并置 `truncated`。第四，文本：到该页末尾为止非 UTF-8 的内容，或含 NUL 字节的页，以 `not-text` 失败；页之后的字节不检查。路径不存在以 `not-found` 失败；空路径是 `gateway/bad-request`。
+每次读取、stat、写入与列举依次过下列关。第一，`lstat` 在跟随任何东西之前检查路径本身：符号链接不论指向哪里，`read`、`stat` 与 `write` 都以 `not-regular-file`、`list` 都以 `not-directory` 拒绝，并带上条目的 `kind`。第二，包含判定：路径解析为目标后由 `ctx.fs.contains(root, target)` 裁决，所以 `..` 上溯或根外绝对路径都以 `outside-workspace` 失败——绝不做字符串前缀比较，那看不见离开根的 realpath。第三，上限：文本超过 `maxBytes` 的页以 `too-large` 失败而不是被截短送达——文件本身没有大小上限——`maxEntries` 则截断列举并置 `truncated`。第四，文本：到该页末尾为止非 UTF-8 的内容，或含 NUL 字节的页，以 `not-text` 失败；页之后的字节不检查。写入只过前两关加上自己的 `maxBytes` 检查，因为文本由它提供而不是由它解码。路径不存在以 `not-found` 失败；空路径是 `gateway/bad-request`。
 
 ### 变更流
 
@@ -59,7 +66,7 @@ kind: "package-reference"
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
-| `maxBytes` | `2097152`（2 MiB） | 单页文本与单个字节窗口的字节上限（含）；更大的页或窗口失败 |
+| `maxBytes` | `2097152`（2 MiB） | 单页文本、单个字节窗口与一次写入内容的字节上限（含）；更大的页、窗口或写入失败 |
 | `maxLines` | `5000` | 页大小的缺省值与上限（行）；更大的 `limit` 被拒绝 |
 | `maxEntries` | `2000` | 返回目录条目数上限；其余丢弃并报告截断 |
 
@@ -67,7 +74,7 @@ kind: "package-reference"
 
 ### 失败
 
-每种失败都是一个带类型化 details 的 `RemoteError` 代码，声明于 [`src/types.ts`](src/types.ts)：`workspace-file/not-found`、`workspace-file/outside-workspace`、`workspace-file/too-large`（带 `limit`，即页与窗口上限）、`workspace-file/not-text`、`workspace-file/not-regular-file`（`kind` 为 `directory`、`symlink` 或 `other`）以及 `workspace-file/not-directory`（`kind` 为 `file`、`symlink` 或 `other`）。调用方按代码分支，绝不按消息文本。
+每种失败都是一个带类型化 details 的 `RemoteError` 代码，声明于 [`src/types.ts`](src/types.ts)：`workspace-file/not-found`、`workspace-file/outside-workspace`、`workspace-file/too-large`（带 `limit`，即页、窗口与写入上限）、`workspace-file/not-text`、`workspace-file/not-regular-file`（`kind` 为 `directory`、`symlink` 或 `other`）、`workspace-file/not-directory`（`kind` 为 `file`、`symlink` 或 `other`）以及 `workspace-file/stale-version`（带 `path`）。调用方按代码分支，绝不按消息文本。
 
 ### Client 文件资源
 
@@ -89,13 +96,13 @@ kind: "package-reference"
 
 ### 设计概念
 
-经 `ctx.fs` 的读取是有意不加限制的——沙箱后端只围栏写与编辑——所以这里的每条约束都是服务自己的。页从 `streamText` 切出，后者逐块解码并拒绝非 UTF-8：切页器对窗口之前的行只计数不保留，对窗口内的每个片段先按字节上限验收再缓冲，并在窗口之后的第一个字符处返回，所以无论多大的文件或多长的单行都不会在内存里超过一页；随后在该页上做 NUL 扫描。流之前的一次 `stat` 给出页所报告的版本与大小。路径关有意先于包含判定：`lstat` 面向路径、看得见链接，而 `resolve` 会跟随它；代价是根外条目会先报告自己的类型再报告位置。
+经 `ctx.fs` 的读取是有意不加限制的——沙箱后端只围栏写与编辑——所以这里的每条约束都是服务自己的。页从 `streamText` 切出，后者逐块解码并拒绝非 UTF-8：切页器对窗口之前的行只计数不保留，对窗口内的每个片段先按字节上限验收再缓冲，并在窗口之后的第一个字符处返回，所以无论多大的文件或多长的单行都不会在内存里超过一页；随后在该页上做 NUL 扫描。流之前的一次 `stat` 给出页所报告的版本与大小。路径关有意先于包含判定：`lstat` 面向路径、看得见链接，而 `resolve` 会跟随它；代价是根外条目会先报告自己的类型再报告位置。`write` 复用同一次 stat 做版本检查并把这个值传下去，所以服务从不自己构造版本。
 
 ### 源码地图
 
 | 文件 | 职责 |
 |---|---|
-| [`src/index.ts`](src/index.ts) | `WorkspaceFiles`：`workspaceFiles` 服务与 Remote 命名空间、`Config`、四道关、切页器、`read`、`readBytes`、`stat`、`list` |
+| [`src/index.ts`](src/index.ts) | `WorkspaceFiles`：`workspaceFiles` 服务与 Remote 命名空间、`Config`、四道关、切页器、`read`、`readBytes`、`stat`、`write`、`list` |
 | [`src/changes.ts`](src/changes.ts) | `WorkspaceChangeFeed`：`fs/observed` 订阅与每个打开的 `changes` generation 各一条队列 |
 | [`src/types.ts`](src/types.ts) | 线路类型与 `RemoteErrorDetailsMap` 错误码，以 `./types` 发布给 Client 包 |
 | [`src/client/index.ts`](src/client/index.ts)、[`provider.ts`](src/client/provider.ts)、[`change-feed.ts`](src/client/change-feed.ts) | 浏览器插件、文件元数据与每 Session 变更流 |
@@ -133,7 +140,8 @@ Typert 生成 `./typert` 与 `./remote` 暴露的 Host 与 Client Remote 产物�
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **仅覆盖 Agent 写入**——`changes` 转发 `fs/observed` 的发射；子进程、shell 命令或用户编辑器改动的文件不产生任何帧。
+- **仅覆盖 Agent 写入**——`changes` 转发 `fs/observed` 的发射；子进程、shell 命令或用户编辑器改动的文件不产生任何帧。`write` 也有意不发：观察记录是 Agent Session 自己的读取记录，把人工保存记进去会让 Agent 覆盖一个它从未读过的文件。
+- **只能整文件替换**——`write` 接收完整文本；没有补丁、追加或按区间的写入，只读过文件一页的调用方不能安全使用它。
 - **类型先于位置**——根外条目若类型本身就不合格，报告的是 `not-regular-file` 或 `not-directory` 而非 `outside-workspace`，因为路径关先于包含判定。
 - **没有总行数**——页只报告 `eof`，不报告后面还有多少行；需要总数的消费方要翻到末尾或按 `bytes` 估算。
 - **超长单行没有页**——超过 `maxBytes` 的单行在包含它的每个窗口都以 `too-large` 失败，因为页按行而非按字节切。

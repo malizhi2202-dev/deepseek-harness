@@ -6,7 +6,7 @@ import type { RemoteFailure } from '@deepseek-ai/dsh-api-remotes/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 // The namespace declaration `TranslateNS<'sidebarTextpreview'>` resolves against.
 import type {} from '../src/client/index.ts'
-import { failureLine } from '../src/client/failure-line.ts'
+import { failureLine, saveFailureLine } from '../src/client/failure-line.ts'
 
 /** Key-echoing translate that also shows its parameters, so a formatted value is visible. */
 const t: TranslateNS<'sidebarTextpreview'> = (key, params) =>
@@ -32,5 +32,17 @@ describe('failureLine', () => {
 
   it('passes any other failure through in its own words', () => {
     expect(failureLine(t, failure('gateway/internal', {}, 'socket closed'))).toBe('error.unavailable(message=socket closed)')
+  })
+})
+
+describe('saveFailureLine', () => {
+  it('answers a refusal in terms of the text the reader still holds', () => {
+    expect(saveFailureLine(t, failure('workspace-file/stale-version', { path: 'work/notes.md' }))).toBe('save.stale')
+    expect(saveFailureLine(t, failure('workspace-file/too-large', { limit: 2048 }))).toBe('save.tooLarge(limit=2 KB)')
+  })
+
+  it('falls back to the read vocabulary for a refusal this reader has no line of its own for', () => {
+    expect(saveFailureLine(t, failure('workspace-file/not-found'))).toBe('error.notFound')
+    expect(saveFailureLine(t, failure('gateway/internal', {}, 'socket closed'))).toBe('error.unavailable(message=socket closed)')
   })
 })

@@ -1,5 +1,6 @@
 /**
- * The preview's own state: the pages it has read, and how the reader views them.
+ * The preview's own state: the pages it has read, the edit in progress, and how
+ * the reader views them.
  *
  * The `file` resource carries metadata only, so the text is this type's to fetch
  * and keep — page by page, keyed by the 1-based line each page starts at. The
@@ -27,10 +28,29 @@ export interface TextPage {
   readonly lines: number
 }
 
-/** One tab's pages and view. */
+/** The edit in progress: what the reader started from, what they say now, and the version the save guards with. */
+export interface TextDraft {
+  /** The file's complete text as read, terminator included. */
+  readonly baseline: string
+  /** The editor's text now. */
+  readonly text: string
+  /** The file version the baseline was read at. */
+  readonly version: string
+}
+
+/** How the current draft's save is going; `idle` until the first save of a draft. */
+export type SaveState =
+  | { readonly kind: 'idle' }
+  | { readonly kind: 'saving' }
+  | { readonly kind: 'saved' }
+  | { readonly kind: 'failed'; readonly failure: RemoteFailure }
+
+/** One tab's pages, edit, and view. */
 export interface TextTabState {
   /** The file version the loaded pages belong to; absent before the first page. */
   version: string | undefined
+  /** Byte size of the complete file as of the last page read, when the Host reported it. */
+  bytes: number | undefined
   /** Pages by the 1-based line each starts at. */
   pages: Record<number, TextPage>
   /** Whether the last loaded page reached the end of the file. */
@@ -39,6 +59,10 @@ export interface TextTabState {
   loading: boolean
   /** Why the last page read failed; cleared by the next page. */
   failure: RemoteFailure | undefined
+  /** The edit in progress; absent while the body is viewing. */
+  draft: TextDraft | undefined
+  /** The save of the current draft. */
+  save: SaveState
   /** Scroll offset of the body, in px. */
   scrollTop: number
   /** Whether long lines wrap instead of scrolling horizontally; on until the reader turns it off. */
@@ -59,13 +83,32 @@ export interface TextState {
 export function fresh(): TextTabState {
   return {
     version: undefined,
+    bytes: undefined,
     pages: {},
     eof: false,
     loading: false,
     failure: undefined,
+    draft: undefined,
+    save: { kind: 'idle' },
     scrollTop: 0,
     wrap: true,
     revision: undefined,
+  }
+}
+
+/**
+ * One text as the Host would page it: its lines joined without a terminator
+ * after the last, and their count. A final `\n` terminates the last line rather
+ * than starting an empty one, and an empty text has no lines.
+ * @param content - the text to page.
+ * @returns the one page that text is.
+ */
+function pageOf(content: string): TextPage {
+  if (content === '') return { text: '', lines: 0 }
+  const terminated = content.endsWith('\n')
+  return {
+    text: terminated ? content.slice(0, -1) : content,
+    lines: content.split('\n').length - (terminated ? 1 : 0),
   }
 }
 
@@ -80,6 +123,12 @@ type TextActions = {
   page: (draft: TextState, tabId: TabId, page: WorkspaceFileText) => void
   failed: (draft: TextState, tabId: TabId, failure: RemoteFailure) => void
   reset: (draft: TextState, tabId: TabId) => void
+  edit: (draft: TextState, tabId: TabId, text: string, version: string) => void
+  edited: (draft: TextState, tabId: TabId, text: string) => void
+  cancelled: (draft: TextState, tabId: TabId) => void
+  saving: (draft: TextState, tabId: TabId) => void
+  saved: (draft: TextState, tabId: TabId, content: string, version: string, bytes: number | undefined) => void
+  saveFailed: (draft: TextState, tabId: TabId, failure: RemoteFailure) => void
   scrolled: (draft: TextState, tabId: TabId, scrollTop: number) => void
   toggledWrap: (draft: TextState, tabId: TabId) => void
   navigated: (draft: TextState, tabId: TabId, revision: number) => void
@@ -116,6 +165,7 @@ export function createTextStore(): EngineStoreHandle<TextState, TextActions> {
         const state = bucket(d, tabId)
         if (state.version !== undefined && state.version !== page.version) state.pages = {}
         state.version = page.version
+        state.bytes = page.bytes
         state.pages[page.offset] = { text: page.text, lines: page.lines }
         state.eof = page.eof
         state.loading = false
@@ -142,7 +192,83 @@ export function createTextStore(): EngineStoreHandle<TextState, TextActions> {
         state.pages = {}
         state.eof = false
         state.version = undefined
+        state.bytes = undefined
         state.failure = undefined
+      },
+      /**
+       * Begin an edit of the whole file the pages hold. The baseline is what
+       * the save is compared against, and the version is the staleness guard it
+       * carries, so both are fixed here rather than read again at save time.
+       * @param d - draft state.
+       * @param tabId - the tab being drawn.
+       * @param text - the file's complete text.
+       * @param version - the file version that text was read at.
+       */
+      edit: (d, tabId: TabId, text: string, version: string) => {
+        const state = bucket(d, tabId)
+        state.draft = { baseline: text, text, version }
+        state.save = { kind: 'idle' }
+      },
+      /**
+       * Record what the editor says now. Typing again after a save or a failure
+       * puts the save back to `idle`: what is on screen is once more unsaved.
+       * @param d - draft state.
+       * @param tabId - the tab being drawn.
+       * @param text - the editor's whole text.
+       */
+      edited: (d, tabId: TabId, text: string) => {
+        const state = bucket(d, tabId)
+        if (state.draft === undefined) return
+        state.draft = { ...state.draft, text }
+        state.save = { kind: 'idle' }
+      },
+      /**
+       * Leave the edit without saving, keeping the pages the viewer showed.
+       * @param d - draft state.
+       * @param tabId - the tab being drawn.
+       */
+      cancelled: (d, tabId: TabId) => {
+        const state = bucket(d, tabId)
+        state.draft = undefined
+        state.save = { kind: 'idle' }
+      },
+      /**
+       * Mark the draft's save as in flight.
+       * @param d - draft state.
+       * @param tabId - the tab being drawn.
+       */
+      saving: (d, tabId: TabId) => {
+        bucket(d, tabId).save = { kind: 'saving' }
+      },
+      /**
+       * Adopt the text just written as the pages, at the version and byte size
+       * the write reported, and leave the edit.
+       * @param d - draft state.
+       * @param tabId - the tab being drawn.
+       * @param content - the text the Host wrote.
+       * @param version - the file version the write produced.
+       * @param bytes - the written file's byte size, when the Host reported it.
+       */
+      saved: (d, tabId: TabId, content: string, version: string, bytes: number | undefined) => {
+        const state = bucket(d, tabId)
+        state.pages = { 1: pageOf(content) }
+        state.version = version
+        state.bytes = bytes
+        state.eof = true
+        state.loading = false
+        state.failure = undefined
+        state.draft = undefined
+        state.save = { kind: 'saved' }
+      },
+      /**
+       * Record why the save failed. The draft stays, so the reader's text is
+       * never lost to a refusal.
+       * @param d - draft state.
+       * @param tabId - the tab being drawn.
+       * @param failure - the settled Remote failure.
+       */
+      saveFailed: (d, tabId: TabId, failure: RemoteFailure) => {
+        bucket(d, tabId).save = { kind: 'failed', failure }
       },
       /**
        * Record where one tab's body is scrolled to.

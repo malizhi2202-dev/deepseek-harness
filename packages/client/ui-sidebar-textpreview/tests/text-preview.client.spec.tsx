@@ -12,8 +12,9 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
-import { TextPreview } from '../src/client/TextPreview.tsx'
-import { ABSOLUTE_PATH, ADDRESS, PATH, SESSION, TAB_ID, failure, harness, page, settle } from './fixtures.client.ts'
+import { TextPreview, editScope, fullText } from '../src/client/TextPreview.tsx'
+import { fresh } from '../src/client/store.ts'
+import { ABSOLUTE_PATH, ADDRESS, PATH, SESSION, TAB_ID, failure, harness, page, settle, writeFailure, written } from './fixtures.client.ts'
 
 const LINE_HEIGHT = 20
 
@@ -64,6 +65,27 @@ function click(container: HTMLElement, selector: string): void {
   const button = container.querySelector<HTMLButtonElement>(selector)
   if (button === null) throw new Error(`expected ${selector}`)
   fireEvent.click(button)
+}
+
+function editor(container: HTMLElement): HTMLTextAreaElement {
+  const element = container.querySelector<HTMLTextAreaElement>('[data-textpreview-editor]')
+  if (element === null) throw new Error('expected the editor')
+  return element
+}
+
+function disabled(container: HTMLElement, selector: string): boolean | undefined {
+  return container.querySelector<HTMLButtonElement>(selector)?.disabled
+}
+
+/** Open the editor on a file the harness holds whole. */
+function startEdit(container: HTMLElement): HTMLTextAreaElement {
+  click(container, '[data-textpreview-tool="edit"]')
+  return editor(container)
+}
+
+/** Type into the editor the way a reader does, so React sees the change. */
+function type(element: HTMLTextAreaElement, text: string): void {
+  fireEvent.change(element, { target: { value: text } })
 }
 
 describe('TextPreview — pages', () => {
@@ -323,5 +345,158 @@ describe('TextPreview — header controls', () => {
     expect(armed.mock.calls.filter(([type]) => type === 'abort')).toHaveLength(1)
     h.controller.abort()
     expect(h.instance.getSnapshot().byTab[TAB_ID]).toBeUndefined()
+  })
+})
+
+describe('TextPreview — what the editor may start from', () => {
+  it('tells a text whose terminator the page dropped from one that never had it', () => {
+    // The page joins lines without a terminator, so only the byte size separates
+    // the two files.
+    expect(fullText({ text: 'a', lines: 1 }, 2)).toBe('a\n')
+    expect(fullText({ text: 'a', lines: 1 }, 1)).toBe('a')
+    expect(fullText({ text: 'é', lines: 1 }, 2)).toBe('é')
+    // A Host that reported no size leaves the text as read.
+    expect(fullText({ text: 'a', lines: 1 }, undefined)).toBe('a')
+  })
+
+  it('opens only on a file held whole: one page from the first line to the end', () => {
+    const held = { ...fresh(), version: 'v1', bytes: 3, eof: true, pages: { 1: { text: 'a\nb', lines: 2 } } }
+    expect(editScope(held)).toEqual({ kind: 'ready', text: 'a\nb', version: 'v1' })
+    // Nothing read yet, a later page only, a second page beside it, a file that
+    // does not end here, and pages with no version are all refusals.
+    expect(editScope(fresh())).toEqual({ kind: 'refused', reason: 'partial' })
+    expect(editScope({ ...held, pages: { 2: { text: 'b', lines: 1 } } })).toEqual({ kind: 'refused', reason: 'partial' })
+    expect(editScope({ ...held, pages: { ...held.pages, 3: { text: 'c', lines: 1 } } })).toEqual({ kind: 'refused', reason: 'partial' })
+    expect(editScope({ ...held, eof: false })).toEqual({ kind: 'refused', reason: 'partial' })
+    expect(editScope({ ...held, version: undefined })).toEqual({ kind: 'refused', reason: 'partial' })
+    // A read in flight, and a read that failed, each say which they are.
+    expect(editScope({ ...held, loading: true })).toEqual({ kind: 'refused', reason: 'loading' })
+    expect(editScope({ ...held, failure: new RemoteError('workspace-file/not-text', 'binary', { path: PATH }) }))
+      .toEqual({ kind: 'refused', reason: 'failed' })
+  })
+})
+
+describe('TextPreview — editing', () => {
+  it('opens the editor on the file\'s own text and saves the typed text with the version it was read at', async () => {
+    const h = harness({ 1: page(1, ['a', 'b'], true) })
+    const view = render(<TextPreview {...h.props()} />)
+    await settle()
+    expect(lines(view.container)).toEqual(['a\n', 'b\n'])
+    const field = startEdit(view.container)
+    expect(field.value).toBe('a\nb')
+    expect(view.container.querySelector('[data-textpreview-body]')).toBeNull()
+    // Nothing typed yet: there is nothing to save.
+    expect(disabled(view.container, '[data-textpreview-tool="save"]')).toBe(true)
+    type(field, 'a\nB')
+    expect(disabled(view.container, '[data-textpreview-tool="save"]')).toBe(false)
+    click(view.container, '[data-textpreview-tool="save"]')
+    expect(h.write).toHaveBeenCalledExactlyOnceWith(SESSION, PATH, 'a\nB', 'v1', h.controller.signal)
+    // A save in flight is not offered twice.
+    expect(disabled(view.container, '[data-textpreview-tool="save"]')).toBe(true)
+    h.scriptWrite(written('a\nB', 'v2'))
+    await settle()
+    expect(view.container.querySelector('[data-textpreview-editor]')).toBeNull()
+    expect(view.container.querySelector('[data-textpreview-save]')?.getAttribute('data-textpreview-save')).toBe('saved')
+    expect(view.container.textContent).toContain('saved')
+    expect(lines(view.container)).toEqual(['a\n', 'B\n'])
+    expect(h.instance.getSnapshot().byTab[TAB_ID]).toMatchObject({ version: 'v2', bytes: 3, eof: true })
+  })
+
+  it('opens on a file whose terminator the page dropped, and puts it back on save', async () => {
+    const h = harness({ 1: page(1, ['a'], true, 'v1', 2) })
+    const view = render(<TextPreview {...h.props()} />)
+    await settle()
+    const field = startEdit(view.container)
+    expect(field.value).toBe('a\n')
+    // The baseline is the file's own text, so re-saving it unchanged is still no change.
+    expect(disabled(view.container, '[data-textpreview-tool="save"]')).toBe(true)
+    type(field, 'a\nb\n')
+    click(view.container, '[data-textpreview-tool="save"]')
+    expect(h.write).toHaveBeenCalledExactlyOnceWith(SESSION, PATH, 'a\nb\n', 'v1', h.controller.signal)
+  })
+
+  it('keeps the typed text when the file moved on, says so, and reloads only on request', async () => {
+    const h = harness({ 1: page(1, ['a'], true) })
+    const view = render(<TextPreview {...h.props()} />)
+    await settle()
+    const field = startEdit(view.container)
+    type(field, 'mine')
+    h.scriptWrite(writeFailure('workspace-file/stale-version', { path: PATH }))
+    click(view.container, '[data-textpreview-tool="save"]')
+    await settle()
+    expect(editor(view.container).value).toBe('mine')
+    expect(view.container.querySelector('[data-textpreview-save]')?.getAttribute('data-textpreview-save')).toBe('failed')
+    expect(view.container.textContent).toContain('save.stale')
+    // The reload the refusal offers is the reader's own choice: it drops the draft.
+    h.script(1, page(1, ['A'], true, 'v2'))
+    click(view.container, '[data-textpreview-save-reload]')
+    expect(h.reload).toHaveBeenCalledTimes(1)
+    await settle()
+    expect(view.container.querySelector('[data-textpreview-editor]')).toBeNull()
+    expect(lines(view.container)).toEqual(['A\n'])
+  })
+
+  it('keeps the typed text when the content was too large, without offering a reload', async () => {
+    const h = harness({ 1: page(1, ['a'], true) })
+    const view = render(<TextPreview {...h.props()} />)
+    await settle()
+    type(startEdit(view.container), 'mine')
+    h.scriptWrite(writeFailure('workspace-file/too-large', { path: PATH, limit: 2048 }))
+    click(view.container, '[data-textpreview-tool="save"]')
+    await settle()
+    expect(editor(view.container).value).toBe('mine')
+    expect(view.container.textContent).toContain('save.tooLarge')
+    expect(view.container.querySelector('[data-textpreview-save-reload]')).toBeNull()
+  })
+
+  it('says why the file cannot be edited instead of offering the editor', async () => {
+    const refusal = (container: HTMLElement): string | null =>
+      container.querySelector('[data-textpreview-edit-refused]')?.getAttribute('data-textpreview-edit-refused') ?? null
+
+    // A file read in several pages: saving the pages this viewer holds would delete the rest.
+    const partial = harness({ 1: page(1, ['a', 'b', 'c'], false) })
+    const view = render(<TextPreview {...partial.props()} />)
+    await settle()
+    expect(refusal(view.container)).toBe('partial')
+    expect(view.container.querySelector('[data-textpreview-tool="edit"]')).toBeNull()
+    expect(view.container.textContent).toContain('edit.refused.partial')
+
+    const loading = harness()
+    act(() => { loading.instance.actions.loading(TAB_ID) })
+    const waiting = render(<TextPreview {...loading.props()} />)
+    expect(refusal(waiting.container)).toBe('loading')
+    expect(waiting.container.querySelector('[data-textpreview-tool="edit"]')).toBeNull()
+
+    const broken = harness({ 1: failure('workspace-file/not-text', { path: PATH }) })
+    const failed = render(<TextPreview {...broken.props()} />)
+    await settle()
+    expect(refusal(failed.container)).toBe('failed')
+    expect(failed.container.querySelector('[data-textpreview-tool="edit"]')).toBeNull()
+  })
+
+  it('leaves the editor without saving and keeps the pages', async () => {
+    const h = harness({ 1: page(1, ['a'], true) })
+    const view = render(<TextPreview {...h.props()} />)
+    await settle()
+    type(startEdit(view.container), 'mine')
+    click(view.container, '[data-textpreview-tool="cancel"]')
+    expect(h.write).not.toHaveBeenCalled()
+    expect(view.container.querySelector('[data-textpreview-editor]')).toBeNull()
+    expect(lines(view.container)).toEqual(['a\n'])
+  })
+
+  it('answers a navigation that arrived while the editor was open, once it closes', async () => {
+    const h = harness({ 1: page(1, ['a', 'b', 'c'], true) })
+    const view = render(<TextPreview {...h.props({ params: {}, revision: 1 })} />)
+    await settle()
+    startEdit(view.container)
+    view.rerender(<TextPreview {...h.props({ params: { line: 3 }, revision: 2 })} />)
+    // The editor took the body's place, so the answer waits rather than landing on nothing.
+    expect(view.container.querySelector('[data-textpreview-body]')).toBeNull()
+    expect(h.instance.getSnapshot().byTab[TAB_ID]?.revision).toBe(1)
+    click(view.container, '[data-textpreview-tool="cancel"]')
+    expect(body(view.container).scrollTop).toBe(2 * LINE_HEIGHT)
+    expect(target(view.container)).toBe('3')
+    expect(h.instance.getSnapshot().byTab[TAB_ID]?.revision).toBe(2)
   })
 })
