@@ -241,11 +241,14 @@ Requires: `fs` · `sandboxPolicy` · `typert`
 /** Deployment caps on one page or one listing. */
 export interface Config {
   /**
-   * Inclusive byte cap on one page's text and on one byte window.
+   * Inclusive byte cap on one page's text, on one byte window, and on one
+   * write's content.
    *
    * A page above this fails; it is not shortened, because a silently cut page
    * reads as the whole page. A byte window asking for more is refused the same
-   * way. The file itself has no size cap: a caller pages through it.
+   * way, and so is a write whose content is above it: a save is refused whole
+   * rather than truncated. The file itself has no size cap: a caller pages
+   * through it.
    */
   readonly maxBytes: number
   /** Default and largest page size in lines; a request asking for more is refused. */
@@ -255,7 +258,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/api/workspace-files/src/index.ts:57`](../packages/api/workspace-files/src/index.ts)
+来源：[`packages/api/workspace-files/src/index.ts:63`](../packages/api/workspace-files/src/index.ts)
 
 <a id="deepseek-aidsh-attachment-local"></a>
 
@@ -3167,6 +3170,131 @@ export type ToolPresentationMode = 'native' | 'ptc' | 'both'
 
 来源：[`packages/core/tools/src/index.ts:647`](../packages/core/tools/src/index.ts)
 
+<a id="deepseek-aidsh-tuitui"></a>
+
+## `@deepseek-ai/dsh-tuitui`
+
+需要：`agents` · `agentDefaultModel` · `agentPresets` · `llm` · `permissionPresets`
+
+```ts config-catalog
+/** Plugin config: Tuitui credentials, access control, agent route, and tree options. */
+export interface TuituiConfig {
+  /** Tuitui application id. */
+  appId?: string
+  /** Tuitui application secret. */
+  appSecret?: string
+  /** Tuitui IM server host. */
+  host?: string
+  /** Agent working directory; empty uses the process cwd. */
+  cwd?: string
+  /** Agent preset id; empty uses the deployment default preset. */
+  agentPreset?: string
+  /** Permission preset id; empty uses the deployment default permission preset. */
+  permissionPreset?: string
+  /** Optional explicit provider route override. */
+  provider?: string
+  /** Optional explicit model override. */
+  model?: string
+  /** Tuitui accounts allowed to DM the bot; `*` allows all. */
+  allowFrom?: string[]
+  /** Group / team ids allowed to use the bot. */
+  groupAllowFrom?: string[]
+  /** Require an @-mention in groups and channels. */
+  requireMention?: boolean
+  /** React to inbound messages with an emoji. */
+  emojiReaction?: boolean
+  /** Reaction emoji text. */
+  reactionEmoji?: string
+  /** Send a "thinking" placeholder while the agent runs. */
+  showThinking?: boolean
+  /** Data directory for per-chat cwd and tree-card persistence. */
+  dataDir?: string
+  /** Enable the /tree file-tree workbench. */
+  treeEnabled?: boolean
+  /** Entries per tree page. */
+  treePageSize?: number
+  /** Show hidden files in tree listings. */
+  treeShowHidden?: boolean
+  /** Extra names to hide in tree listings (added to the built-in ignore set). */
+  treeIgnore?: string[]
+  /** Allow rename / delete / copy through the tree card (always confirmed). */
+  treeAllowWrite?: boolean
+  /** Persist tree-card bindings so /tree resumes the same message after restart. */
+  treePersist?: boolean
+  /** Runtime-only transport override for tests; production uses the WebSocket client. */
+  transport?: TuituiTransport
+}
+
+/** Outbound transport seam. The real client is the Tuitui WebSocket + HTTP client; tests inject a stub. */
+export interface TuituiTransport {
+  /** Open the connection (WebSocket + HTTP client) and begin receiving. */
+  connect(): Promise<void>
+  /** Close the connection and release resources. */
+  disconnect(): Promise<void>
+  /** Register the inbound message consumer (one-shot, called before connect). */
+  onMessage(handler: (message: IncomingMessage) => void): void
+  /** Register the inbound interactive-callback consumer. */
+  onCallback(handler: (callback: IncomingCallback) => void): void
+  /** Send one text message (long content is chunked internally). */
+  sendMessage(chatId: string, content: string): Promise<boolean>
+  /** React to one inbound message with an emoji. */
+  sendReaction(chatId: string, messageId: string, emoji: string): Promise<boolean>
+  /** Send one interactive card; resolves the new message id when assigned. */
+  sendInteractive(chatId: string, interactive: Record<string, unknown>): Promise<string | undefined>
+  /** Update an existing interactive card in place. */
+  updateInteractive(chatId: string, messageId: string, interactive: Record<string, unknown>): Promise<boolean>
+}
+
+/** One normalized inbound Tuitui chat message. */
+export interface IncomingMessage {
+  /** Stable per-conversation identity (user account, group id, or `teams_...`). */
+  readonly chatId: string
+  /** Conversation scope: a direct message, a group, or a channel. */
+  readonly chatType: ChatType
+  /** The conversation's display name. */
+  readonly chatName: string
+  /** Sender's Tuitui account; empty for some team-post shapes. */
+  readonly userId: string
+  /** Sender's display name. */
+  readonly userName: string
+  /** The platform's message identity, which the bridge deduplicates inbound messages by. */
+  readonly messageId: string
+  /** The message's text content. */
+  readonly text: string
+  /** Media URLs (images, files, voice, video) attached to the message. */
+  readonly mediaUrls: readonly string[]
+  /** Referenced message id when the sender replied to one of the bot's own messages. */
+  readonly replyToMessageId?: string
+  /** Lossless parsed event body for diagnostics. */
+  readonly raw: Record<string, unknown>
+}
+
+/** One button or form callback from an interactive message (the /tree card). */
+export interface IncomingCallback {
+  /** Stable per-conversation identity of the conversation holding the card. */
+  readonly chatId: string
+  /** Conversation scope of the conversation holding the card. */
+  readonly chatType: ChatType
+  /** The pressing user's Tuitui account. */
+  readonly userId: string
+  /** The pressing user's display name. */
+  readonly userName: string
+  /** The interactive message's platform identity, which an in-place card update replaces. */
+  readonly messageId: string
+  /** The JSON-encoded action value carried by the pressed button. */
+  readonly actionValue: string
+  /** Concatenated form-field text, when the card carried an input. */
+  readonly fieldsText: string
+  /** Lossless parsed callback body for diagnostics. */
+  readonly raw: Record<string, unknown>
+}
+
+/** The three Tuitui conversation scopes the bridge understands. */
+export type ChatType = 'dm' | 'group' | 'channel'
+```
+
+来源：[`packages/tuitui/tuitui/src/index.ts:61`](../packages/tuitui/tuitui/src/index.ts)
+
 <a id="deepseek-aidsh-typert-loader"></a>
 
 ## `@deepseek-ai/dsh-typert-loader`
@@ -3422,6 +3550,7 @@ export interface Config {
 - `@deepseek-ai/dsh-agent`（[`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts)）
 - `@deepseek-ai/dsh-api-remotes` — 需要 `typertGateway`（[`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts)）
 - `@deepseek-ai/dsh-api-workspace-controller` — 需要 `typert` · `workspaceRegistry`（[`packages/api/workspace-controller/src/index.ts`](../packages/api/workspace-controller/src/index.ts)）
+- `@deepseek-ai/dsh-api-workspace-git` — 需要 `git` · `sandboxPolicy` · `typert`（[`packages/api/workspace-git/src/index.ts`](../packages/api/workspace-git/src/index.ts)）
 - `@deepseek-ai/dsh-authorization` — 需要 `credentials`（[`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts)）
 - `@deepseek-ai/dsh-client-file-upload` — 需要 `agents` · `attachments` · `commands` · `connection`（[`packages/client/file-upload/src/index.ts`](../packages/client/file-upload/src/index.ts)）
 - `@deepseek-ai/dsh-client-locale`（[`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.ts)）
@@ -3457,8 +3586,11 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-settings-plugin-inventory`（[`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-plugins`（[`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar`（[`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sidebar-agents`（[`packages/client/ui-sidebar-agents/src/index.ts`](../packages/client/ui-sidebar-agents/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-files`（[`packages/client/ui-sidebar-files/src/index.ts`](../packages/client/ui-sidebar-files/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sidebar-git`（[`packages/client/ui-sidebar-git/src/index.ts`](../packages/client/ui-sidebar-git/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-right`（[`packages/client/ui-sidebar-right/src/index.ts`](../packages/client/ui-sidebar-right/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sidebar-tasks`（[`packages/client/ui-sidebar-tasks/src/index.ts`](../packages/client/ui-sidebar-tasks/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-textpreview`（[`packages/client/ui-sidebar-textpreview/src/index.ts`](../packages/client/ui-sidebar-textpreview/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-skill`（[`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-subagent`（[`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts)）
@@ -3477,6 +3609,7 @@ export interface Config {
 - `@deepseek-ai/dsh-experimental-client-ui-agent-team`（[`packages/experimental/client-ui-agent-team/src/index.ts`](../packages/experimental/client-ui-agent-team/src/index.ts)）
 - `@deepseek-ai/dsh-fs-e2b` — 需要 `e2b`（[`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts)）
 - `@deepseek-ai/dsh-fs-observation-policy`（[`packages/fs/fs-observation-policy/src/index.ts`](../packages/fs/fs-observation-policy/src/index.ts)）
+- `@deepseek-ai/dsh-git-local`（[`packages/git/git-local/src/index.ts`](../packages/git/git-local/src/index.ts)）
 - `@deepseek-ai/dsh-goal-round-driver` — 需要 `agents` · `goals` · `sessions`（[`packages/goal/goal-round-driver/src/index.ts`](../packages/goal/goal-round-driver/src/index.ts)）
 - `@deepseek-ai/dsh-host-directory-picker-auto` — 需要 `webServer` · `loader`（[`packages/host/directory-picker-auto/src/index.ts`](../packages/host/directory-picker-auto/src/index.ts)）
 - `@deepseek-ai/dsh-host-directory-picker-native`（[`packages/host/directory-picker-native/src/index.ts`](../packages/host/directory-picker-native/src/index.ts)）
@@ -3512,6 +3645,7 @@ export interface Config {
 - `@deepseek-ai/dsh-credentials` — 抽象 `Credentials`（[`packages/credentials/credentials/src/index.ts`](../packages/credentials/credentials/src/index.ts)）
 - `@deepseek-ai/dsh-file-reference` — 抽象 `FileReferenceService`（[`packages/context/file-reference/src/index.ts`](../packages/context/file-reference/src/index.ts)）
 - `@deepseek-ai/dsh-fs` — 抽象 `FileSystem`（[`packages/fs/fs/src/index.ts`](../packages/fs/fs/src/index.ts)）
+- `@deepseek-ai/dsh-git` — 抽象 `GitObserver`（[`packages/git/git/src/index.ts`](../packages/git/git/src/index.ts)）
 - `@deepseek-ai/dsh-host-directory-picker` — 抽象 `DirectoryPicker`（[`packages/host/directory-picker/src/index.ts`](../packages/host/directory-picker/src/index.ts)）
 - `@deepseek-ai/dsh-jobs` — 抽象 `JobRegistry`（[`packages/jobs/jobs/src/index.ts`](../packages/jobs/jobs/src/index.ts)）
 - `@deepseek-ai/dsh-sandbox` — 抽象 `SandboxProvider`（[`packages/sandbox/sandbox/src/index.ts`](../packages/sandbox/sandbox/src/index.ts)）

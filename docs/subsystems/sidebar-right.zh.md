@@ -19,7 +19,7 @@
 | [`client/resources`](../../packages/client/resources/README.zh.md) | `ctx.resources`、`useResource`、协议 → 值类型的花名册 `ResourceProtocolMap` |
 | [`api/workspace-files`](../../packages/api/workspace-files/README.zh.md) | Host `ctx.workspaceFiles`、`workspaceFiles` Remote 命名空间与 Client `file` 资源提供者 |
 | [`util/workspace-path`](../../packages/util/workspace-path/README.zh.md) | 文件地址语法：`fileAddressFor`、`parseFileAddress` |
-| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.zh.md)、[`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.zh.md)、[`client/ui-sidebar-tasks`](../../packages/client/ui-sidebar-tasks/README.zh.md)、[`client/ui-sidebar-agents`](../../packages/client/ui-sidebar-agents/README.zh.md) | 内置的 `text`、`files`、`tasks` 与 `agents` 类型 |
+| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.zh.md)、[`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.zh.md)、[`client/ui-sidebar-tasks`](../../packages/client/ui-sidebar-tasks/README.zh.md)、[`client/ui-sidebar-agents`](../../packages/client/ui-sidebar-agents/README.zh.md)、[`client/ui-sidebar-git`](../../packages/client/ui-sidebar-git/README.zh.md) | 内置的 `text`、`files`、`tasks`、`agents` 与 `git` 类型 |
 
 ## 地址
 
@@ -38,7 +38,7 @@ tab 身份是 `(kind, address)` 二元组：注册表的认领把地址原文用
 | 字段 | 含义 |
 |---|---|
 | `id` | 该实现的身份，在所有注册中唯一；包名是自然取值（`@deepseek-ai/dsh-client-ui-sidebar-files`）。正文与标题坑位按它注册。 |
-| `kind` | 类型的判别名：它的 tab 是什么，也是 `openTab` 点名的对象。不唯一——extension 可以接管 builtin 的 kind。内置 kind 为 `guide`、`text`、`files`、`tasks`、`agents`。 |
+| `kind` | 类型的判别名：它的 tab 是什么，也是 `openTab` 点名的对象。不唯一——extension 可以接管 builtin 的 kind。内置 kind 为 `guide`、`text`、`files`、`tasks`、`agents`、`git`。 |
 | `patterns` | 可选的资源地址 glob；按 kind 打开的页面类型省略。含 `:` 的模式匹配整个地址（`dsh-resource://file/**`）；不含的匹配 URL 的路径部分且任意深度都中（`*.md`），不是 URL 的地址不会命中此类模式。匹配不分大小写、不隐藏 dotfile；语法为 picomatch 的 POSIX 方言。 |
 | `priority` | 三档字面量之一：`extension`（缺省且最高：产品之外的类型压过所有内置查看器）、`builtin`（随产品发布的类型）、`fallback`（任何更具体的类型都应压过的纯内容查看器）。 |
 | `canOpen(address)` | 可选的同步否决，对 glob 命中生效；每次路由决策都会调用。 |
@@ -50,7 +50,7 @@ tab 身份是 `(kind, address)` 二元组：注册表的认领把地址原文用
 
 新面板诞生时带着自己的引导页，以及每个 `default-on` 类型各一个 tab，按 `order` 升序落在第一个格子里；这些 tab 属于初始布局，因此回退止步于它们，关掉其中一个也不会被撤销。最多三个类型可声明 `default-on`（`contract/visibility.ts` 中的 `MAX_DEFAULT_VISIBLE_TABS`）：注册表中越过该上限的那次注册抛错，评审中由 `verify-sidebar-right-tab-types` 拒绝该声明。`default-on` 类型必须声明 `icon` 且必须是页面类型——查看器没有自己的页面可开，注册表直接拒绝这一组合，而不是少开几个 tab 却仍声称按声明执行。除此之外没有别的东西决定默认集：既不是注册顺序，也不是一份 kind 名单。
 
-新 kind 的准入只有一个条件：它必须独占自己的 `dsh-resource://<type>/` 地址域，且不认领别的域。页面类型豁免，因为它按 kind 打开、不认领任何地址；内置的 `guide`、`files`、`tasks`、`agents` 正是因此不声明 `patterns`。`verify-sidebar-right-tab-types` 读取每一份已发布定义，把整个名册以 `kind`、区段、order、默认状态、地址域列出，并在定义违反上述任何一条规则时报错。
+新 kind 的准入只有一个条件：它必须独占自己的 `dsh-resource://<type>/` 地址域，且不认领别的域。页面类型豁免，因为它按 kind 打开、不认领任何地址；内置的 `guide`、`files`、`tasks`、`agents`、`git` 正是因此不声明 `patterns`。`verify-sidebar-right-tab-types` 读取每一份已发布定义，把整个名册以 `kind`、区段、order、默认状态、地址域列出，并在定义违反上述任何一条规则时报错。
 
 tab 条的类型选择器是面板自己进入该列的入口：chrome 里的一个菜单，按 `order` 升序列出已注册的页面类型并画出各自的 `icon`，选中即对所在格子调用 `openTab(kind, { paneId })`。它略去引导页（tab 条的添加控件负责打开它）与所有 `hidden` 类型；查看器永远不列出，因为它靠解析地址打开。
 
@@ -122,7 +122,7 @@ export function apply(ctx: Context): void {
 
 ## Workspace Files
 
-Host 的 `ctx.workspaceFiles` 服务与生成的 `workspaceFiles` Remote 命名空间负责所寻址会话工作区根之内的文件：`stat(path)` 返回 `{ absolutePath, version, bytes? }`；`read(path, { offset?, limit? })` 返回一页行（`offset` 1 起，`limit` 受配置页长限制），形如 `{ …stat, offset, text, eof }`；`readBytes(path, { offset?, length? })` 返回一个原始字节窗口（`offset` 0 起，`length` 受配置字节上限限制），形如 base64 的 `{ …stat, offset, data, eof }`、不做文本解码；`list(path)` 返回目录的直接子项（`name`、`type: 'file' | 'directory' | 'other'`、`size?`），按配置上限截断并置 `truncated`；`changes()` 在订阅就绪后产出 `{ kind: 'ready' }`，随后产出 `{ kind: 'change', change }` 帧，其载荷为 `{ absolutePath, version }` 或 `{ absolutePath, absent: true }`（[README](../../packages/api/workspace-files/README.zh.md#use-this-package)）。每次调用都过同样四关——路径在工作区根内、拒绝符号链接、页、窗口与条目上限、`read` 的 UTF-8 文本——否则以 `workspace-file/*` 错误码失败（[失败](../../packages/api/workspace-files/README.zh.md)）。
+Host 的 `ctx.workspaceFiles` 服务与生成的 `workspaceFiles` Remote 命名空间负责所寻址会话工作区根之内的文件：`stat(path)` 返回 `{ absolutePath, version, bytes? }`；`read(path, { offset?, limit? })` 返回一页行（`offset` 1 起，`limit` 受配置页长限制），形如 `{ …stat, offset, text, eof }`；`readBytes(path, { offset?, length? })` 返回一个原始字节窗口（`offset` 0 起，`length` 受配置字节上限限制），形如 base64 的 `{ …stat, offset, data, eof }`、不做文本解码；`list(path)` 返回目录的直接子项（`name`、`type: 'file' | 'directory' | 'other'`、`size?`），按配置上限截断并置 `truncated`；`changes()` 在订阅就绪后产出 `{ kind: 'ready' }`，随后产出 `{ kind: 'change', change }` 帧，其载荷为 `{ absolutePath, version }` 或 `{ absolutePath, absent: true }`（[README](../../packages/api/workspace-files/README.zh.md#use-this-package)）；`write(path, content, expectedVersion)` 整体替换一个文件的全部文本，以调用方读到的版本为凭——文件已不再携带该版本时以 `workspace-file/stale-version` 失败并保留原内容，内容超过字节上限时整笔拒绝而不截断。每次调用都过同样四关——路径在工作区根内、拒绝符号链接、页、窗口与条目上限、`read` 的 UTF-8 文本——否则以 `workspace-file/*` 错误码失败（[失败](../../packages/api/workspace-files/README.zh.md)）。
 
 [`dsh-api-workspace-files`](../../packages/api/workspace-files/README.zh.md) 注册 `file` 提供方并声明 `ResourceProtocolMap.file`。它把 Session 地址的相对路径原样发送给 Host，按首次成功的 `stat.absolutePath` 绑定变更过滤。它在 stat 前等待 Host 的 `ready` 帧，并保留读取期间到达的变更。绝对地址使用当前 Session；只有缺少当前 Session 时才产生 Client `workspace-file/unknown-workspace`。Client 不需要 `cwd`。
 
@@ -131,6 +131,7 @@ Host 的 `ctx.workspaceFiles` 服务与生成的 `workspaceFiles` Remote 命名�
 - **`guide`**——`builtin`、`available`、order 100，以 `openTab('guide')` 打开。居中标题、一行说明，以及已注册类型贡献的每个 `guide` 入口一框、按 `order` 排列；点一框即在引导 tab 的位置把贡献它的类型作为页面打开。每个 pane 最多一个引导 tab，每个新 pane 都种入一个，tab 条的新增控件只在本 pane 没有引导时出现（[引导](../../packages/client/ui-sidebar-right/README.zh.md#the-guide)）。
 - **`text`**——`fallback`、`available`、order 300，`dsh-resource://file/**`。经 `useResource<'file'>` 读元数据、经 `read` 按页读文件行；每次导航都响应 `params.line`；页、滚动与换行放在自己的 store 里（[README](../../packages/client/ui-sidebar-textpreview/README.zh.md)）。
 - **`files`**——`builtin`、`available`、order 200，以 `openTab('files')` 打开。工作区目录树，经 `list` 懒加载，用 `tab.actions.openResource(fileAddressFor(sessionId, root, path))` 在自己所在 pane 打开文件（[README](../../packages/client/ui-sidebar-files/README.zh.md)）。
+- **`git`**——`builtin`、`available`、order 400，从引导页进入，以 `openTab('git')` 打开。当前会话工作区的仓库，经 Host 的 `workspaceGit` Remote 命名空间观测：head 的事实、本地分支列表、带泳道槽的有界历史与工作区改动条目。它从不写仓库，工作区不在仓库内时以一行说明（[README](../../packages/client/ui-sidebar-git/README.zh.md)）。
 - **`tasks`**——`builtin`、`default-on`、order 10，以 `openTab('tasks')` 打开。会话的 todo 列表及进度摘要，其后是后台任务，均从浏览器状态读取；因此新面板会在引导页旁自动打开它（[README](../../packages/client/ui-sidebar-tasks/README.zh.md)）。
 - **`agents`**——`builtin`、`default-on`、order 20，以 `openTab('agents')` 打开。当前会话的完整派生树：会话列表里的每一个持久子会话，加上直接子级目录的诊断与读取状态；只有当父级目录能确认某一行时，点它才会打开该会话，会话头部的目录浮层按名字提供这个面板（[README](../../packages/client/ui-sidebar-agents/README.zh.md)）。
 
