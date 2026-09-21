@@ -7,6 +7,13 @@ A service can be a core spine service, a swappable capability seam, or a bundle/
 
 ```mermaid
 flowchart LR
+  pkg_channel["channel"]
+  svc_chatChannels["ctx.chatChannels<br/>Chat-channel connector registry"]
+  pkg_channel_tuitui["channel-tuitui"]
+  pkg_channel_bridge["channel-bridge"]
+  pkg_api_channels["api-channels"]
+  svc_chatBridge["ctx.chatBridge<br/>Generic chat-channel bridge"]
+  svc_channels["ctx.channels<br/>Host chat-channel Remote controller"]
   pkg_attachment["attachment"]
   svc_attachments["ctx.attachments<br/>Durable binary attachment storage"]
   pkg_attachment_local["attachment-local"]
@@ -233,6 +240,7 @@ flowchart LR
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_loop --> svc_agentLoop
   pkg_agent_presets --> svc_agentPresets
+  pkg_api_channels --> svc_channels
   pkg_api_gateway --> svc_typertGateway
   pkg_api_session_controller --> svc_sessionController
   pkg_api_session_controller --> svc_sessionFileReferences
@@ -249,6 +257,9 @@ flowchart LR
   pkg_authorization --> svc_authorization
   pkg_bash_local --> svc_shell
   pkg_bash_sandbox --> svc_shell
+  pkg_channel --> svc_chatChannels
+  pkg_channel_bridge --> svc_chatBridge
+  pkg_channel_tuitui --> svc_chatChannels
   pkg_client_file_upload --> svc_fileUploads
   pkg_client_modules --> svc_clientModules
   pkg_code_runtime --> svc_codeRuntime
@@ -368,6 +379,9 @@ flowchart LR
   svc_attachments --> pkg_llm_pi_ai
   svc_attachments --> pkg_tool_fs
   svc_authorization --> pkg_llm_pi_ai
+  svc_chatBridge --> pkg_api_channels
+  svc_chatChannels --> pkg_api_channels
+  svc_chatChannels --> pkg_channel_bridge
   svc_clientModules --> pkg_client_hmr
   svc_codeRuntime --> pkg_tools
   svc_compaction --> pkg_compaction_basic
@@ -483,6 +497,9 @@ flowchart LR
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.chatChannels` | `seam` | [`channel`](../packages/channel/channel) | [`channel-tuitui`](../packages/channel/channel-tuitui) | [`channel-bridge`](../packages/channel/channel-bridge), [`api-channels`](../packages/api/channels) | - | Providers register one connector per platform; the bridge drives them and never learns a platform protocol. |
+| `ctx.chatBridge` | `core` | [`channel-bridge`](../packages/channel/channel-bridge) | - | [`api-channels`](../packages/api/channels) | - | Owns deduplication, the chat lock, Session admission, outbound relay, and reply file delivery for every platform at once. |
+| `ctx.channels` | `core` | [`api-channels`](../packages/api/channels) | - | - | - | Projects channel status, credential-reference presence, and the enable/disable binding onto the generated Remote namespace. |
 | `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | [`api-session-controller`](../packages/api/session-controller), [`tool-fs`](../packages/fs/tool-fs), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | The host commits accepted images before session events; provider adapters resolve authorized durable references into provider-native content. |
 | `ctx.fileUploads` | `core` | [`client-file-upload`](../packages/client/file-upload) | - | [`api-session-controller`](../packages/api/session-controller) | - | Owns streaming intake, durable storage, and staged receipt lifetime; the Session controller binds receipts to accepted submissions. |
 | `ctx.llm` | `seam` | [`llm`](../packages/llm/llm) | [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-replay`](../packages/test-support/llm-replay) | [`agent-loop`](../packages/core/agent-loop), [`compaction-basic`](../packages/compaction/compaction-basic) | - | Adapters register provider implementations; the loop and compaction call the provider-neutral stream service. |

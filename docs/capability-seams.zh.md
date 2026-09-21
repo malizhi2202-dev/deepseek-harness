@@ -9,6 +9,13 @@
 
 ```mermaid
 flowchart LR
+  pkg_channel["channel"]
+  svc_chatChannels["ctx.chatChannels<br/>Chat-channel connector registry"]
+  pkg_channel_tuitui["channel-tuitui"]
+  pkg_channel_bridge["channel-bridge"]
+  pkg_api_channels["api-channels"]
+  svc_chatBridge["ctx.chatBridge<br/>Generic chat-channel bridge"]
+  svc_channels["ctx.channels<br/>Host chat-channel Remote controller"]
   pkg_attachment["attachment"]
   svc_attachments["ctx.attachments<br/>Durable binary attachment storage"]
   pkg_attachment_local["attachment-local"]
@@ -235,6 +242,7 @@ flowchart LR
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_loop --> svc_agentLoop
   pkg_agent_presets --> svc_agentPresets
+  pkg_api_channels --> svc_channels
   pkg_api_gateway --> svc_typertGateway
   pkg_api_session_controller --> svc_sessionController
   pkg_api_session_controller --> svc_sessionFileReferences
@@ -251,6 +259,9 @@ flowchart LR
   pkg_authorization --> svc_authorization
   pkg_bash_local --> svc_shell
   pkg_bash_sandbox --> svc_shell
+  pkg_channel --> svc_chatChannels
+  pkg_channel_bridge --> svc_chatBridge
+  pkg_channel_tuitui --> svc_chatChannels
   pkg_client_file_upload --> svc_fileUploads
   pkg_client_modules --> svc_clientModules
   pkg_code_runtime --> svc_codeRuntime
@@ -370,6 +381,9 @@ flowchart LR
   svc_attachments --> pkg_llm_pi_ai
   svc_attachments --> pkg_tool_fs
   svc_authorization --> pkg_llm_pi_ai
+  svc_chatBridge --> pkg_api_channels
+  svc_chatChannels --> pkg_api_channels
+  svc_chatChannels --> pkg_channel_bridge
   svc_clientModules --> pkg_client_hmr
   svc_codeRuntime --> pkg_tools
   svc_compaction --> pkg_compaction_basic
@@ -485,6 +499,9 @@ flowchart LR
 
 | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.chatChannels` | `seam` | [`channel`](../packages/channel/channel) | [`channel-tuitui`](../packages/channel/channel-tuitui) | [`channel-bridge`](../packages/channel/channel-bridge), [`api-channels`](../packages/api/channels) | - | 提供方为每个平台注册一个连接器；桥接层驱动它们，且从不了解任何平台协议。 |
+| `ctx.chatBridge` | `core` | [`channel-bridge`](../packages/channel/channel-bridge) | - | [`api-channels`](../packages/api/channels) | - | 为所有平台统一负责去重、会话锁定、Session 接纳、出站转发与回复文件投递。 |
+| `ctx.channels` | `core` | [`api-channels`](../packages/api/channels) | - | - | - | 把渠道状态、凭据引用存在性与启用/停用绑定投射到生成的 Remote 命名空间上。 |
 | `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | [`api-session-controller`](../packages/api/session-controller), [`tool-fs`](../packages/fs/tool-fs), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | 宿主会在会话事件之前提交已接受的图片；提供方适配器将已授权的持久引用解析为提供方原生内容。 |
 | `ctx.fileUploads` | `core` | [`client-file-upload`](../packages/client/file-upload) | - | [`api-session-controller`](../packages/api/session-controller) | - | 负责流式接收、持久存储和暂存回执生命周期；Session Controller 将回执绑定到已接受的提交。 |
 | `ctx.llm` | `seam` | [`llm`](../packages/llm/llm) | [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-replay`](../packages/test-support/llm-replay) | [`agent-loop`](../packages/core/agent-loop), [`compaction-basic`](../packages/compaction/compaction-basic) | - | 适配器注册提供方实现；agent loop（智能体循环）与压缩功能调用提供方无关的流服务。 |

@@ -594,6 +594,114 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'channels',
+    summary: 'Host Remote service reporting the chat channels and moving one binding.',
+    description: 'Host Remote service reporting the chat channels and moving one binding.',
+    methods: [
+      {
+        signature: '@Remote async status(): Promise<ChannelsStatus>',
+        description: 'Read every channel\'s status.\n\nThe bridge binds connectors that registered after it mounted, so this call settles the registry first: a channel a plugin added a moment ago is reported rather than missing.',
+        parameters: [],
+        returns: 'one view per registered channel, in registration order.',
+      },
+      {
+        signature: '@Remote async probe(channel: string): Promise<ChannelProbe>',
+        description: 'Test whether one channel can build a client with its configured credentials.\n\nA channel that cannot is answered, not rejected: `ok: false` with the reason is what the panel shows, and only an unregistered channel is an error.',
+        parameters: [{ name: 'channel', description: 'the channel id to probe, as the panel knows it.' }],
+        returns: 'what the probe found.',
+        throws: ['{RemoteError} with code `channels/unknown` when no such channel is registered.'],
+      },
+      {
+        signature: '@Remote async enable(channel: string, sessionId: string): Promise<ChannelsStatus>',
+        description: 'Point one channel at one Session and open its connection.',
+        parameters: [{ name: 'channel', description: 'the channel id to bind.' }, { name: 'sessionId', description: 'the Session the channel drives.' }],
+        returns: 'the status after the change.',
+        throws: ['{RemoteError} with code `channels/unknown` or `channels/failed`, whose message names what to fix.'],
+      },
+      {
+        signature: '@Remote async disable(channel: string): Promise<ChannelsStatus>',
+        description: 'Close one channel\'s connection, leaving its configuration otherwise intact.',
+        parameters: [{ name: 'channel', description: 'the channel id to close.' }],
+        returns: 'the status after the change.',
+        throws: ['{RemoteError} with code `channels/unknown` or `channels/failed`.'],
+      },
+    ],
+  },
+  {
+    key: 'chatBridge',
+    summary: 'The generic bridge: it binds connectors to Sessions, admits what arrives, and relays what those Sessions produce.',
+    description: 'The generic bridge: it binds connectors to Sessions, admits what arrives, and relays what those Sessions produce.',
+    methods: [
+      {
+        signature: 'readonly resolved: ResolvedConfig',
+        description: 'Bridge configuration with every default resolved.',
+        parameters: [],
+      },
+      {
+        signature: 'sync(): void',
+        description: 'Bind every registered connector that is not bound yet, and drop the bindings whose connector left the registry. Idempotent; the configuration panel calls it before reading a status so a connector that registered after this plugin mounted is not invisible.',
+        parameters: [],
+      },
+      {
+        signature: 'statuses(): readonly ChatChannelStatus[]',
+        description: 'Every registered channel\'s status, in registration order.',
+        parameters: [],
+        returns: 'one status per bound channel.',
+      },
+      {
+        signature: 'status(channel: ChatChannelId): ChatChannelStatus | undefined',
+        description: 'One channel\'s status.',
+        parameters: [{ name: 'channel', description: 'the channel to read.' }],
+        returns: 'its status, or undefined while the channel is unregistered.',
+      },
+      {
+        signature: 'async enable(channel: ChatChannelId, sessionId: string): Promise<void>',
+        description: 'Point one channel at one Session and open its connection.',
+        parameters: [{ name: 'channel', description: 'the channel to bind.' }, { name: 'sessionId', description: 'the Session the channel drives.' }],
+        throws: ['{Error} when the channel is unregistered, the Session does not exist, or another channel already serves that Session.'],
+      },
+      {
+        signature: 'async disable(channel: ChatChannelId): Promise<void>',
+        description: 'Close one channel\'s connection and leave its configuration otherwise intact.',
+        parameters: [{ name: 'channel', description: 'the channel to close.' }],
+        throws: ['{Error} when the channel is unregistered.'],
+      },
+      {
+        signature: 'async probe(channel: ChatChannelId): Promise<ChatProbeResult>',
+        description: 'Test whether one channel can build a client with its configured credentials.\n\nThe probe never opens a connection: it asks the platform nothing a client cannot answer from its own configuration, which is what makes it safe to run while the channel is live.',
+        parameters: [{ name: 'channel', description: 'the channel to probe.' }],
+        returns: 'what the probe found; a failure is a value, not a rejection.',
+        throws: ['{Error} when the channel is unregistered.'],
+      },
+    ],
+  },
+  {
+    key: 'chatChannels',
+    summary: 'Registry of chat-channel connectors, keyed by platform id.',
+    description: 'Registry of chat-channel connectors, keyed by platform id.',
+    methods: [
+      {
+        signature: 'register(connector: ChatChannelConnector): () => void',
+        description: 'Register one platform\'s connector. Registration is an effect: the entry disappears when the returned disposer runs or the owning fiber unloads.',
+        parameters: [{ name: 'connector', description: 'the platform\'s lifecycle and configuration seam.' }],
+        returns: 'the disposer removing this entry.',
+        throws: ['when a connector for the same platform is already registered, which is a composition mistake rather than a race: two connectors for one platform would leave the panel showing whichever registered last.'],
+      },
+      {
+        signature: 'list(): readonly ChatChannelConnector[]',
+        description: 'Every registered connector, in registration order.',
+        parameters: [],
+        returns: 'a detached array; later registrations do not change it.',
+      },
+      {
+        signature: 'get(channel: ChatChannelId): ChatChannelConnector | undefined',
+        description: 'The connector for one platform.',
+        parameters: [{ name: 'channel', description: 'the platform to look up.' }],
+        returns: 'the connector, or `undefined` when this build has none.',
+      },
+    ],
+  },
+  {
     key: 'clientModules',
     summary: 'The web plugin table service: incremental `dsh.client` scan + wire composition + bundle route + index injection rows.',
     description: 'The web plugin table service: incremental `dsh.client` scan + wire composition + bundle route + index injection rows. Construction runs the activation scan synchronously — a malformed declaration or missing bundle among the already-loaded entries aggregates into one loud throw (FAILED fiber; the boot activation audit reports it).',
@@ -3840,6 +3948,94 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'BrandedNumber',
     declaration: 'export type BrandedNumber<B extends string> = number & {\n    readonly [BRAND]: B;\n};',
+  },
+  {
+    name: 'ChannelCredentialView',
+    declaration: 'export interface ChannelCredentialView {\n    readonly field: string;\n    readonly ref: string;\n    readonly configured: boolean;\n    readonly source?: string;\n    readonly writable: boolean;\n}',
+  },
+  {
+    name: 'ChannelProbe',
+    declaration: 'export interface ChannelProbe {\n    readonly ok: boolean;\n    readonly message?: string;\n    readonly accountLabel?: string;\n    readonly details?: readonly string[];\n}',
+  },
+  {
+    name: 'ChannelsStatus',
+    declaration: 'export interface ChannelsStatus {\n    readonly channels: readonly ChannelView[];\n}',
+  },
+  {
+    name: 'ChannelView',
+    declaration: 'export interface ChannelView {\n    readonly channel: string;\n    readonly enabled: boolean;\n    readonly sessionId: string;\n    readonly connection: \'stopped\' | \'connecting\' | \'connected\' | \'failed\';\n    readonly lastError?: string;\n    readonly lastErrorAt?: string;\n    readonly lastInboundAt?: string;\n    readonly lockedChatId?: string;\n    readonly replyBudget?: number;\n    readonly capabilities: ChatChannelCapabilities;\n    readonly settingsNamespace: string;\n    readonly credentials: readonly ChannelCredentialView[];\n}',
+  },
+  {
+    name: 'ChatAccountInfo',
+    declaration: 'export interface ChatAccountInfo {\n    readonly accountLabel?: string;\n    readonly details?: readonly string[];\n}',
+  },
+  {
+    name: 'ChatChannelCapabilities',
+    declaration: 'export interface ChatChannelCapabilities {\n    readonly quoting: boolean;\n    readonly inbound: {\n        readonly images: boolean;\n        readonly files: boolean;\n    };\n    readonly outbound: {\n        readonly images: boolean;\n        readonly files: boolean;\n    };\n    readonly markdown: boolean;\n    readonly maxTextChars?: number;\n    readonly maxInboundBytes?: number;\n    readonly maxOutboundBytes?: number;\n}',
+  },
+  {
+    name: 'ChatChannelConfig',
+    declaration: 'export type ChatChannelConfig = Readonly<Record<string, unknown>>;',
+  },
+  {
+    name: 'ChatChannelConnector',
+    declaration: 'export interface ChatChannelConnector {\n    readonly channel: ChatChannelId;\n    readonly replyBudget?: number;\n    readonly capabilities: ChatChannelCapabilities;\n    readonly settings: ChatChannelSettings;\n    createClient(config: ChatChannelConfig): Promise<ChatClient>;\n    connect(config: ChatChannelConfig, handlers: ChatConnectorHandlers): Promise<{\n        close(): void;\n    }>;\n}',
+  },
+  {
+    name: 'ChatChannelId',
+    declaration: 'export type ChatChannelId = ChatChannelIdMap[keyof ChatChannelIdMap];',
+  },
+  {
+    name: 'ChatChannelIdMap',
+    declaration: 'export interface ChatChannelIdMap {\n    tuitui: \'tuitui\';\n}',
+  },
+  {
+    name: 'ChatChannelSettings',
+    declaration: 'export interface ChatChannelSettings {\n    readonly namespace: string;\n    readonly schema: Schema;\n    readonly base?: ChatChannelConfig;\n    readonly credentialFields: readonly string[];\n}',
+  },
+  {
+    name: 'ChatChannelStatus',
+    declaration: 'export interface ChatChannelStatus {\n    readonly channel: ChatChannelId;\n    readonly enabled: boolean;\n    readonly sessionId: string;\n    readonly connection: \'stopped\' | \'connecting\' | \'connected\' | \'failed\';\n    readonly lastError?: string;\n    readonly lastErrorAt?: string;\n    readonly lastInboundAt?: string;\n    readonly lockedChatId?: string;\n    readonly replyBudget?: number;\n    readonly capabilities: ChatChannelCapabilities;\n    readonly settingsNamespace: string;\n    readonly credentialFields: readonly string[];\n}',
+  },
+  {
+    name: 'ChatClient',
+    declaration: 'export interface ChatClient {\n    checkCredentials(): Promise<ChatAccountInfo | null>;\n    sendText(chatId: ChatId, text: string, options?: ChatSendOptions): Promise<void>;\n    replyText(messageId: ChatMessageId, text: string, options?: ChatSendOptions): Promise<void>;\n    sendFile(chatId: ChatId, file: ChatOutboundFile): Promise<void>;\n}',
+  },
+  {
+    name: 'ChatConnectorHandlers',
+    declaration: 'export interface ChatConnectorHandlers {\n    readonly onMessage: (message: ChatInboundMessage) => void;\n    readonly onReady?: () => void;\n    readonly onError?: (error: unknown) => void;\n}',
+  },
+  {
+    name: 'ChatId',
+    declaration: 'export type ChatId = Branded<\'chat-id\'>;',
+  },
+  {
+    name: 'ChatInboundFile',
+    declaration: 'export interface ChatInboundFile {\n    readonly fileName: string;\n    fetch(maxBytes: number): Promise<Uint8Array>;\n}',
+  },
+  {
+    name: 'ChatInboundImage',
+    declaration: 'export interface ChatInboundImage {\n    fetch(maxBytes: number): Promise<{\n        readonly data: Uint8Array;\n        readonly mime: string;\n    }>;\n}',
+  },
+  {
+    name: 'ChatInboundMessage',
+    declaration: 'export interface ChatInboundMessage {\n    readonly chatId: ChatId;\n    readonly chatKind: \'direct\' | \'group\';\n    readonly messageId: ChatMessageId;\n    readonly text: string | null;\n    readonly images?: readonly ChatInboundImage[];\n    readonly files?: readonly ChatInboundFile[];\n    readonly senderName?: string;\n}',
+  },
+  {
+    name: 'ChatMessageId',
+    declaration: 'export type ChatMessageId = Branded<\'chat-message-id\'>;',
+  },
+  {
+    name: 'ChatOutboundFile',
+    declaration: 'export interface ChatOutboundFile {\n    readonly fileName: string;\n    readonly data: Uint8Array;\n}',
+  },
+  {
+    name: 'ChatProbeResult',
+    declaration: 'export interface ChatProbeResult {\n    readonly ok: boolean;\n    readonly message?: string;\n    readonly accountLabel?: string;\n    readonly details?: readonly string[];\n}',
+  },
+  {
+    name: 'ChatSendOptions',
+    declaration: 'export interface ChatSendOptions {\n    readonly markdown?: boolean;\n}',
   },
   {
     name: 'ChatType',

@@ -99,6 +99,30 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'chatChannels',
+    pkg: 'channel',
+    title: 'Chat-channel connector registry',
+    mode: 'seam',
+    implementations: ['channel-tuitui'],
+    consumers: ['channel-bridge', 'api-channels'],
+    note: 'Providers register one connector per platform; the bridge drives them and never learns a platform protocol.',
+  },
+  {
+    key: 'chatBridge',
+    pkg: 'channel-bridge',
+    title: 'Generic chat-channel bridge',
+    mode: 'core',
+    consumers: ['api-channels'],
+    note: 'Owns deduplication, the chat lock, Session admission, outbound relay, and reply file delivery for every platform at once.',
+  },
+  {
+    key: 'channels',
+    pkg: 'api-channels',
+    title: 'Host chat-channel Remote controller',
+    mode: 'core',
+    note: 'Projects channel status, credential-reference presence, and the enable/disable binding onto the generated Remote namespace.',
+  },
+  {
     key: 'attachments',
     pkg: 'attachment',
     title: 'Durable binary attachment storage',

@@ -1052,3 +1052,8 @@ function execIntent(intent: Intent): string {
   }
   throw new Error(`unknown intent kind: ${intent.kind}`)
 }
+
+// The transport and its wire types are the protocol surface a chat-channel
+// provider reuses; re-exported here so a provider imports one package.
+export { TuituiClient } from './client.ts'
+export * from './types.ts'

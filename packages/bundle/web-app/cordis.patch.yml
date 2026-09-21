@@ -163,6 +163,25 @@
     - id: workspace-controller
       name: '@deepseek-ai/dsh-api-workspace-controller'
 
+    # Chat platforms as a Session driver: the connector registry, the generic
+    # bridge that owns deduplication, the chat lock, admission, and reply
+    # delivery, and the Tuitui connector that adapts the transport this
+    # repository already ships. The connector registers its configuration
+    # namespace and opens no connection until a channel is enabled.
+    - id: channel
+      name: '@deepseek-ai/dsh-channel'
+
+    - id: channel-bridge
+      name: '@deepseek-ai/dsh-channel-bridge'
+
+    - id: channel-tuitui
+      name: '@deepseek-ai/dsh-channel-tuitui'
+
+    # Channel status, credential-reference presence, and the enable/disable
+    # binding for the configuration panel over Typert Remote.
+    - id: api-channels
+      name: '@deepseek-ai/dsh-api-channels'
+
     - id: cordis-host-runner
       name: '@deepseek-ai/dsh-cordis-host-runner'
 

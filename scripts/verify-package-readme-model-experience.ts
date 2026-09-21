@@ -45,6 +45,9 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
  */
 const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/attachment/attachment': { kind: 'indirect', reason: 'The storage seam delegates model request rendering to provider adapters.' },
+  'packages/channel/channel': { kind: 'indirect', reason: 'The connector seam declares the channel message source and the media/outbound contracts; the bridge that admits messages owns every model-visible field.' },
+  'packages/channel/channel-tuitui': { kind: 'indirect', reason: 'The provider normalizes platform messages into the seam\'s inbound type; the admitting bridge owns every model-visible effect.' },
+  'packages/api/channels': { kind: 'none', reason: 'Host Remote endpoint reporting channel status and moving one binding; it registers nothing model-facing.' },
   'packages/attachment/attachment-local': { kind: 'indirect', reason: 'The local backend delegates model request rendering to provider adapters.' },
   'packages/shell/shell': { kind: 'indirect', reason: 'The service interface delegates all model rendering to dsh-tool-bash.' },
   'packages/shell/shell-env': { kind: 'indirect', reason: 'The env service exposes managed DSH_* facts through the shell tools (dsh-tool-bash/dsh-tool-pwsh); it registers no prompt or schema of its own.' },
