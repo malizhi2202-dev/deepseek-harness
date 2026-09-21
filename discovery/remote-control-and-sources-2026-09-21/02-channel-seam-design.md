@@ -107,7 +107,11 @@ export interface ChatChannels {
 
 - 每个渠道注册一个 `dsh-settings` 命名空间（schema 驱动），面板从 settings 拿到**描述符**即可渲染表单，并显示"每个字段来自哪一层"。
 - 密钥**一律按名字经 `dsh-credentials` 引用**，永不进配置文件、永不上线（`settings-controller` 已做命名空间脱敏，F12）。
-- 扫码/贴码类绑定（微信、QQ）实现为 `dsh-authorization` 的**一条流程**（F10）：人在面板上完成，凭据记录提交进 credentials 存储。
+- 贴码/设备码类绑定（飞书与钉钉的密钥粘贴、百度云式设备码）用 `dsh-authorization` 的现成流程：`secret` prompt 收码；浏览器回调与手输码用 prompt 自带的 `signal` 互斥竞速（该字段的 JSDoc 正是为此而设）。人在面板上完成，凭据记录提交进 credentials 存储。
+- **扫码类（微信登录、QQ 绑定）需要先补一个能力**：`AuthorizationPrompt` 目前只有 `text | secret | select`（`packages/credentials/authorization/src/types.ts:43-62`），**没有二维码/图片种类**。实测确认，不是猜测。两条路：
+  - **（推荐）给该联合新增一个 `qr` 种类。** 授权能力已经拥有这条流程的全部事实：每凭据一条流程、忙闲状态、取消、单个 prompt 的撤回、竞速、提交、旁观事件流。二维码登录需要的正是这些**再加**一个图像与过期换码，而 `signal` 的「撤回此条 prompt、流程继续」语义恰好就是过期换码。在面板里重做一遍等于把这些事实复制到第二个归属地，违反「一个事实一个归属地」。
+  - （不推荐）二维码画在面板自有面上：面板将被迫自己维护忙闲、取消、提交与错误状态，即重复授权能力的职责。
+- **二维码内容可能内嵌登录令牌**，必须与 `secret` 同等对待：不进日志、不进 session log、不在错误消息里回显。
 - **不新增持久化域**——这是 R1 相对 penguin 的 `messaging_bindings` 表（P4）的主要差异。代价：没有"每会话各自绑定"的能力；若日后需要，须单独立项评审存储。
 
 ## 五、面板（新包 `packages/client/ui-sidebar-channels`）
