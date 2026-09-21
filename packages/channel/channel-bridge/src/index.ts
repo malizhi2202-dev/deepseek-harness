@@ -274,8 +274,8 @@ interface SessionEntry {
  * @param spec - the connector's settings declaration.
  * @returns the shared fields composed around the connector's own.
  */
-function bindingSchema(spec: ChatChannelConnector['settings']): Schema {
-  return z.intersect([BINDING_FIELDS, spec.schema])
+function bindingSchema(spec: ChatChannelConnector['settings']): Schema<ChatChannelConfig> {
+  return z.intersect([BINDING_FIELDS, spec.schema]) as Schema<ChatChannelConfig>
 }
 
 /**
@@ -349,9 +349,6 @@ export class ChatBridge extends Service {
     this.own.on('session/event', (session, event) => {
       this.observe(session, event)
     })
-    this.own.effect(() => () => {
-      for (const channel of [...this.bindings.keys()]) this.unbind(channel)
-    }, 'chatBridge.bindings')
     this.sync()
   }
 
@@ -448,14 +445,20 @@ export class ChatBridge extends Service {
   /** Register one connector: its settings namespace, its watcher, and its lifetime. */
   private bind(connector: ChatChannelConnector): void {
     const scope = this.own.settings.register(connector.settings.namespace, bindingSchema(connector.settings), {
-      ...connector.settings.base === undefined ? {} : { base: connector.settings.base },
+      // The connector declares its section as its own interface, which the
+      // settings namespace's schema validates as it composes this layer.
+      ...connector.settings.base === undefined
+        ? {}
+        : { base: connector.settings.base },
       applies: 'live',
     })
     const binding: Binding = {
       channel: connector.channel,
       connector,
       scope,
-      unwatch: () => {},
+      unwatch: scope.watch(() => {
+        void this.scheduleReconfigure(binding)
+      }),
       tail: Promise.resolve(),
       connection: undefined,
       client: undefined,
@@ -470,9 +473,6 @@ export class ChatBridge extends Service {
       lastInboundAt: undefined,
       inflight: new Set(),
     }
-    binding.unwatch = scope.watch(() => {
-      void this.scheduleReconfigure(binding)
-    })
     this.bindings.set(connector.channel, binding)
     this.own.effect(() => () => {
       this.unbind(connector.channel)
@@ -600,8 +600,11 @@ export class ChatBridge extends Service {
 
   /** Refuse a binding that would make one Session answer two channels at once. */
   private assertSessionFree(channel: ChatChannelId, sessionId: string): void {
+    // Compared as an opaque string: this build's channel map has one member, so
+    // comparing the union with itself would narrow the loop body to nothing.
+    const wanted: string = channel
     for (const binding of this.bindings.values()) {
-      if (binding.channel === channel) continue
+      if (binding.channel === wanted) continue
       const shared = readBindingFields(binding.scope.get())
       if (shared.enabled && shared.sessionId === sessionId) {
         throw new Error(
@@ -931,6 +934,7 @@ export class ChatBridge extends Service {
     const chatId = binding.lockedChatId
     const client = binding.client
     if (chatId === undefined || client === undefined || text === '') return
+    if (!binding.connector.capabilities.outbound.files) return
     const workspaceRoot = this.ctx.sandboxPolicy.resolve({ session: entry.agent.session }).workspaceRoot
     const root = await this.ctx.fs.resolve(workspaceRoot)
     const written: WorkspaceFile[] = []

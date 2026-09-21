@@ -3991,7 +3991,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ChatChannelSettings',
-    declaration: 'export interface ChatChannelSettings {\n    readonly namespace: string;\n    readonly schema: Schema;\n    readonly base?: ChatChannelConfig;\n    readonly credentialFields: readonly string[];\n}',
+    declaration: 'export interface ChatChannelSettings {\n    readonly namespace: string;\n    readonly schema: Schema;\n    readonly base?: object;\n    readonly credentialFields: readonly string[];\n}',
   },
   {
     name: 'ChatChannelStatus',

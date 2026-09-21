@@ -46,13 +46,14 @@ export class ChatChannels extends Service {
    */
   register(connector: ChatChannelConnector): () => void {
     const channel = connector.channel
-    return this.ctx.effect(() => {
+    const dispose = this.ctx.effect(() => {
       if (this.connectors.has(channel)) {
         throw new Error(`a connector for chat channel "${channel}" is already registered`)
       }
       this.connectors.set(channel, connector)
       return () => { this.connectors.delete(channel) }
     }, `chatChannels.register(${channel})`)
+    return () => { void dispose() }
   }
 
   /**

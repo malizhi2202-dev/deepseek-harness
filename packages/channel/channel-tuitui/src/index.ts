@@ -85,7 +85,7 @@ export function createTuituiConnector(ctx: Context, base: Config = {}): ChatChan
     settings: {
       namespace: 'chat-channel-tuitui',
       schema: Config,
-      base: { ...base },
+      base,
       credentialFields: ['appSecretRef'],
     },
     async createClient(section: ChatChannelConfig) {

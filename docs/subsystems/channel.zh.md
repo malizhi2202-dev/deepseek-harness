@@ -12,7 +12,7 @@ Source: [`packages/channel/channel/src/index.ts`](../../packages/channel/channel
 
 `ChatChannelIdMap` 可被合并扩展，因此提供方从自己的 `./types` 模块添加平台 id，新增平台无需改动定义。该映射以 `tuitui` 为种子值——本仓库唯一内置的平台——因此消费方单独编译时也能得到可用的 id 集合。
 
-`ChatChannelCapabilities` 是面板对限制的陈述：`replyText` 是否引用、存在哪些附件方向、是否渲染 Markdown，以及平台的文本与字节上限。桥接层会执行这些方向与上限，而不是让用户从沉默中去发现它们。
+`ChatChannelCapabilities` 是面板对限制的陈述：`replyText` 是否引用、存在哪些附件方向、是否渲染 Markdown，以及平台的文本与字节上限。桥接层会执行出站方向与上限，而不是让用户从沉默中去发现它们。
 
 `ChatInboundMessage` 携带文本，以及可选的图片和文件，二者都是 `fetch(maxBytes)` 句柄。在桥接层接纳该消息之前不会传输任何内容，且字节上限随传输一同传入，因此超大附件会在越过上限的那个字节处被拒绝，而不是先整份缓冲再测量。
 

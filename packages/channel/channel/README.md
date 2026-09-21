@@ -29,12 +29,24 @@ English | [中文](README.zh.md)
 A provider registers one connector:
 
 ```ts
+import type { Context } from '@deepseek-ai/cordis'
+import type Schema from '@deepseek-ai/schemastery'
+import type { ChatChannelConfig, ChatClient } from '@deepseek-ai/dsh-channel'
+
+declare const ctx: Context
+declare const Config: Schema<{ readonly appSecretRef: string }>
+declare const MyClient: new (section: ChatChannelConfig) => ChatClient
+
 ctx.chatChannels.register({
   channel: 'tuitui',
   capabilities: { quoting: false, inbound: { images: false, files: false }, outbound: { images: false, files: false }, markdown: true },
   settings: { namespace: 'chat-channel-tuitui', schema: Config, credentialFields: ['appSecretRef'] },
-  createClient: async (section) => new MyClient(section),
-  connect: async (section, handlers) => ({ close: () => {} }),
+  createClient: async section => new MyClient(section),
+  connect: async (section, handlers) => {
+    await new MyClient(section).checkCredentials()
+    handlers.onReady?.()
+    return { close: () => {} }
+  },
 })
 ```
 

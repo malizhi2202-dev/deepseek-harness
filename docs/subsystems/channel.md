@@ -12,7 +12,7 @@ A connector declares what its platform can do and hands over two things: a norma
 
 `ChatChannelIdMap` is merge-extensible, so a provider adds its own platform id from its own `./types` module and adding a platform never edits the Definition. The map is seeded with `tuitui`, the one platform this repository ships, so a consumer compiles against a usable id set on its own.
 
-`ChatChannelCapabilities` is the panel's statement of limits: whether `replyText` quotes, which attachment directions exist, whether Markdown renders, and the platform's text and byte ceilings. The bridge enforces the directions and the ceilings rather than letting a user discover them from silence.
+`ChatChannelCapabilities` is the panel's statement of limits: whether `replyText` quotes, which attachment directions exist, whether Markdown renders, and the platform's text and byte ceilings. The bridge enforces the outbound directions and the ceilings rather than letting a user discover them from silence.
 
 `ChatInboundMessage` carries text plus optional images and files as `fetch(maxBytes)` handles. Nothing is transferred until the bridge has admitted the message, and the byte cap rides into the transfer, so an oversized attachment is refused at the byte that crosses it instead of being buffered whole and measured afterwards.
 

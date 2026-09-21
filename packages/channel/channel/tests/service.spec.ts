@@ -39,7 +39,7 @@ describe('ChatChannels', () => {
     registry.register(first)
     registry.register(second)
     expect(registry.list()).toEqual([first, second])
-    expect(registry.get('tuitui' as never)).toBe(first)
+    expect(registry.get('tuitui')).toBe(first)
     expect(registry.get('absent' as never)).toBeUndefined()
     await dispose()
   })
@@ -66,7 +66,7 @@ describe('ChatChannels', () => {
     const remove = registry.register(connector('tuitui'))
     remove()
     expect(registry.list()).toEqual([])
-    expect(registry.get('tuitui' as never)).toBeUndefined()
+    expect(registry.get('tuitui')).toBeUndefined()
     await dispose()
   })
 

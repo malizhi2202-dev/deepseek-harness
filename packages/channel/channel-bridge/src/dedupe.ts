@@ -45,10 +45,13 @@ export function channelLogMemory(session: Session, channel: ChatChannelId): Chan
   let lockedChatId: ChatId | undefined
   let lockedChatIsDirect = false
   let watermark: ChatMessageId | undefined
+  // Compared as an opaque string: this build's map has one member, so comparing
+  // the union with itself would read as a constant condition.
+  const wanted: string = channel
   for (const event of session.ownEvents()) {
     if (event.type !== 'user/message') continue
     const source = event.data.source
-    if (source.kind !== 'channel' || source.channel !== channel) continue
+    if (source.kind !== 'channel' || source.channel !== wanted) continue
     if (lockedChatId === undefined) {
       lockedChatId = source.chatId
       lockedChatIsDirect = source.chatKind === 'direct'
@@ -99,9 +102,8 @@ export class RecentInboundIds {
   remember(messageId: string): void {
     if (messageId === '') return
     this.seen.add(messageId)
-    while (this.seen.size > this.size) {
-      const oldest: string | undefined = this.seen.values().next().value
-      if (oldest === undefined) break
+    for (const oldest of this.seen) {
+      if (this.seen.size <= this.size) break
       this.seen.delete(oldest)
     }
   }

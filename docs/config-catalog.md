@@ -394,6 +394,57 @@ Depends on: [`LocalConfig`](#deepseek-aidsh-bash-local)
 
 Source: [`packages/shell/bash-sandbox/src/index.ts:36`](../packages/shell/bash-sandbox/src/index.ts)
 
+<a id="deepseek-aidsh-channel-bridge"></a>
+
+## `@deepseek-ai/dsh-channel-bridge`
+
+Requires: `agents` · `attachments` · `chatChannels` · `fs` · `sandboxPolicy` · `settings`
+
+```ts config-catalog
+/**
+ * Bridge configuration: the bounds and cut-offs that vary by deployment.
+ *
+ * Every field is here rather than in a constant because a self-hosted bridge
+ * and a hosted one disagree about them, and none of them is a platform fact.
+ */
+export interface Config {
+  /** Characters per outbound message; keep it under the tightest platform cap this deployment serves. */
+  chunkChars?: number
+  /** Recently processed inbound ids one binding remembers beyond its durable watermark. */
+  dedupeSize?: number
+  /** Files one reply may deliver; the remainder is counted in a notice. */
+  maxReplyFiles?: number
+  /** How far before a run's start a file may have been written and still count as its output. */
+  mtimeGraceMs?: number
+  /** Largest inbound attachment the bridge will transfer into the Session. */
+  maxInboundFileBytes?: number
+  /** Largest outbound file the bridge will read out of the Session workspace. */
+  maxOutboundFileBytes?: number
+}
+```
+
+Source: [`packages/channel/channel-bridge/src/index.ts:76`](../packages/channel/channel-bridge/src/index.ts)
+
+<a id="deepseek-aidsh-channel-tuitui"></a>
+
+## `@deepseek-ai/dsh-channel-tuitui`
+
+Requires: `chatChannels` · `credentials`
+
+```ts config-catalog
+/** The Tuitui channel's configuration fields. */
+export interface Config {
+  /** Tuitui IM server host, without a scheme or port. */
+  host?: string
+  /** The bot application's id from the Tuitui developer console. */
+  appId?: string
+  /** Name of the `dsh-credentials` reference holding the bot application's secret, never the secret. */
+  appSecretRef?: string
+}
+```
+
+Source: [`packages/channel/channel-tuitui/src/index.ts:29`](../packages/channel/channel-tuitui/src/index.ts)
+
 <a id="deepseek-aidsh-client-connection"></a>
 
 ## `@deepseek-ai/dsh-client-connection`
@@ -3600,10 +3651,12 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 
 - `@deepseek-ai/dsh-acp-app` — requires `cmdlineArgs` ([`packages/bundle/acp-app/src/index.ts`](../packages/bundle/acp-app/src/index.ts))
 - `@deepseek-ai/dsh-agent` ([`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts))
+- `@deepseek-ai/dsh-api-channels` — requires `chatBridge` · `credentials` · `settings` · `typert` ([`packages/api/channels/src/index.ts`](../packages/api/channels/src/index.ts))
 - `@deepseek-ai/dsh-api-remotes` — requires `typertGateway` ([`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts))
 - `@deepseek-ai/dsh-api-workspace-controller` — requires `typert` · `workspaceRegistry` ([`packages/api/workspace-controller/src/index.ts`](../packages/api/workspace-controller/src/index.ts))
 - `@deepseek-ai/dsh-api-workspace-git` — requires `git` · `sandboxPolicy` · `typert` ([`packages/api/workspace-git/src/index.ts`](../packages/api/workspace-git/src/index.ts))
 - `@deepseek-ai/dsh-authorization` — requires `credentials` ([`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts))
+- `@deepseek-ai/dsh-channel` ([`packages/channel/channel/src/index.ts`](../packages/channel/channel/src/index.ts))
 - `@deepseek-ai/dsh-client-file-upload` — requires `agents` · `attachments` · `commands` · `connection` ([`packages/client/file-upload/src/index.ts`](../packages/client/file-upload/src/index.ts))
 - `@deepseek-ai/dsh-client-locale` ([`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.ts))
 - `@deepseek-ai/dsh-client-modules` — requires `loader` ([`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts))

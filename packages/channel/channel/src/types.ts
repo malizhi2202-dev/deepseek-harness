@@ -229,8 +229,11 @@ export interface ChatChannelSettings {
    * The composition layer the bridge registers under the user's section: the
    * connector's own cordis.yml `config`, so a deployment's defaults come from
    * the file that configures the plugin while the user's edits layer over them.
+   * Typed `object` because a connector declares its own section as an interface,
+   * whose fields the bridge cannot name; the settings namespace's schema judges
+   * the layer when the bridge registers it.
    */
-  readonly base?: ChatChannelConfig
+  readonly base?: object
   /** Section field names whose value is a `dsh-credentials` reference NAME, never a secret. */
   readonly credentialFields: readonly string[]
 }
