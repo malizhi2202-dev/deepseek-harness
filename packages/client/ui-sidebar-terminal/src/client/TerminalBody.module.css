@@ -1,0 +1,147 @@
+.root {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  padding: 4px 0 8px;
+  color: var(--dsw-alias-label-primary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: 1.5;
+}
+
+/* The shell bar: one chip per shell, then the mint and close controls. */
+.bar {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 10px 6px;
+}
+
+.chips {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.chip {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  background: transparent;
+  border: 0.5px solid var(--dsw-alias-border-secondary, var(--dsw-alias-label-tertiary));
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.chipCurrent {
+  composes: chip;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* One control: an icon button the bar and the input row share. */
+.tool {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tool:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.tool:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* The console's text: the one place output is drawn, newest line in view. */
+.output {
+  flex: 1 1 auto;
+  min-height: 120px;
+  margin: 0 10px;
+  padding: 6px 8px;
+  overflow: auto;
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsh-mono-font-family, monospace);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--dsw-alias-bg-secondary, transparent);
+  border-radius: 6px;
+}
+
+/* The input row: the command line and its run control. */
+.input {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  align-items: center;
+  padding: 6px 10px 2px;
+}
+
+.field {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 8px;
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsh-mono-font-family, monospace);
+  font-size: 12px;
+  background: transparent;
+  border: 0.5px solid var(--dsw-alias-border-secondary, var(--dsw-alias-label-tertiary));
+  border-radius: 6px;
+}
+
+.field:disabled {
+  opacity: 0.6;
+}
+
+.note {
+  margin: 0;
+  padding: 3px 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+
+/* What this panel is not, stated where the console is drawn. */
+.disclaimer {
+  margin: 0;
+  padding: 2px 10px 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 10px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.statusLine {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: 1.6;
+}

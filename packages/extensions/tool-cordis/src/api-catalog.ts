@@ -2452,6 +2452,44 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'terminalConsole',
+    summary: 'Host Remote service owning the browser-facing shell console.',
+    description: 'Host Remote service owning the browser-facing shell console.',
+    methods: [
+      {
+        signature: '@Remote async open(agent: Agent, signal: AbortSignal): Promise<TerminalConsoleShell>',
+        description: 'Mint one console shell owned by the resolved session.',
+        parameters: [{ name: 'agent', description: 'target Agent resolved from the Session identity on the wire.' }, { name: 'signal', description: 'cancellation of unpublished shell setup.' }],
+        returns: 'the minted shell as its panel addresses it.',
+      },
+      {
+        signature: '@Remote list(agent: Agent): TerminalConsoleShell[]',
+        description: 'List the resolved session\'s live console shells in mint order.',
+        parameters: [{ name: 'agent', description: 'target Agent resolved from the Session identity on the wire.' }],
+        returns: 'one entry per shell whose PTY session still exists.',
+      },
+      {
+        signature: '@Remote write(agent: Agent, shellId: string, request: TerminalConsoleWriteRequest): TerminalConsoleShell',
+        description: 'Write input into one console shell.\n\nThe write is line-oriented, which is the PTY seam\'s own consumption contract: one exclusive interactive operation at a time. This call reports acceptance, never the command\'s result — the output stream reports that — so it returns as soon as the shell took the input.',
+        parameters: [{ name: 'agent', description: 'target Agent resolved from the Session identity on the wire.' }, { name: 'shellId', description: 'console-minted shell identity.' }, { name: 'request', description: 'explicit text and whether the shell\'s Enter sequence follows it.' }],
+        returns: 'the shell as it stands after the input was accepted.',
+        throws: ['RemoteError `terminal-console/busy` when an interactive operation is already in flight.'],
+      },
+      {
+        signature: '@Remote async close(agent: Agent, shellId: string): Promise<boolean>',
+        description: 'Close one console shell and await its process tree\'s quiescence.',
+        parameters: [{ name: 'agent', description: 'target Agent resolved from the Session identity on the wire.' }, { name: 'shellId', description: 'console-minted shell identity.' }],
+        returns: 'true when this call closed the shell, false when a close was already in flight.',
+      },
+      {
+        signature: '@Remote({ mode: \'stream\' }) async *output(agent: Agent, shellId: string, signal: AbortSignal): AsyncIterable<TerminalConsoleFrame>',
+        description: 'Stream one console shell\'s output.\n\nEach poll reads the seam\'s bounded retained window and sends either the text the panel has not seen or the whole window as a replacement; the stream ends with an exit frame once the shell\'s top-level process is gone, and closes the shell so nothing detached is left behind.\n\nThe first frame a generation sends carries the whole retained window and is marked `replace`, so a consumer that reconnects replaces its view rather than appending a window it may already hold.',
+        parameters: [{ name: 'agent', description: 'target Agent resolved from the Session identity on the wire.' }, { name: 'shellId', description: 'console-minted shell identity.' }, { name: 'signal', description: 'cancellation owned by the Remote stream carrier.' }],
+        returns: 'output frames in order, ending in one exit frame.',
+      },
+    ],
+  },
+  {
     key: 'terminals',
     summary: 'In-process registry for replaceable PTY backends and exact-Agent sessions.',
     description: 'In-process registry for replaceable PTY backends and exact-Agent sessions.',
@@ -5942,6 +5980,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TerminalCallView',
     declaration: 'export interface TerminalCallView {\n    card: \'terminal\';\n    title: string;\n    description?: string;\n    cwd?: string;\n}',
+  },
+  {
+    name: 'TerminalConsoleFrame',
+    declaration: 'export type TerminalConsoleFrame = {\n    readonly kind: \'output\';\n    readonly text: string;\n    readonly replace: boolean;\n} | {\n    readonly kind: \'exit\';\n    readonly exitCode: number | null;\n    readonly signal: string | null;\n};',
+  },
+  {
+    name: 'TerminalConsoleShell',
+    declaration: 'export interface TerminalConsoleShell {\n    readonly shellId: string;\n    readonly index: number;\n    readonly pid?: number;\n    readonly status: TerminalConsoleStatus;\n}',
+  },
+  {
+    name: 'TerminalConsoleStatus',
+    declaration: 'export type TerminalConsoleStatus = {\n    readonly kind: \'running\';\n} | {\n    readonly kind: \'exited\';\n    readonly exitCode: number | null;\n    readonly signal: string | null;\n};',
+  },
+  {
+    name: 'TerminalConsoleWriteRequest',
+    declaration: 'export interface TerminalConsoleWriteRequest {\n    readonly text: string;\n    readonly submit: boolean;\n}',
   },
   {
     name: 'TerminalReadRequest',

@@ -2108,6 +2108,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-sidebar-git GitBody',
       'client-ui-sidebar-right GuideBody',
       'client-ui-sidebar-tasks TasksBody',
+      'client-ui-sidebar-terminal TerminalBody',
       'client-ui-sidebar-textpreview TextPreview',
     ],
     replaceRisk: 'none',

@@ -98,6 +98,74 @@ interface TerminalSendResult {
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.zh.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxterminalconsole--terminalconsole"></a>
+
+### `ctx.terminalConsole` — `TerminalConsole`
+
+Host Remote service owning the browser-facing shell console.
+
+```ts cordis-catalog
+/**
+ * Mint one console shell owned by the resolved session.
+ * @param agent - target Agent resolved from the Session identity on the wire.
+ * @param signal - cancellation of unpublished shell setup.
+ * @returns the minted shell as its panel addresses it.
+ */
+@Remote async open(agent: Agent, signal: AbortSignal): Promise<TerminalConsoleShell>
+
+/**
+ * List the resolved session's live console shells in mint order.
+ * @param agent - target Agent resolved from the Session identity on the wire.
+ * @returns one entry per shell whose PTY session still exists.
+ */
+@Remote list(agent: Agent): TerminalConsoleShell[]
+
+/**
+ * Write input into one console shell.
+ *
+ * The write is line-oriented, which is the PTY seam's own consumption
+ * contract: one exclusive interactive operation at a time. This call reports
+ * acceptance, never the command's result — the output stream reports that —
+ * so it returns as soon as the shell took the input.
+ * @param agent - target Agent resolved from the Session identity on the wire.
+ * @param shellId - console-minted shell identity.
+ * @param request - explicit text and whether the shell's Enter sequence follows it.
+ * @returns the shell as it stands after the input was accepted.
+ * @throws RemoteError `terminal-console/busy` when an interactive operation is already in flight.
+ */
+@Remote write(agent: Agent, shellId: string, request: TerminalConsoleWriteRequest): TerminalConsoleShell
+
+/**
+ * Close one console shell and await its process tree's quiescence.
+ * @param agent - target Agent resolved from the Session identity on the wire.
+ * @param shellId - console-minted shell identity.
+ * @returns true when this call closed the shell, false when a close was already in flight.
+ */
+@Remote async close(agent: Agent, shellId: string): Promise<boolean>
+
+/**
+ * Stream one console shell's output.
+ *
+ * Each poll reads the seam's bounded retained window and sends either the
+ * text the panel has not seen or the whole window as a replacement; the
+ * stream ends with an exit frame once the shell's top-level process is gone,
+ * and closes the shell so nothing detached is left behind.
+ *
+ * The first frame a generation sends carries the whole retained window and is
+ * marked `replace`, so a consumer that reconnects replaces its view rather
+ * than appending a window it may already hold.
+ * @param agent - target Agent resolved from the Session identity on the wire.
+ * @param shellId - console-minted shell identity.
+ * @param signal - cancellation owned by the Remote stream carrier.
+ * @returns output frames in order, ending in one exit frame.
+ */
+@Remote({ mode: 'stream' }) async *output(agent: Agent, shellId: string, signal: AbortSignal): AsyncIterable<TerminalConsoleFrame>
+```
+
+Types: [Agent](core.zh.md)
+
+Source: [`packages/api/terminal-console/src/index.ts`](../../packages/api/terminal-console/src/index.ts)
+
 <a id="ctxterminals--terminalsessionservice"></a>
 
 ### `ctx.terminals` — `TerminalSessionService`

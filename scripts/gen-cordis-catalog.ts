@@ -89,6 +89,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   permissionPresets: 'permission-presets.md',
   planMode: 'plan.md',
   terminals: 'terminal.md',
+  terminalConsole: 'terminal.md',
   sandbox: 'sandbox.md',
   sandboxPolicy: 'sandbox.md',
   sessionPersistence: 'persistence.md',
@@ -770,6 +771,9 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   WorkspaceFileStat: 'Host workspace file endpoint contract is owned by packages/api/workspace-files/README.md',
   WorkspaceFileText: 'Host workspace file endpoint contract is owned by packages/api/workspace-files/README.md',
   GitObservation: 'repository observation contract is owned by packages/git/git/README.md',
+  TerminalConsoleShell: 'console endpoint contract is owned by packages/api/terminal-console/README.md',
+  TerminalConsoleWriteRequest: 'console endpoint contract is owned by packages/api/terminal-console/README.md',
+  TerminalConsoleFrame: 'console output frame contract is owned by packages/api/terminal-console/README.md',
 }
 
 /** Repository data policy consumed by the Cordis catalog projector. */

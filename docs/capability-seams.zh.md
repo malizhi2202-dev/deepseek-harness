@@ -50,6 +50,8 @@ flowchart LR
   svc_workspaceFiles["ctx.workspaceFiles<br/>Host workspace file Remote service"]
   pkg_api_workspace_git["api-workspace-git"]
   svc_workspaceGit["ctx.workspaceGit<br/>Host workspace git Remote service"]
+  pkg_api_terminal_console["api-terminal-console"]
+  svc_terminalConsole["ctx.terminalConsole<br/>Host shell console Remote service"]
   pkg_api_workspace_controller["api-workspace-controller"]
   svc_workspaceController["ctx.workspaceController<br/>Host Workspace Remote controller"]
   svc_directoryPickerController["ctx.directoryPickerController<br/>Host directory-picking Remote controller"]
@@ -239,6 +241,7 @@ flowchart LR
   pkg_api_session_controller --> svc_sessionSkillCatalog
   pkg_api_settings_controller --> svc_credentialsController
   pkg_api_settings_controller --> svc_settingsController
+  pkg_api_terminal_console --> svc_terminalConsole
   pkg_api_workspace_controller --> svc_directoryPickerController
   pkg_api_workspace_controller --> svc_workspaceController
   pkg_api_workspace_files --> svc_workspaceFiles
@@ -496,6 +499,7 @@ flowchart LR
 | `ctx.settingsController` | `core` | [`api-settings-controller`](../packages/api/settings-controller) | - | - | - | 把用户设置 seam 投影到生成的 Remote namespace：读取一律脱敏，所有拒绝在这里分类，而不在 seam Definition 上。 |
 | `ctx.workspaceFiles` | `core` | [`api-workspace-files`](../packages/api/workspace-files) | - | - | - | 为会话工作区根内的文件提供 stat、分页文本、字节窗口、目录列举与变更流，经 lstat、包含关系与 stat 重检限定。 |
 | `ctx.workspaceGit` | `core` | [`api-workspace-git`](../packages/api/workspace-git) | - | - | - | 经生成的 Remote 命名空间回答对会话工作区根所属仓库的有界观察，服务 Web git 面板；它是有期限的临时配套，随其服务的 seam 一起退役。 |
+| `ctx.terminalConsole` | `core` | [`api-terminal-console`](../packages/api/terminal-console) | - | - | - | 经生成的 Remote 命名空间服务用户自己的 shell 控制台：在 PTY 注册表之上按 Session 铸造 shell 身份，在网络可达的接入面上拒绝服务直到部署明确接受，且不追加任何 session 事件。 |
 | `ctx.workspaceController` | `core` | [`api-workspace-controller`](../packages/api/workspace-controller) | - | - | - | 通过生成的 Remote namespace 负责 Workspace 命令和可在重连后收敛的 Workspace 状态投递。 |
 | `ctx.directoryPickerController` | `core` | [`api-workspace-controller`](../packages/api/workspace-controller) | - | - | - | 把选目录 seam 送上线：能力门禁、取消传播，以及浏览器目录流程用于分支判断的 seam 错误码。 |
 | `ctx.invariants` | `core` | [`invariants`](../packages/runtime-diagnostics/invariants) | - | [`session`](../packages/core/session), [`agent`](../packages/core/agent), [`scope`](../packages/core/scope), [`agent-loop`](../packages/core/agent-loop) | - | 配套子路径注册所属包本地的检查；该服务负责选择、唯一性、子 fiber，以及标明所属包的失败。 |

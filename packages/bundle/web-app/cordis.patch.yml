@@ -121,6 +121,39 @@
     - id: workspace-git
       name: '@deepseek-ai/dsh-api-workspace-git'
 
+    # The console's own PTY substrate. Agent presets mount their own isolated
+    # `terminals` group for the model-facing shell tools, so this pair is a
+    # second registry that only the console below reaches: no model tool can
+    # address a console shell, and no console shell shares a registry with one.
+    - id: console-pty
+      name: '@deepseek-ai/dsh-terminal'
+
+    - id: console-bash
+      name: '@deepseek-ai/dsh-terminal-bash'
+      disabled: !!js process.platform === 'win32'
+      config:
+        backendType: console-shell
+        timeoutMs: 300000
+
+    - id: console-pwsh
+      name: '@deepseek-ai/dsh-terminal-bash'
+      disabled: !!js process.platform !== 'win32'
+      config:
+        backendType: console-shell
+        shellDialect: pwsh
+        timeoutMs: 300000
+
+    # The person's own shell console over Typert Remote: a bounded, polled
+    # window over the PTY substrate above, minted per session and refused on a
+    # surface a network can reach unless this deployment accepts that. The
+    # switch reads the bound surface, so a loopback-only install serves it and a
+    # `--trusted-host` install must state the acceptance itself.
+    - id: terminal-console
+      name: '@deepseek-ai/dsh-api-terminal-console'
+      inject: [webRuntime]
+      config:
+        acceptReachableSurface: !!js ctx.webRuntime.trustedHosts.length === 0
+
     # Configuration-surface reads and writes over Typert Remote. Each method
     # reports an actionable error when its settings-domain provider is absent.
     - id: settings-controller
@@ -260,6 +293,11 @@
     # version-line migration replaces it with the upstream git plugin.
     - id: ui-sidebar-git
       name: '@deepseek-ai/dsh-client-ui-sidebar-git'
+
+    # The right Sidebar's terminal tab type: the session's own shell console,
+    # opened on request, drawing the bounded text the console streams.
+    - id: ui-sidebar-terminal
+      name: '@deepseek-ai/dsh-client-ui-sidebar-terminal'
 
     - id: ui-settings
       name: '@deepseek-ai/dsh-client-ui-settings'

@@ -207,6 +207,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Answers the bounded observation of the repository containing the session workspace root over the generated Remote namespace, for the Web git panel; it is a bounded-lifetime companion that retires with the seam it serves.',
   },
   {
+    key: 'terminalConsole',
+    pkg: 'api-terminal-console',
+    title: 'Host shell console Remote service',
+    mode: 'core',
+    note: 'Serves the person\'s own shell console over the generated Remote namespace: it mints shell identity per Session over the PTY registry, refuses a surface a network can reach until the deployment accepts it, and appends no session event.',
+  },
+  {
     key: 'workspaceController',
     pkg: 'api-workspace-controller',
     title: 'Host Workspace Remote controller',

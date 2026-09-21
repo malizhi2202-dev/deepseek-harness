@@ -19,7 +19,7 @@
 | [`client/resources`](../../packages/client/resources/README.zh.md) | `ctx.resources`、`useResource`、协议 → 值类型的花名册 `ResourceProtocolMap` |
 | [`api/workspace-files`](../../packages/api/workspace-files/README.zh.md) | Host `ctx.workspaceFiles`、`workspaceFiles` Remote 命名空间与 Client `file` 资源提供者 |
 | [`util/workspace-path`](../../packages/util/workspace-path/README.zh.md) | 文件地址语法：`fileAddressFor`、`parseFileAddress` |
-| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.zh.md)、[`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.zh.md)、[`client/ui-sidebar-tasks`](../../packages/client/ui-sidebar-tasks/README.zh.md)、[`client/ui-sidebar-agents`](../../packages/client/ui-sidebar-agents/README.zh.md)、[`client/ui-sidebar-git`](../../packages/client/ui-sidebar-git/README.zh.md) | 内置的 `text`、`files`、`tasks`、`agents` 与 `git` 类型 |
+| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.zh.md)、[`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.zh.md)、[`client/ui-sidebar-tasks`](../../packages/client/ui-sidebar-tasks/README.zh.md)、[`client/ui-sidebar-agents`](../../packages/client/ui-sidebar-agents/README.zh.md)、[`client/ui-sidebar-git`](../../packages/client/ui-sidebar-git/README.zh.md)、[`client/ui-sidebar-terminal`](../../packages/client/ui-sidebar-terminal/README.zh.md) | 内置的 `text`、`files`、`tasks`、`agents`、`git` 与 `terminal` 类型 |
 
 ## 地址
 
@@ -50,7 +50,7 @@ tab 身份是 `(kind, address)` 二元组：注册表的认领把地址原文用
 
 新面板诞生时带着自己的引导页，以及每个 `default-on` 类型各一个 tab，按 `order` 升序落在第一个格子里；这些 tab 属于初始布局，因此回退止步于它们，关掉其中一个也不会被撤销。最多三个类型可声明 `default-on`（`contract/visibility.ts` 中的 `MAX_DEFAULT_VISIBLE_TABS`）：注册表中越过该上限的那次注册抛错，评审中由 `verify-sidebar-right-tab-types` 拒绝该声明。`default-on` 类型必须声明 `icon` 且必须是页面类型——查看器没有自己的页面可开，注册表直接拒绝这一组合，而不是少开几个 tab 却仍声称按声明执行。除此之外没有别的东西决定默认集：既不是注册顺序，也不是一份 kind 名单。
 
-新 kind 的准入只有一个条件：它必须独占自己的 `dsh-resource://<type>/` 地址域，且不认领别的域。页面类型豁免，因为它按 kind 打开、不认领任何地址；内置的 `guide`、`files`、`tasks`、`agents`、`git` 正是因此不声明 `patterns`。`verify-sidebar-right-tab-types` 读取每一份已发布定义，把整个名册以 `kind`、区段、order、默认状态、地址域列出，并在定义违反上述任何一条规则时报错。
+新 kind 的准入只有一个条件：它必须独占自己的 `dsh-resource://<type>/` 地址域，且不认领别的域。页面类型豁免，因为它按 kind 打开、不认领任何地址；内置的 `guide`、`files`、`tasks`、`agents`、`git`、`terminal` 正是因此不声明 `patterns`。`verify-sidebar-right-tab-types` 读取每一份已发布定义，把整个名册以 `kind`、区段、order、默认状态、地址域列出，并在定义违反上述任何一条规则时报错。
 
 tab 条的类型选择器是面板自己进入该列的入口：chrome 里的一个菜单，按 `order` 升序列出已注册的页面类型并画出各自的 `icon`，选中即对所在格子调用 `openTab(kind, { paneId })`。它略去引导页（tab 条的添加控件负责打开它）与所有 `hidden` 类型；查看器永远不列出，因为它靠解析地址打开。
 
@@ -132,6 +132,7 @@ Host 的 `ctx.workspaceFiles` 服务与生成的 `workspaceFiles` Remote 命名�
 - **`text`**——`fallback`、`available`、order 300，`dsh-resource://file/**`。经 `useResource<'file'>` 读元数据、经 `read` 按页读文件行；每次导航都响应 `params.line`；页、滚动与换行放在自己的 store 里（[README](../../packages/client/ui-sidebar-textpreview/README.zh.md)）。
 - **`files`**——`builtin`、`available`、order 200，以 `openTab('files')` 打开。工作区目录树，经 `list` 懒加载，用 `tab.actions.openResource(fileAddressFor(sessionId, root, path))` 在自己所在 pane 打开文件（[README](../../packages/client/ui-sidebar-files/README.zh.md)）。
 - **`git`**——`builtin`、`available`、order 400，从引导页进入，以 `openTab('git')` 打开。当前会话工作区的仓库，经 Host 的 `workspaceGit` Remote 命名空间观测：head 的事实、本地分支列表、带泳道槽的有界历史与工作区改动条目。它从不写仓库，工作区不在仓库内时以一行说明（[README](../../packages/client/ui-sidebar-git/README.zh.md)）。
+- **`terminal`**——`builtin`、`available`、order 500，从引导页进入，以 `openTab('terminal')` 打开。会话自己的 shell 控制台，经 Host 的 `terminalConsole` Remote 命名空间驱动：会话持有的 shell、当前显示的那一个，以及它已经打印出的有界净化文本。这是用户的通道，不是模型的——它打印的任何内容都不进入会话记录——而对外提供网络可达访问面的安装默认拒绝它（[README](../../packages/client/ui-sidebar-terminal/README.zh.md)）。
 - **`tasks`**——`builtin`、`default-on`、order 10，以 `openTab('tasks')` 打开。会话的 todo 列表及进度摘要，其后是后台任务，均从浏览器状态读取；因此新面板会在引导页旁自动打开它（[README](../../packages/client/ui-sidebar-tasks/README.zh.md)）。
 - **`agents`**——`builtin`、`default-on`、order 20，以 `openTab('agents')` 打开。当前会话的完整派生树：会话列表里的每一个持久子会话，加上直接子级目录的诊断与读取状态；只有当父级目录能确认某一行时，点它才会打开该会话，会话头部的目录浮层按名字提供这个面板（[README](../../packages/client/ui-sidebar-agents/README.zh.md)）。
 

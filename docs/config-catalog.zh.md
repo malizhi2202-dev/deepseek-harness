@@ -231,6 +231,60 @@ export interface Config {
 
 来源：[`packages/api/settings-controller/src/index.ts:36`](../packages/api/settings-controller/src/index.ts)
 
+<a id="deepseek-aidsh-api-terminal-console"></a>
+
+## `@deepseek-ai/dsh-api-terminal-console`
+
+需要：`terminals` · `typert`
+
+```ts config-catalog
+/**
+ * Deployment bounds and the one security switch this service reads. Every field
+ * carries its default in the schema below, so a composition states only what it
+ * changes.
+ */
+export interface Config {
+  /**
+   * Registered PTY backend type this console mints shells from. A composition
+   * gives the console its own backend registration, so the shells it owns are
+   * never the ones a model-facing terminal tool addresses.
+   * @default 'console-shell'
+   */
+  readonly backendType?: string
+  /**
+   * Live console shells one session may hold at once; further opens are refused.
+   * @default 2
+   */
+  readonly maxShellsPerOwner?: number
+  /**
+   * Retained scrollback lines one output frame may carry.
+   * @default 400
+   */
+  readonly maxFrameLines?: number
+  /**
+   * Milliseconds between scrollback polls for one live output stream.
+   * @default 250
+   */
+  readonly pollIntervalMs?: number
+  /**
+   * Whether this install accepts that its Web surface may be reachable by
+   * another device, and therefore serves the console on it.
+   *
+   * The name states the acceptance, not a grant: the console is served only
+   * when this is true, so the refusal is the security default. A loopback
+   * listener is not isolated per local user, and a `trustedHosts` authority is
+   * a reachability declaration rather than an authentication layer, so any
+   * device that can load the Web UI could otherwise run shells. A composition
+   * that binds loopback and adds no authority sets this, because nothing else
+   * can reach it; one that widens reachability must state it deliberately.
+   * @default false
+   */
+  readonly acceptReachableSurface?: boolean
+}
+```
+
+来源：[`packages/api/terminal-console/src/index.ts:62`](../packages/api/terminal-console/src/index.ts)
+
 <a id="deepseek-aidsh-api-workspace-files"></a>
 
 ## `@deepseek-ai/dsh-api-workspace-files`
@@ -3591,6 +3645,7 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-sidebar-git`（[`packages/client/ui-sidebar-git/src/index.ts`](../packages/client/ui-sidebar-git/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-right`（[`packages/client/ui-sidebar-right/src/index.ts`](../packages/client/ui-sidebar-right/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-tasks`（[`packages/client/ui-sidebar-tasks/src/index.ts`](../packages/client/ui-sidebar-tasks/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sidebar-terminal`（[`packages/client/ui-sidebar-terminal/src/index.ts`](../packages/client/ui-sidebar-terminal/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-textpreview`（[`packages/client/ui-sidebar-textpreview/src/index.ts`](../packages/client/ui-sidebar-textpreview/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-skill`（[`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-subagent`（[`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts)）
