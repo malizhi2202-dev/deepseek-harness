@@ -102,9 +102,10 @@ describe('TasksBody', () => {
   })
 
   it('draws a job with its label, detail, and state', () => {
-    const { view } = mountBody({ jobs: [job({ label: 'pnpm test', detail: 'suite 2 of 4' })] })
+    const detail = 'suite 2 of 4'
+    const { view } = mountBody({ jobs: [job({ label: 'pnpm test', detail })] })
     const row = view.container.querySelector('[data-tasks-job="running"]')
-    expect(row?.textContent).toBe(`pnpm test${'suite 2 of 4'}${zh['job.running']}`)
+    expect(row?.textContent).toBe(`pnpm test${detail}${zh['job.running']}`)
     expect(view.container.querySelector('[data-tasks-section="jobs"]')?.textContent)
       .not.toContain(zh['jobs.empty'])
   })
