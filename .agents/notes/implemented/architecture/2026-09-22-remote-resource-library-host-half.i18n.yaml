@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-22-remote-resource-library-host-half.md
+2026-09-22-remote-resource-library-host-half.md: 43d79986a476c42deff3754199fd0974c90a47f5
+2026-09-22-remote-resource-library-host-half.zh.md: 5d2340ca34b147892c1b2be21b1f9c252f900ce3

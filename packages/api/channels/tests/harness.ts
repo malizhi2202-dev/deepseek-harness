@@ -10,6 +10,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
+import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { ChatChannelCapabilities, ChatChannelId } from '@deepseek-ai/dsh-channel'
 import type { ChatChannelStatus, ChatProbeResult } from '@deepseek-ai/dsh-channel-bridge'
 import type { CredentialInfo, CredentialRef } from '@deepseek-ai/dsh-credentials'
@@ -31,6 +32,9 @@ export const NAMESPACE = 'channel-tuitui'
 
 /** The Session one scripted binding points a channel at. */
 export const SESSION = 'session-test'
+
+/** The Agent identity the Gateway resolves for {@link SESSION}. */
+export const AGENT = { id: SESSION } as unknown as Agent
 
 /** Capabilities of a channel that carries plain text and nothing else. */
 export const CAPABILITIES: ChatChannelCapabilities = {

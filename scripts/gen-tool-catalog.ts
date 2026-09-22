@@ -28,6 +28,9 @@ import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
 import { AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentLimits, ImageAttachmentRef, SaveImageAttachment, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
+import SourceRegistry from '@deepseek-ai/dsh-resource'
+import * as ResourceMediawiki from '@deepseek-ai/dsh-resource-mediawiki'
+import * as ToolResource from '@deepseek-ai/dsh-tool-resource'
 import PlanModeController from '@deepseek-ai/dsh-plan-mode'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import * as WebSearchExa from '@deepseek-ai/dsh-web-search-exa'
@@ -589,6 +592,26 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-resource',
+    dir: 'tool-resource',
+    source: 'packages/resource/tool-resource/src/index.ts',
+    requires: ['ctx.tools', 'ctx.sources', 'ctx.systemPrompt'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      // Mount the registry and one provider answering all three operations, so
+      // every operation-derived tool registers. A tool's schema does not depend
+      // on which kind backs it, and this provider reads its one instance from
+      // the composition entry because no settings service is mounted here.
+      await ctx.plugin(SourceRegistry)
+      await ctx.plugin(ResourceMediawiki, {
+        instances: { catalog: { baseUrl: 'https://wiki.example/w/api.php' } },
+      })
+      await ctx.plugin(ToolResource)
+    },
+    note:
+      'One tool per kind and operation — source_<kind>_search, source_<kind>_read, and source_<kind>_list — registered only for the operations a kind declares and only while that kind has a configured instance.',
   },
 ]
 

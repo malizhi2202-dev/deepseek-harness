@@ -43,3 +43,7 @@ The Sidebar can now answer "what does this session's repository look like?" with
 The retirement path is stated, not merely intended: an upstream git plugin replaces the family after the version-line migration, and the four packages (with their registry rows) go together. Nothing between here and there should build on the seam beyond the panel it exists for.
 
 Two limits are recorded in the package README rather than solved here: the read is one bounded fetch with no subscription (freshness is the reload gesture), and the worktree lists change sides and kinds without diffs or a staging view — both belong to the upstream plugin.
+
+## Related
+
+- [Per-workspace git alignment and automatic commit](../architecture/2026-09-22-workspace-git-alignment-and-automatic-commit.md) — a second, separate git seam (`ctx.gitAlign`) added beside this one. It does not build on `ctx.git`, which stays read-only, and it is not part of the temporary family this note retires.

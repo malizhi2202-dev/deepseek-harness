@@ -189,6 +189,22 @@ flowchart LR
   pkg_git["git"]
   svc_git["ctx.git<br/>Repository observation seam"]
   pkg_git_local["git-local"]
+  pkg_resource["resource"]
+  svc_sources["ctx.sources<br/>Remote resource-library seam"]
+  pkg_resource_mediawiki["resource-mediawiki"]
+  pkg_resource_github["resource-github"]
+  pkg_resource_mysql["resource-mysql"]
+  pkg_tool_resource["tool-resource"]
+  pkg_api_sources["api-sources"]
+  svc_sourcesPanel["ctx.sourcesPanel<br/>Host resource-library Remote controller"]
+  pkg_git_align["git-align"]
+  svc_gitAlign["ctx.gitAlign<br/>Workspace git-alignment seam"]
+  pkg_git_align_local["git-align-local"]
+  pkg_workspace_automation["workspace-automation"]
+  pkg_work_summary["work-summary"]
+  svc_workSummary["ctx.workSummary<br/>Work-summary seam"]
+  pkg_work_summary_llm["work-summary-llm"]
+  svc_workspaceAutomation["ctx.workspaceAutomation<br/>Per-workspace alignment and commit timer"]
   pkg_compaction["compaction"]
   svc_compaction["ctx.compaction<br/>Compaction seam"]
   svc_subagents["ctx.subagents<br/>Subagent provider and continuation service"]
@@ -251,6 +267,7 @@ flowchart LR
   pkg_api_session_controller --> svc_sessionSkillCatalog
   pkg_api_settings_controller --> svc_credentialsController
   pkg_api_settings_controller --> svc_settingsController
+  pkg_api_sources --> svc_sourcesPanel
   pkg_api_terminal_console --> svc_terminalConsole
   pkg_api_workspace_controller --> svc_directoryPickerController
   pkg_api_workspace_controller --> svc_workspaceController
@@ -291,6 +308,8 @@ flowchart LR
   pkg_fs_local --> svc_fs
   pkg_fs_sandbox --> svc_fs
   pkg_git --> svc_git
+  pkg_git_align --> svc_gitAlign
+  pkg_git_align_local --> svc_gitAlign
   pkg_git_local --> svc_git
   pkg_goal --> svc_goals
   pkg_host_directory_picker --> svc_directoryPicker
@@ -312,6 +331,10 @@ flowchart LR
   pkg_plan_mode --> svc_planMode
   pkg_plugin_package_inventory_deepseek --> svc_deepseekLlmApiExtensions
   pkg_pwsh_local --> svc_shell
+  pkg_resource --> svc_sources
+  pkg_resource_github --> svc_sources
+  pkg_resource_mediawiki --> svc_sources
+  pkg_resource_mysql --> svc_sources
   pkg_sandbox --> svc_sandbox
   pkg_sandbox_local --> svc_sandbox
   pkg_sandbox_policy --> svc_sandboxPolicy
@@ -367,9 +390,12 @@ flowchart LR
   pkg_web_search_exa --> svc_web
   pkg_web_search_perplexity --> svc_web
   pkg_webhook --> svc_webhookRuntime
+  pkg_work_summary --> svc_workSummary
+  pkg_work_summary_llm --> svc_workSummary
   pkg_workflow --> svc_workflowEngine
   pkg_workflow_worker_thread --> svc_workflowEngine
   pkg_workspace --> svc_workspaceRegistry
+  pkg_workspace_automation --> svc_workspaceAutomation
   svc_agentDefaultModel --> pkg_api_session_controller
   svc_agentDefaultModel --> pkg_headless
   svc_agentLoop --> pkg_base
@@ -406,6 +432,7 @@ flowchart LR
   svc_fileUploads --> pkg_api_session_controller
   svc_fs --> pkg_tool_fs
   svc_git --> pkg_api_workspace_git
+  svc_gitAlign --> pkg_workspace_automation
   svc_invariants --> pkg_agent
   svc_invariants --> pkg_agent_loop
   svc_invariants --> pkg_scope
@@ -456,6 +483,8 @@ flowchart LR
   svc_shellEnv --> pkg_tool_bash
   svc_shellEnv --> pkg_tool_pwsh
   svc_skills --> pkg_tool_skill
+  svc_sources --> pkg_api_sources
+  svc_sources --> pkg_tool_resource
   svc_spillStore --> pkg_spill_policy
   svc_storage --> pkg_storage_domain
   svc_storageDomain --> pkg_workspace
@@ -496,6 +525,7 @@ flowchart LR
   svc_webServer --> pkg_client_hmr
   svc_webServer --> pkg_client_modules
   svc_webhookRuntime --> pkg_webhook_github
+  svc_workSummary --> pkg_workspace_automation
   svc_workflowEngine --> pkg_tool_ralph
   svc_workflowEngine --> pkg_tool_workflow
   svc_workspaceRegistry --> pkg_api_session_controller
@@ -567,6 +597,11 @@ flowchart LR
 | `ctx.codeRuntime` | `seam` | [`code-runtime`](../packages/code-runtime/code-runtime) | [`code-runtime-worker-thread`](../packages/code-runtime/code-runtime-worker-thread), [`experimental-code-runtime-python`](../packages/experimental/code-runtime-python) | [`tools`](../packages/core/tools) | - | Runs one model-written program against host-provided async bindings; backends differ by substrate and language (the tool registry consumes it for PTC mode). |
 | `ctx.fs` | `seam` | [`fs`](../packages/fs/fs) | [`fs-local`](../packages/fs/fs-local), [`fs-sandbox`](../packages/fs/fs-sandbox), [`fs-e2b`](../packages/e2b/fs-e2b) | [`tool-fs`](../packages/fs/tool-fs) | [`fs-observation-policy`](../packages/fs/fs-observation-policy) | tool-fs executes read/write/edit through ctx.fs; fs-sandbox fences mutations by the shared sandbox mode; fs-observation-policy contributes observed-state checks through the fs/* event gate. |
 | `ctx.git` | `seam` | [`git`](../packages/git/git) | [`git-local`](../packages/git/git-local) | [`api-workspace-git`](../packages/api/workspace-git) | - | One bounded read-only snapshot of the repository containing a working directory; git-local reads it with the host git. A bounded-lifetime seam that retires with the upstream git plugin that replaces it. |
+| `ctx.sources` | `seam` | [`resource`](../packages/resource/resource) | [`resource-mediawiki`](../packages/resource/resource-mediawiki), [`resource-github`](../packages/resource/resource-github), [`resource-mysql`](../packages/resource/resource-mysql) | [`tool-resource`](../packages/resource/tool-resource), [`api-sources`](../packages/api/sources) | - | One registry of remote collections a model may consult. Each provider knows one kind of protocol, addressing, and limits; the model-facing tools live in tool-resource and the panel projection in api-sources. |
+| `ctx.sourcesPanel` | `core` | [`api-sources`](../packages/api/sources) | - | - | - | Projects source state, credential-reference presence, and each kind of settings schema onto the generated Remote namespace. It reports credential references, never credential values. |
+| `ctx.gitAlign` | `seam` | [`git-align`](../packages/git/git-align) | [`git-align-local`](../packages/git/git-align-local) | [`workspace-automation`](../packages/workspace/workspace-automation) | - | Resolve, fetch, probe, apply, and commit inside one workspace. No operation pushes, rebases, or rewrites history, so a caller that wants the commit published asks the person. |
+| `ctx.workSummary` | `seam` | [`work-summary`](../packages/session/work-summary) | [`work-summary-llm`](../packages/session/work-summary-llm) | [`workspace-automation`](../packages/workspace/workspace-automation) | - | Turns the paths a turn changed into a commit message. A provider may decline, and the registry falls back to a mechanical summary bounded by the same limits. |
+| `ctx.workspaceAutomation` | `core` | [`workspace-automation`](../packages/workspace/workspace-automation) | - | - | - | One timer per workspace aligning the local work tree and committing the paths the turn attributed, and refusing rather than guessing when the head moved underneath it. |
 | `ctx.compaction` | `seam` | [`compaction`](../packages/compaction/compaction) | [`compaction-basic`](../packages/compaction/compaction-basic) | [`compaction-basic`](../packages/compaction/compaction-basic) | - | The basic backend consumes post-step pressure and request-error recovery events; there is no model-facing compact tool. |
 | `ctx.subagents` | `seam` | [`subagent`](../packages/subagent/subagent) | [`subagent-spawn-in-process`](../packages/subagent/subagent-spawn-in-process), [`subagent-fork-in-process`](../packages/subagent/subagent-fork-in-process), [`subagent-acp`](../packages/subagent/subagent-acp), [`subagent-codex`](../packages/subagent/subagent-codex), [`subagent-claude-code`](../packages/subagent/subagent-claude-code), [`subagent-dsh-sdk`](../packages/subagent/subagent-dsh-sdk) | [`tool-subagent`](../packages/subagent/tool-subagent), [`tool-subagent-control`](../packages/subagent/tool-subagent-control), [`tool-ralph`](../packages/workflow/tool-ralph) | - | Providers implement transports; the service also owns optional Activation-based continuation orchestration, tool-subagent selects one-shot or continuable delegation, tool-subagent-control delivers follow-ups, and tool-ralph requires one fresh structured-output route. |
 | `ctx.agentTeams` | `core` | [`experimental-agent-team`](../packages/experimental/agent-team) | - | [`experimental-tool-agent-team`](../packages/experimental/tool-agent-team), [`experimental-client-ui-agent-team`](../packages/experimental/client-ui-agent-team) | - | Owns the implicit-root roster, durable peer mailbox, shared task DAG, continuable-child lifecycle, and generated Team Remote methods; tool-agent-team contributes model controls and client-ui-agent-team mounts the browser contribution. |

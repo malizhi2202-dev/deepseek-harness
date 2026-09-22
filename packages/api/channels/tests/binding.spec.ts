@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
-import { CAPABILITIES, CHANNEL, NAMESPACE, OTHER_CHANNEL, SESSION, channelStatus, harness } from './harness.ts'
+import { AGENT, CAPABILITIES, CHANNEL, NAMESPACE, OTHER_CHANNEL, SESSION, channelStatus, harness } from './harness.ts'
 
 /** The one registered channel every binding test addresses. */
 const registered = (): ReturnType<typeof channelStatus>[] => [
@@ -80,7 +80,7 @@ describe('Channels.enable', () => {
         bound = true
       },
     })
-    await expect(endpoint.enable(CHANNEL, SESSION)).resolves.toEqual({
+    await expect(endpoint.enable(CHANNEL, AGENT)).resolves.toEqual({
       channels: [{
         channel: CHANNEL,
         enabled: true,
@@ -96,7 +96,7 @@ describe('Channels.enable', () => {
 
   it('refuses an unregistered channel as channels/unknown without asking the bridge to bind', async () => {
     const { endpoint, bridge } = harness({ statuses: registered })
-    const failure = await endpoint.enable('channel-ghost', SESSION).catch((error: unknown) => error)
+    const failure = await endpoint.enable('channel-ghost', AGENT).catch((error: unknown) => error)
     expect(remoteErrorOf(failure)).toMatchObject({
       code: 'channels/unknown',
       message: 'no channel named channel-ghost is registered',
@@ -113,7 +113,7 @@ describe('Channels.enable', () => {
         throw refused
       },
     })
-    const failure = await endpoint.enable(CHANNEL, SESSION).catch((error: unknown) => error)
+    const failure = await endpoint.enable(CHANNEL, AGENT).catch((error: unknown) => error)
     expect(remoteErrorOf(failure)).toMatchObject({
       code: 'channels/failed',
       message: `session ${SESSION} does not exist; open it before binding a channel to it`,
@@ -134,7 +134,7 @@ describe('Channels.enable', () => {
         )
       },
     })
-    const failure = await endpoint.enable(CHANNEL, SESSION).catch((error: unknown) => error)
+    const failure = await endpoint.enable(CHANNEL, AGENT).catch((error: unknown) => error)
     expect(remoteErrorOf(failure)).toMatchObject({
       code: 'channels/failed',
       message: `channel ${OTHER_CHANNEL} already serves session ${SESSION}; disable it before binding another channel to the same session`,
@@ -148,7 +148,7 @@ describe('Channels.enable', () => {
         throw 'the binding was refused'
       },
     })
-    const failure = await endpoint.enable(CHANNEL, SESSION).catch((error: unknown) => error)
+    const failure = await endpoint.enable(CHANNEL, AGENT).catch((error: unknown) => error)
     expect(remoteErrorOf(failure)).toMatchObject({
       code: 'channels/failed',
       message: 'the binding was refused',

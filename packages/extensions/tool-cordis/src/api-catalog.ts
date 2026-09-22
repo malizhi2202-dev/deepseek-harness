@@ -612,9 +612,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         throws: ['{RemoteError} with code `channels/unknown` when no such channel is registered.'],
       },
       {
-        signature: '@Remote async enable(channel: string, sessionId: string): Promise<ChannelsStatus>',
-        description: 'Point one channel at one Session and open its connection.',
-        parameters: [{ name: 'channel', description: 'the channel id to bind.' }, { name: 'sessionId', description: 'the Session the channel drives.' }],
+        signature: '@Remote async enable(channel: string, agent: Agent): Promise<ChannelsStatus>',
+        description: 'Point one channel at the calling Session and open its connection.\n\nThe Session is the wire identity, so a panel cannot bind a channel to a Session it is not addressing.',
+        parameters: [{ name: 'channel', description: 'the channel id to bind.' }, { name: 'agent', description: 'target Agent resolved from the Session identity on the wire.' }],
         returns: 'the status after the change.',
         throws: ['{RemoteError} with code `channels/unknown` or `channels/failed`, whose message names what to fix.'],
       },
@@ -1158,6 +1158,62 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Observe the git repository that contains one working directory.',
         parameters: [{ name: 'cwd', description: 'the directory to observe from; the repository\'s work-tree root is whatever git reports for it, not necessarily the directory itself.' }, { name: 'signal', description: 'caller cancellation.' }],
         returns: 'the repository\'s bounded snapshot, or `absent` outside any work tree.',
+      },
+    ],
+  },
+  {
+    key: 'gitAlign',
+    summary: 'Abstract git alignment service.',
+    description: 'Abstract git alignment service. Subclass it, implement every operation, and load the subclass as a plugin — it registers as `ctx.gitAlign` (one implementation per context; loading a second throws, which is cordis\' standard duplicate-service behavior).\n\nImplementations must honor these semantics:\n\n- Every operation resolves a classified value for an expected git failure; only a caller cancellation rejects, with the abort reason.\n- A cancelled call must not leave a merge in progress in the work tree.\n- probe never modifies the target work tree, its index, or its refs.\n- commit contains exactly the supplied paths and no others.\n- Nothing in the implementation pushes, rebases, or rewrites history.',
+    methods: [
+      {
+        signature: 'abstract resolve(request: AlignRequest): AlignSpec',
+        description: 'Resolve one raw request into the target every operation uses.\n\nThe split of `upstream` into a remote and a ref name happens once, here, so no operation re-derives it and a request that cannot be split fails before any command runs.',
+        parameters: [{ name: 'request', description: 'the coordinates observed by the consumer.' }],
+        returns: 'the resolved target.',
+        throws: ['{GitAlignRequestError} when the tracked branch has no `remote/ref` spelling.'],
+      },
+      {
+        signature: 'abstract fetch(spec: AlignSpec, signal: AbortSignal): Promise<FetchResult>',
+        description: 'Fetch the target\'s upstream ref from its remote — the seam\'s only network operation.',
+        parameters: [{ name: 'spec', description: 'the resolved target.' }, { name: 'signal', description: 'caller cancellation, which must bound the fetch.' }],
+        returns: 'the classified fetch answer.',
+      },
+      {
+        signature: 'abstract probe(spec: AlignSpec, request: ProbeRequest, signal: AbortSignal): Promise<ProbeResult>',
+        description: 'Report whether the upstream merges into HEAD cleanly, without touching the target work tree, its index, or its refs.',
+        parameters: [{ name: 'spec', description: 'the resolved target.' }, { name: 'request', description: 'scratch-tree location and the conflict-list bound.' }, { name: 'signal', description: 'caller cancellation.' }],
+        returns: 'the classified probe answer.',
+      },
+      {
+        signature: 'abstract apply(spec: AlignSpec, strategy: AlignStrategy, signal: AbortSignal): Promise<ApplyResult>',
+        description: 'Align HEAD to the upstream using the requested strategy, or roll the attempt back and report it.',
+        parameters: [{ name: 'spec', description: 'the resolved target.' }, { name: 'strategy', description: 'how the attempt reaches the upstream revision.' }, { name: 'signal', description: 'caller cancellation.' }],
+        returns: 'the classified write answer.',
+      },
+      {
+        signature: 'abstract changeFacts( spec: AlignSpec, paths: readonly string[], signal: AbortSignal, ): Promise<ChangeFactsResult>',
+        description: 'Read diff facts for exactly one path set, relative to HEAD.',
+        parameters: [{ name: 'spec', description: 'the resolved target.' }, { name: 'paths', description: 'repository-relative paths, already bounded by the consumer.' }, { name: 'signal', description: 'caller cancellation.' }],
+        returns: 'the classified facts answer.',
+      },
+      {
+        signature: 'abstract ignoredPaths( spec: AlignSpec, paths: readonly string[], signal: AbortSignal, ): Promise<IgnoreResult>',
+        description: 'Report which of the given paths git\'s own ignore rules match.',
+        parameters: [{ name: 'spec', description: 'the resolved target.' }, { name: 'paths', description: 'repository-relative paths, already bounded by the consumer.' }, { name: 'signal', description: 'caller cancellation.' }],
+        returns: 'the classified ignore answer.',
+      },
+      {
+        signature: 'abstract commit(spec: AlignSpec, request: CommitRequest, signal: AbortSignal): Promise<CommitResult>',
+        description: 'Create one commit containing exactly the supplied paths.',
+        parameters: [{ name: 'spec', description: 'the resolved target.' }, { name: 'request', description: 'the path set, the message, and whether repository hooks run.' }, { name: 'signal', description: 'caller cancellation.' }],
+        returns: 'the classified commit answer.',
+      },
+      {
+        signature: 'abstract pushedToRemote(spec: AlignSpec, oid: string, signal: AbortSignal): Promise<PushedResult>',
+        description: 'Report whether any remote-tracking ref already contains one commit — the fact that decides whether a created commit can still be withdrawn.',
+        parameters: [{ name: 'spec', description: 'the resolved target.' }, { name: 'oid', description: 'full object id of the commit to test.' }, { name: 'signal', description: 'caller cancellation.' }],
+        returns: 'the classified answer.',
       },
     ],
   },
@@ -2304,6 +2360,52 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'sources',
+    summary: 'The source registry, registered as `ctx.sources` (one instance per context; loading a second throws, which is cordis\' duplicate-service behavior).',
+    description: 'The source registry, registered as `ctx.sources` (one instance per context; loading a second throws, which is cordis\' duplicate-service behavior).',
+    methods: [
+      {
+        signature: 'register(provider: SourceProvider): () => void',
+        description: 'Register one kind\'s provider. The registration is an effect on the calling fiber: disposing that fiber removes the provider and emits `sources/changed`.',
+        parameters: [{ name: 'provider', description: 'the provider; its `kind` is the registry key.' }],
+        returns: 'the exact disposer that unregisters the provider.',
+        throws: ['{SourceError} `SOURCE_DUPLICATE_PROVIDER` when the kind already has a provider, or `SOURCE_PROVIDER_ERROR` when the kind is not a usable name.'],
+      },
+      {
+        signature: 'list(): readonly SourceProvider[]',
+        description: 'Every registered provider, in registration order.',
+        parameters: [],
+        returns: 'the registered providers.',
+      },
+      {
+        signature: 'get(kind: SourceKind): SourceProvider | undefined',
+        description: 'Look up one kind\'s provider.',
+        parameters: [{ name: 'kind', description: 'the kind to look up.' }],
+        returns: 'the provider, or `undefined` when the kind is not registered.',
+      },
+    ],
+  },
+  {
+    key: 'sourcesPanel',
+    summary: 'Host Remote service reporting the remote resource sources and probing one.',
+    description: 'Host Remote service reporting the remote resource sources and probing one.',
+    methods: [
+      {
+        signature: '@Remote async status(): Promise<SourcesStatus>',
+        description: 'Read every declared source instance\'s state.\n\nThe registry is read at call time, so a provider a plugin registered a moment ago is reported rather than missing, and each provider is asked for its instances rather than this endpoint holding a copy of any configuration.',
+        parameters: [],
+        returns: 'one view per declared instance, providers in registration order.',
+      },
+      {
+        signature: '@Remote async probe(key: string): Promise<SourceProbe>',
+        description: 'Test whether one source instance can reach its target with the configured settings and credentials.\n\nA source that cannot is answered, not rejected: `ok: false` with the reason is what the panel shows, and only an instance this Host does not serve is an error.',
+        parameters: [{ name: 'key', description: 'the instance\'s identity, as `status` reported it.' }],
+        returns: 'what the probe found.',
+        throws: ['{RemoteError} with code `sources/unknown` when no such instance is declared.'],
+      },
+    ],
+  },
+  {
     key: 'spillStore',
     summary: 'Abstract spill storage service.',
     description: 'Abstract spill storage service. Subclass, implement saveText, and load the subclass as a plugin — it registers as `ctx.spillStore` (one implementation per context; loading a second throws, cordis\' standard duplicate-service behavior).\n\nSemantics every implementation must honor:\n\n- saveText persists the FULL `content` verbatim and returns an opaque locator, exact byte length, and model-facing retrieval guidance.\n- Storage is scoped by the request\'s SaveTextSpill.owner session; the backend chooses a private (not world-readable) location and a collision-free name derived from — never equal to — the caller\'s `suggestedName`.\n- `saveText` REJECTS on a real storage failure (permissions, ENOSPC, backend unavailable); the caller decides how to degrade (the spill policy treats a rejection as best-effort and keeps the inline result).',
@@ -3008,6 +3110,55 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'workspaceAutomation',
+    summary: 'The workspace automation runtime.',
+    description: 'The workspace automation runtime. One instance owns every workspace\'s timer, its durable state, and the two jobs.',
+    methods: [
+      {
+        signature: 'internals: AutomationInternals = {}',
+        description: 'Test seams; production uses the clock, `Math.random`, the registry, and `setTimeout`.',
+        parameters: [],
+      },
+      {
+        signature: 'report(workspaceId: string): WorkspaceAutomationReport | undefined',
+        description: 'The read-only projection of one workspace\'s automation state.',
+        parameters: [{ name: 'workspaceId', description: 'workspace to report.' }],
+        returns: 'the report, or `undefined` when no state is stored yet.',
+      },
+      {
+        signature: 'async resume(workspaceId: string): Promise<boolean>',
+        description: 'Clear a workspace\'s suspension and re-arm its timer.',
+        parameters: [{ name: 'workspaceId', description: 'workspace to resume.' }],
+        returns: '`true` when the workspace was suspended.',
+      },
+      {
+        signature: 'async runAlign(workspaceId: string, trigger: RunTrigger = \'due\'): Promise<RunRecord>',
+        description: 'Run the alignment job once for one workspace.',
+        parameters: [{ name: 'workspaceId', description: 'workspace to align.' }, { name: 'trigger', description: 'what asked for the run.' }],
+        returns: 'the recorded run.',
+      },
+      {
+        signature: 'async runCommit(workspaceId: string, session: Session, turn: number): Promise<RunRecord>',
+        description: 'Run the commit job once for one work unit.',
+        parameters: [{ name: 'workspaceId', description: 'workspace the session belongs to.' }, { name: 'session', description: 'the session whose work unit ended.' }, { name: 'turn', description: 'the turn number that closed the work unit.' }],
+        returns: 'the recorded run.',
+      },
+    ],
+  },
+  {
+    key: 'workspaceAutomationLedger',
+    summary: 'Host Remote service projecting one workspace\'s automation ledger.',
+    description: 'Host Remote service projecting one workspace\'s automation ledger.',
+    methods: [
+      {
+        signature: '@Remote automationLedger(workspaceId: WorkspaceId): AutomationLedgerView',
+        description: 'Read one workspace\'s automation ledger.\n\nA workspace the runtime holds no state for answers `unrecorded` rather than failing: a workspace whose timer has never run is a normal reading, and the panel says so instead of showing an empty ledger.',
+        parameters: [{ name: 'workspaceId', description: 'the workspace whose ledger is read.' }],
+        returns: 'the recorded state with its bounded runs, or `unrecorded`.',
+      },
+    ],
+  },
+  {
     key: 'workspaceController',
     summary: 'Host service backing the generated `ctx.remote.workspace` namespace.',
     description: 'Host service backing the generated `ctx.remote.workspace` namespace.',
@@ -3158,6 +3309,25 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Resolve by canonical directory path without creating or mutating a workspace. A missing path rejects during `realpath`; an existing unowned directory returns `undefined`.',
         parameters: [{ name: 'path', description: 'Existing directory path in a fully qualified spelling.' }],
         returns: 'the workspace owning the canonical path, when one exists.',
+      },
+    ],
+  },
+  {
+    key: 'workSummary',
+    summary: 'The work-summary service: consults registered providers in registration order and falls back to a mechanical message assembled from the path facts.',
+    description: 'The work-summary service: consults registered providers in registration order and falls back to a mechanical message assembled from the path facts.',
+    methods: [
+      {
+        signature: 'register(provider: WorkSummaryProvider): () => void',
+        description: 'Register one summary provider. Consultation follows registration order, so a deployment that mounts several gets the first one that proposes.',
+        parameters: [{ name: 'provider', description: 'the provider to consult.' }],
+        returns: 'the disposer that removes it.',
+      },
+      {
+        signature: 'async generate(request: WorkSummaryRequest): Promise<WorkSummaryResult>',
+        description: 'Produce the commit message for one work unit.\n\nEvery registered provider is consulted in order until one proposes a message that validates. A provider that throws, declines, or proposes an unusable message is recorded in `notes` and consultation continues; when no proposal is accepted the mechanical fallback is built from the diff facts.',
+        parameters: [{ name: 'request', description: 'the work unit\'s identity and path facts.' }],
+        returns: 'the accepted message, its source, and every consultation note.',
       },
     ],
   },
@@ -3542,6 +3712,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [],
   },
   {
+    name: 'sources/changed',
+    mode: 'emit',
+    signature: '\'sources/changed\'(kind: SourceKind): void',
+    summary: 'The sources one kind offers may have changed: its provider joined or left the registry, or the provider\'s own configuration changed.',
+    description: 'The sources one kind offers may have changed: its provider joined or left the registry, or the provider\'s own configuration changed. A consumer re-derives the tools it registers for that kind. Emitted after the change took effect, by the registry for a join or a disposal and by the provider plugin for a committed settings change.',
+    parameters: [{ name: 'kind', description: 'the kind whose available sources may differ.' }],
+  },
+  {
     name: 'subagent/end',
     mode: 'emit',
     signature: '\'subagent/end\'(this: Scoped<SubagentRuntime>, info: SubagentRunEndInfo): void',
@@ -3778,6 +3956,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AgentStatus = \'idle\' | \'running\';',
   },
   {
+    name: 'AlignRequest',
+    declaration: 'export interface AlignRequest {\n    readonly root: string;\n    readonly branch: string;\n    readonly upstream: string;\n    readonly expectedHeadOid: string;\n}',
+  },
+  {
+    name: 'AlignSpec',
+    declaration: 'export interface AlignSpec {\n    readonly root: string;\n    readonly branch: string;\n    readonly upstream: string;\n    readonly remote: string;\n    readonly refspec: string;\n    readonly expectedHeadOid: string;\n}',
+  },
+  {
     name: 'ApiKeyRecord',
     declaration: 'export interface ApiKeyRecord {\n    readonly kind: \'api-key\';\n    readonly key?: string;\n    readonly env?: Readonly<Record<string, string>>;\n}',
   },
@@ -3788,6 +3974,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ApiSessionAgentResult',
     declaration: 'export type ApiSessionAgentResult = {\n    readonly agent: Agent;\n} | {\n    readonly error: ApiSessionAgentError;\n};',
+  },
+  {
+    name: 'ApplyResult',
+    declaration: 'export type ApplyResult = {\n    readonly kind: \'aligned\';\n    readonly strategy: AlignStrategy;\n} | {\n    readonly kind: \'merge-failed\';\n    readonly failure: GitAlignFailure;\n} | {\n    readonly kind: \'merge-failed-dirty\';\n    readonly failure: GitAlignFailure;\n};',
   },
   {
     name: 'ApprovalOutcome',
@@ -3926,6 +4116,46 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AuthorizationStatus = \'authorized\' | \'cancelled\';',
   },
   {
+    name: 'AutomationCommitView',
+    declaration: 'export interface AutomationCommitView {\n    readonly oid: string;\n    readonly parentOid: string;\n    readonly subject: string;\n    readonly body: readonly string[];\n    readonly summarySource: string;\n    readonly paths: AutomationPaths;\n    readonly withdrawable: boolean;\n    readonly softReset: string;\n    readonly mixedReset: string;\n}',
+  },
+  {
+    name: 'AutomationComparison',
+    declaration: 'export interface AutomationComparison {\n    readonly baselineBefore: string | null;\n    readonly observedUpstreamOid: string | null;\n    readonly expectedHeadOid: string | null;\n    readonly baselineAfter: string | null;\n}',
+  },
+  {
+    name: 'AutomationInternals',
+    declaration: 'export interface AutomationInternals {\n    now?: () => number;\n    random?: () => number;\n    workspaces?: () => readonly WorkspaceRef[];\n    schedule?: (run: () => void, delayMs: number) => TimerHandle;\n}',
+  },
+  {
+    name: 'AutomationLedgerView',
+    declaration: 'export type AutomationLedgerView = {\n    readonly kind: \'unrecorded\';\n    readonly workspaceId: WorkspaceId;\n} | ({\n    readonly kind: \'recorded\';\n} & AutomationRecordedView);',
+  },
+  {
+    name: 'AutomationNextStep',
+    declaration: 'export type AutomationNextStep = \'none\' | \'withdraw-commit\' | \'human-resolves-conflict\' | \'human-clears-condition\' | \'human-reviews-paths\' | \'next-round\' | \'no-retry\' | \'backoff\' | \'human-clears-suspension\';',
+  },
+  {
+    name: 'AutomationOutcome',
+    declaration: 'export type AutomationOutcome = {\n    readonly kind: \'no-op\';\n    readonly reason: NoOpReason;\n} | {\n    readonly kind: \'aligned\';\n    readonly strategy: AlignStrategy;\n} | {\n    readonly kind: \'committed\';\n    readonly sessionId: string;\n    readonly turn: number;\n} | {\n    readonly kind: \'conflicted\';\n    readonly paths: readonly string[];\n    readonly total: number;\n} | {\n    readonly kind: \'refused\';\n    readonly reason: RefusalReason;\n    readonly paths: readonly string[];\n} | {\n    readonly kind: \'ambiguous-attribution\';\n    readonly paths: readonly string[];\n} | {\n    readonly kind: \'skipped-locked\';\n} | {\n    readonly kind: \'superseded\';\n} | {\n    readonly kind: \'failed\';\n    readonly reason: FailureReason;\n    readonly detail: string;\n} | {\n    readonly kind: \'suspended\';\n    readonly reason: string;\n};',
+  },
+  {
+    name: 'AutomationPaths',
+    declaration: 'export interface AutomationPaths {\n    readonly paths: readonly string[];\n    readonly total: number;\n}',
+  },
+  {
+    name: 'AutomationRecordedView',
+    declaration: 'export interface AutomationRecordedView {\n    readonly workspaceId: WorkspaceId;\n    readonly enabled: boolean;\n    readonly mode: AutomationMode;\n    readonly suspendedReason: string | null;\n    readonly consecutiveFailures: number;\n    readonly nextEarliestRunAt: string | null;\n    readonly baselineUpstreamOid: string | null;\n    readonly lastRunAt: string | null;\n    readonly uncommittedPaths: AutomationPaths;\n    readonly runs: readonly AutomationRunView[];\n    readonly runCount: number;\n}',
+  },
+  {
+    name: 'AutomationRunOutcome',
+    declaration: 'export type AutomationRunOutcome = {\n    readonly kind: \'no-op\';\n    readonly reason: NoOpReason;\n} | {\n    readonly kind: \'aligned\';\n    readonly strategy: AlignStrategy;\n} | {\n    readonly kind: \'committed\';\n    readonly sessionId: string;\n    readonly turn: number;\n} | {\n    readonly kind: \'conflicted\';\n    readonly paths: AutomationPaths;\n} | {\n    readonly kind: \'refused\';\n    readonly reason: RefusalReason;\n    readonly paths: AutomationPaths;\n} | {\n    readonly kind: \'ambiguous-attribution\';\n    readonly paths: AutomationPaths;\n} | {\n    readonly kind: \'skipped-locked\';\n} | {\n    readonly kind: \'superseded\';\n} | {\n    readonly kind: \'failed\';\n    readonly reason: FailureReason;\n    readonly detail: string;\n} | {\n    readonly kind: \'suspended\';\n    readonly reason: string;\n};',
+  },
+  {
+    name: 'AutomationRunView',
+    declaration: 'export interface AutomationRunView {\n    readonly id: string;\n    readonly job: AutomationJob;\n    readonly trigger: RunTrigger;\n    readonly startedAt: string;\n    readonly finishedAt: string;\n    readonly comparison: AutomationComparison;\n    readonly outcome: AutomationRunOutcome;\n    readonly nextStep: AutomationNextStep;\n    readonly commit?: AutomationCommitView;\n}',
+  },
+  {
     name: 'BackendRegistry',
     declaration: 'export class BackendRegistry {\n    register(name: string, backend: StorageBackend): () => void;\n    get(name: string): StorageBackend;\n    names(): string[];\n}',
   },
@@ -3948,6 +4178,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'BrandedNumber',
     declaration: 'export type BrandedNumber<B extends string> = number & {\n    readonly [BRAND]: B;\n};',
+  },
+  {
+    name: 'ChangeFact',
+    declaration: 'export interface ChangeFact {\n    readonly path: string;\n    readonly insertions: number;\n    readonly deletions: number;\n    readonly binary: boolean;\n}',
+  },
+  {
+    name: 'ChangeFacts',
+    declaration: 'export interface ChangeFacts {\n    readonly files: readonly ChangeFact[];\n    readonly insertions: number;\n    readonly deletions: number;\n}',
+  },
+  {
+    name: 'ChangeFactsResult',
+    declaration: 'export type ChangeFactsResult = {\n    readonly kind: \'facts\';\n    readonly facts: ChangeFacts;\n} | {\n    readonly kind: \'failed\';\n    readonly failure: GitAlignFailure;\n};',
   },
   {
     name: 'ChannelCredentialView',
@@ -4114,6 +4356,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type CommandSubmitAttachment = ({\n    readonly type: \'image\';\n} & EncodedImageAttachment) | {\n    readonly type: \'file\';\n    readonly receiptId: string;\n};',
   },
   {
+    name: 'CommitReport',
+    declaration: 'export interface CommitReport {\n    readonly oid: string;\n    readonly parentOid: string;\n    readonly paths: readonly string[];\n    readonly subject: string;\n    readonly body: readonly string[];\n    readonly summarySource: string;\n    readonly summaryNotes: readonly string[];\n    readonly scanBytes: number;\n    readonly withdrawable: boolean;\n    readonly softReset: string;\n    readonly mixedReset: string;\n}',
+  },
+  {
+    name: 'CommitRequest',
+    declaration: 'export interface CommitRequest {\n    readonly paths: readonly string[];\n    readonly message: string;\n    readonly runHooks: boolean;\n}',
+  },
+  {
+    name: 'CommitResult',
+    declaration: 'export type CommitResult = {\n    readonly kind: \'committed\';\n} | {\n    readonly kind: \'failed\';\n    readonly failure: GitAlignFailure;\n    readonly indexRestored: boolean;\n};',
+  },
+  {
     name: 'CompactionAgentContext',
     declaration: 'export interface CompactionAgentContext {\n    session: Session;\n    options: {\n        provider?: string;\n        model?: string;\n    };\n}',
   },
@@ -4140,6 +4394,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ConfinedSandboxMode',
     declaration: 'export type ConfinedSandboxMode = Exclude<SandboxMode, \'danger-full-access\'>;',
+  },
+  {
+    name: 'ConflictPaths',
+    declaration: 'export interface ConflictPaths {\n    readonly paths: readonly string[];\n    readonly total: number;\n}',
   },
   {
     name: 'ContentBlockMap',
@@ -4430,6 +4688,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface EpochHeader {\n    config: LlmCallConfig;\n    adapterDefaults?: LlmCallConfigAdapterDefaults;\n    system?: string;\n    tools?: ToolSchema[];\n}',
   },
   {
+    name: 'FetchResult',
+    declaration: 'export type FetchResult = {\n    readonly kind: \'fetched\';\n} | {\n    readonly kind: \'failed\';\n    readonly failure: GitAlignFailure;\n};',
+  },
+  {
     name: 'FiberState',
     declaration: 'export type FiberState = FiberStateEnum;',
   },
@@ -4526,6 +4788,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface GenericResultView {\n    card: \'generic\';\n    title?: string;\n    content?: ContentBlock[];\n}',
   },
   {
+    name: 'GitAlignFailure',
+    declaration: 'export interface GitAlignFailure {\n    readonly code: GitAlignFailureCode;\n    readonly detail: string;\n}',
+  },
+  {
+    name: 'GitAlignFailureCode',
+    declaration: 'export type GitAlignFailureCode = \'timeout\' | \'git-unavailable\' | \'command-failed\';',
+  },
+  {
     name: 'GitBranch',
     declaration: 'export interface GitBranch {\n    readonly name: string;\n    readonly tip: string;\n}',
   },
@@ -4592,6 +4862,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'GrantRecord',
     declaration: 'export interface GrantRecord {\n    readonly kind: \'grant\';\n    readonly payload: unknown;\n}',
+  },
+  {
+    name: 'IgnoreResult',
+    declaration: 'export type IgnoreResult = {\n    readonly kind: \'checked\';\n    readonly ignored: readonly string[];\n} | {\n    readonly kind: \'failed\';\n    readonly failure: GitAlignFailure;\n};',
   },
   {
     name: 'ImageAttachmentLimits',
@@ -5054,6 +5328,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type PreToolDecision = {\n    kind: \'allow\';\n} | {\n    kind: \'deny\';\n    reason: string;\n} | {\n    kind: \'ask\';\n    reason?: string;\n};',
   },
   {
+    name: 'ProbeRequest',
+    declaration: 'export interface ProbeRequest {\n    readonly worktreeRoot: string;\n    readonly scratchName: string;\n    readonly maxConflictPaths: number;\n}',
+  },
+  {
+    name: 'ProbeResult',
+    declaration: 'export type ProbeResult = {\n    readonly kind: \'clean\';\n} | {\n    readonly kind: \'conflicted\';\n    readonly conflicts: ConflictPaths;\n} | {\n    readonly kind: \'failed\';\n    readonly failure: GitAlignFailure;\n};',
+  },
+  {
     name: 'ProjectionChangeListener',
     declaration: 'export type ProjectionChangeListener = (session: Session, key: Extract<keyof SessionProjectionMap, string>, value: unknown, seq: SessionSeq) => void;',
   },
@@ -5112,6 +5394,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'PtcDispatchLog',
     declaration: 'export interface PtcDispatchLog {\n    readonly exec: ToolExecution;\n    readonly agent?: Agent;\n    readonly subCallId: ToolCallId;\n    readonly name: string;\n    readonly isError: boolean;\n    readonly content: ContentBlock[];\n}',
+  },
+  {
+    name: 'PushedResult',
+    declaration: 'export type PushedResult = {\n    readonly kind: \'checked\';\n    readonly pushed: boolean;\n} | {\n    readonly kind: \'failed\';\n    readonly failure: GitAlignFailure;\n};',
   },
   {
     name: 'ReadFileLine',
@@ -5208,6 +5494,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'RunnerFailureRule',
     declaration: 'export interface RunnerFailureRule {\n    allowedExitCodes?: readonly number[];\n    fatalSignatures: readonly string[];\n    informationalLines?: readonly string[];\n}',
+  },
+  {
+    name: 'RunRecord',
+    declaration: 'export interface RunRecord {\n    readonly id: string;\n    readonly job: AutomationJob;\n    readonly trigger: RunTrigger;\n    readonly startedAt: string;\n    readonly finishedAt: string;\n    readonly outcome: AutomationOutcome;\n    readonly expectedHeadOid: string | null;\n    readonly observedUpstreamOid: string | null;\n    readonly baselineBefore: string | null;\n    readonly baselineAfter: string | null;\n    readonly commit: CommitReport | null;\n}',
   },
   {
     name: 'SandboxEnforcement',
@@ -5910,6 +6200,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SkillViewOptions extends SkillLookupOptions {\n    readonly scope?: ScopeKey | undefined;\n}',
   },
   {
+    name: 'SourceCredentialView',
+    declaration: 'export interface SourceCredentialView {\n    readonly field: string;\n    readonly ref: string;\n    readonly configured: boolean;\n    readonly source?: string;\n    readonly writable: boolean;\n}',
+  },
+  {
+    name: 'SourceProbe',
+    declaration: 'export interface SourceProbe {\n    readonly ok: boolean;\n    readonly message?: string;\n    readonly label?: string;\n    readonly detail?: string;\n}',
+  },
+  {
+    name: 'SourcesStatus',
+    declaration: 'export interface SourcesStatus {\n    readonly sources: readonly SourceView[];\n}',
+  },
+  {
+    name: 'SourceState',
+    declaration: 'export type SourceState = \'unconfigured\' | \'unchecked\' | \'usable\' | \'unusable\';',
+  },
+  {
+    name: 'SourceView',
+    declaration: 'export interface SourceView {\n    readonly key: string;\n    readonly kind: string;\n    readonly id: string;\n    readonly namespace: string;\n    readonly state: SourceState;\n    readonly lastError?: string;\n    readonly lastErrorAt?: string;\n    readonly capabilities: SourceCapabilities;\n    readonly credentials: readonly SourceCredentialView[];\n}',
+  },
+  {
     name: 'SpawnTeammateRequest',
     declaration: 'export interface SpawnTeammateRequest {\n    readonly name: string;\n    readonly description: string;\n    readonly prompt: ContentBlock[];\n    readonly context: \'fresh\' | \'fork\';\n    readonly provider: string;\n    readonly signal: AbortSignal;\n}',
   },
@@ -6256,6 +6566,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TerminalWaitReason',
     declaration: 'export type TerminalWaitReason = \'stdin_read\' | \'inferred_idle\' | \'timeout\' | \'session_exit\';',
+  },
+  {
+    name: 'TimerHandle',
+    declaration: 'export interface TimerHandle {\n    cancel(): void;\n}',
   },
   {
     name: 'TokenMeasurement',
@@ -6658,6 +6972,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type WorkflowStopReason = \'completed\' | \'cancelled\' | \'error\';',
   },
   {
+    name: 'WorkPathFact',
+    declaration: 'export interface WorkPathFact {\n    readonly path: string;\n    readonly insertions: number;\n    readonly deletions: number;\n    readonly binary: boolean;\n}',
+  },
+  {
     name: 'Workspace',
     declaration: 'export interface Workspace {\n    readonly id: WorkspaceId;\n    readonly path: string;\n    readonly title: string;\n    readonly createdAt: string;\n    readonly updatedAt: string;\n    readonly sessionIds: readonly SessionId[];\n    setTitle(title: string): Promise<void>;\n    attachSession(sessionId: SessionId): Promise<void>;\n    insertSessionBefore(sessionId: SessionId, beforeSessionId?: SessionId): Promise<void>;\n    detachSession(sessionId: SessionId): Promise<void>;\n    status(): Promise<\'ok\' | \'missing-dir\'>;\n}',
   },
@@ -6668,6 +6986,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkspaceArchiveValue',
     declaration: 'export interface WorkspaceArchiveValue {\n    readonly archivedSessionIds: readonly SessionId[];\n}',
+  },
+  {
+    name: 'WorkspaceAutomationReport',
+    declaration: 'export interface WorkspaceAutomationReport {\n    readonly workspaceId: string;\n    readonly enabled: boolean;\n    readonly mode: AutomationMode;\n    readonly suspendedReason: string | null;\n    readonly consecutiveFailures: number;\n    readonly nextEarliestRunAt: string | null;\n    readonly baselineUpstreamOid: string | null;\n    readonly lastRunAt: string | null;\n    readonly lastOutcome: string | null;\n    readonly uncommittedPaths: readonly string[];\n    readonly ledger: readonly RunRecord[];\n}',
   },
   {
     name: 'WorkspaceBaseline',
@@ -6746,6 +7068,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface WorkspaceOrderValue {\n    readonly workspaceIds: readonly WorkspaceId[];\n}',
   },
   {
+    name: 'WorkspaceRef',
+    declaration: 'export interface WorkspaceRef {\n    readonly id: string;\n    readonly path: string;\n    readonly sessionIds: readonly string[];\n}',
+  },
+  {
     name: 'WorkspaceRenameRequest',
     declaration: 'export interface WorkspaceRenameRequest {\n    readonly workspaceId: WorkspaceId;\n    readonly title: string;\n}',
   },
@@ -6756,6 +7082,34 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkspaceView',
     declaration: 'export interface WorkspaceView {\n    readonly workspaceId: WorkspaceId;\n    readonly path: string;\n    readonly title: string;\n    readonly sessionIds: readonly SessionId[];\n    readonly createdAt: string;\n    readonly updatedAt: string;\n}',
+  },
+  {
+    name: 'WorkSummaryMessage',
+    declaration: 'export interface WorkSummaryMessage {\n    readonly subject: string;\n    readonly body: readonly string[];\n    readonly trailer: string;\n}',
+  },
+  {
+    name: 'WorkSummaryProposal',
+    declaration: 'export interface WorkSummaryProposal {\n    readonly subject: string;\n    readonly body: readonly string[];\n}',
+  },
+  {
+    name: 'WorkSummaryProvider',
+    declaration: 'export interface WorkSummaryProvider {\n    readonly id: string;\n    generate(request: WorkSummaryRequest): Promise<WorkSummaryProviderResult>;\n}',
+  },
+  {
+    name: 'WorkSummaryProviderResult',
+    declaration: 'export type WorkSummaryProviderResult = {\n    readonly kind: \'proposed\';\n    readonly proposal: WorkSummaryProposal;\n} | {\n    readonly kind: \'declined\';\n    readonly reason: string;\n};',
+  },
+  {
+    name: 'WorkSummaryRequest',
+    declaration: 'export interface WorkSummaryRequest {\n    readonly workspaceId: string;\n    readonly sessionId: string;\n    readonly turn: number;\n    readonly endReason: string;\n    readonly paths: readonly WorkPathFact[];\n}',
+  },
+  {
+    name: 'WorkSummaryResult',
+    declaration: 'export interface WorkSummaryResult {\n    readonly message: WorkSummaryMessage;\n    readonly source: WorkSummarySource;\n    readonly proposalRejected: boolean;\n    readonly notes: readonly string[];\n}',
+  },
+  {
+    name: 'WorkSummarySource',
+    declaration: 'export type WorkSummarySource = \'provider\' | \'mechanical\';',
   },
 ]
 

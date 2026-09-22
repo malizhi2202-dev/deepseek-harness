@@ -91,6 +91,8 @@
     { "path": "./packages/client/ui-sidebar-agents" },
     { "path": "./packages/client/ui-sidebar-git" },
     { "path": "./packages/client/ui-sidebar-channels" },
+    { "path": "./packages/client/ui-sidebar-sources" },
+    { "path": "./packages/client/ui-sidebar-automation" },
     { "path": "./packages/client/ui-sidebar-terminal" },
     { "path": "./packages/client/ui-sidebar-tasks" },
     { "path": "./packages/client/ui-jobs" },

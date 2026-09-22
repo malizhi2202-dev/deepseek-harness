@@ -154,7 +154,7 @@ export function scriptedRemote(): ScriptedRemote {
   const namespace: ChannelsNamespace = {
     status: async () => await unary('status', '') as RemoteResult<ChannelsStatus>,
     probe: async channel => await unary('probe', channel) as RemoteResult<ChannelProbe>,
-    enable: async (channel, sessionId) => await unary('enable', channel, sessionId as SessionId) as RemoteResult<ChannelsStatus>,
+    enable: async (channel, sessionId) => await unary('enable', channel, sessionId) as RemoteResult<ChannelsStatus>,
     disable: async channel => await unary('disable', channel) as RemoteResult<ChannelsStatus>,
   }
   const settle = async (result: RemoteResult<unknown>): Promise<void> => {

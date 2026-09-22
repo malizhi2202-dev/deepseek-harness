@@ -285,11 +285,43 @@ export interface Config {
 
 来源：[`packages/api/terminal-console/src/index.ts:62`](../packages/api/terminal-console/src/index.ts)
 
+<a id="deepseek-aidsh-api-workspace-automation"></a>
+
+## `@deepseek-ai/dsh-api-workspace-automation`
+
+需要：`workspaceAutomation` · `typert`
+
+```ts config-catalog
+/** Deployment bounds on one ledger read. */
+export interface Config {
+  /**
+   * Most runs one read returns, counting back from the newest.
+   *
+   * The panel draws the newest runs and reports the ledger's own count beside
+   * them, so the default is what a person reads at a glance rather than the
+   * retention bound: `ledgerEntries` on the runtime decides what exists.
+   */
+  readonly maxRuns: number
+  /**
+   * Most paths one path list carries: a run's conflict paths, the paths it
+   * refused over or could not attribute, a commit's paths, and the worktree
+   * remainder the last commit job reported.
+   *
+   * The design's bound for a conflict report is ten paths plus the remaining
+   * count, which GitLab's system notes established; the same bound serves every
+   * other path list because all of them answer the same question.
+   */
+  readonly maxPaths: number
+}
+```
+
+来源：[`packages/api/workspace-automation/src/index.ts:44`](../packages/api/workspace-automation/src/index.ts)
+
 <a id="deepseek-aidsh-api-workspace-files"></a>
 
 ## `@deepseek-ai/dsh-api-workspace-files`
 
-Requires: `fs` · `sandboxPolicy` · `typert`
+需要：`fs` · `sandboxPolicy` · `typert`
 
 ```ts config-catalog
 /** Deployment caps on one page or one listing. */
@@ -982,6 +1014,20 @@ export type Config = LocalConfig
 依赖：[`LocalConfig`](#deepseek-aidsh-fs-local)
 
 来源：[`packages/fs/fs-sandbox/src/index.ts:45`](../packages/fs/fs-sandbox/src/index.ts)
+
+<a id="deepseek-aidsh-git-align-local"></a>
+
+## `@deepseek-ai/dsh-git-align-local`
+
+```ts config-catalog
+/** Provider configuration: the one bound that varies by deployment. */
+export interface Config {
+  /** Milliseconds one git command may run before the provider aborts it. */
+  commandTimeoutMs?: number
+}
+```
+
+来源：[`packages/git/git-align-local/src/index.ts:79`](../packages/git/git-align-local/src/index.ts)
 
 <a id="deepseek-aidsh-goal"></a>
 
@@ -1963,6 +2009,104 @@ export interface Config {
 ```
 
 来源：[`packages/guard/repeat-tool-reminder/src/index.ts:28`](../packages/guard/repeat-tool-reminder/src/index.ts)
+
+<a id="deepseek-aidsh-resource-github"></a>
+
+## `@deepseek-ai/dsh-resource-github`
+
+需要：`sources`
+
+```ts config-catalog
+/** Plugin config: the kind's read cap and its configured sources. */
+export interface Config {
+  /** Cap on one read, in bytes. Defaults to 200000. */
+  maxReadBytes?: number
+  /** Cap on one listing, in items. Defaults to 50. */
+  maxListItems?: number
+  /** Configured sources, keyed by instance id. */
+  instances?: Record<string, GitHubInstance>
+}
+
+/** One configured GitHub source, as the settings schema declares it. */
+export interface GitHubInstance {
+  /** Credential reference holding the personal access token. */
+  readonly tokenRef?: string
+  /** REST API base; defaults to the public GitHub API. */
+  readonly baseUrl?: string
+  /** Repositories this source exposes, as `owner/name`; anything unlisted is not found. */
+  readonly repositories?: string[]
+}
+```
+
+来源：[`packages/resource/resource-github/src/index.ts:62`](../packages/resource/resource-github/src/index.ts)
+
+<a id="deepseek-aidsh-resource-mediawiki"></a>
+
+## `@deepseek-ai/dsh-resource-mediawiki`
+
+需要：`sources`
+
+```ts config-catalog
+/** Plugin config: the kind's read cap and its configured wikis. */
+export interface Config {
+  /** Cap on one read, in bytes. Defaults to 200000. */
+  maxReadBytes?: number
+  /** Cap on one listing, in items. Defaults to 50. */
+  maxListItems?: number
+  /** Configured wikis, keyed by instance id. */
+  instances?: Record<string, MediaWikiInstance>
+}
+
+/** One configured wiki, as the settings schema declares it. */
+export interface MediaWikiInstance {
+  /** Action API endpoint, such as `https://en.wikipedia.org/w/api.php`. */
+  readonly baseUrl: string
+  /** Bot-password user name from `Special:BotPasswords`, such as `Example@reader`. */
+  readonly username?: string
+  /** Credential reference holding the bot password; resolved per operation. */
+  readonly passwordRef?: string
+}
+```
+
+来源：[`packages/resource/resource-mediawiki/src/index.ts:61`](../packages/resource/resource-mediawiki/src/index.ts)
+
+<a id="deepseek-aidsh-resource-mysql"></a>
+
+## `@deepseek-ai/dsh-resource-mysql`
+
+需要：`sources`
+
+```ts config-catalog
+/** Plugin config: the kind's read cap and its configured sources. */
+export interface Config {
+  /** Cap on one read, in bytes. Defaults to 200000. */
+  maxReadBytes?: number
+  /** Cap on one listing, in items. Defaults to 50. */
+  maxListItems?: number
+  /** Configured sources, keyed by instance id. */
+  instances?: Record<string, MySqlInstance>
+}
+
+/** One configured MySQL source, as the settings schema declares it. */
+export interface MySqlInstance {
+  /** Database host; defaults to `127.0.0.1`. */
+  readonly host?: string
+  /** Database port; defaults to 3306. */
+  readonly port?: number
+  /** Account used for every connection; it must be a read-only account on the server. */
+  readonly user?: string
+  /** Credential reference holding the account's password. */
+  readonly passwordRef?: string
+  /** Databases this source exposes, by exact name; an unlisted database is invisible. */
+  readonly databases?: string[]
+  /** Tables this source exposes, as `database.table`; an unlisted table is invisible. */
+  readonly tables?: string[]
+  /** Upper bound on the rows one read returns. */
+  readonly maxRows?: number
+}
+```
+
+来源：[`packages/resource/resource-mysql/src/index.ts:63`](../packages/resource/resource-mysql/src/index.ts)
 
 <a id="deepseek-aidsh-sandbox-local"></a>
 
@@ -3112,6 +3256,24 @@ export interface Config {
 
 来源：[`packages/workflow/tool-ralph/src/index.ts:21`](../packages/workflow/tool-ralph/src/index.ts)
 
+<a id="deepseek-aidsh-tool-resource"></a>
+
+## `@deepseek-ai/dsh-tool-resource`
+
+需要：`tools` · `sources`
+
+```ts config-catalog
+/** Plugin config: the search result bound and the cooperative tool-call budget. */
+export interface Config {
+  /** Upper bound on hits one search tool call returns. Defaults to 20. */
+  maxResults?: number
+  /** Cooperative timeout budget (ms) for every source tool. Defaults to 30000. */
+  timeoutMs?: number
+}
+```
+
+来源：[`packages/resource/tool-resource/src/index.ts:42`](../packages/resource/tool-resource/src/index.ts)
+
 <a id="deepseek-aidsh-tool-session-query"></a>
 
 ## `@deepseek-ai/dsh-tool-session-query`
@@ -3698,6 +3860,58 @@ export interface Config {
 
 来源：[`packages/webhook/webhook-github/src/index.ts:17`](../packages/webhook/webhook-github/src/index.ts)
 
+<a id="deepseek-aidsh-work-summary"></a>
+
+## `@deepseek-ai/dsh-work-summary`
+
+```ts config-catalog
+/** Plugin configuration: the message vocabulary and the bounds a message is built under. */
+export interface Config {
+  /** Conventional-commit types an accepted provider subject may declare. */
+  commitTypes?: string[]
+  /** Whether a provider proposal may declare a breaking change. */
+  allowBreaking?: boolean
+  /** Type the mechanical fallback declares; must be one of `commitTypes`. */
+  fallbackType?: string
+  /** Maximum UTF-8 bytes of a subject line. */
+  maxSubjectBytes?: number
+  /** Maximum body lines, excluding the trailer. */
+  maxBodyLines?: number
+  /** Maximum UTF-8 bytes of the complete rendered message. */
+  maxMessageBytes?: number
+  /** Trailer key marking a commit as produced by one work unit. */
+  trailerName?: string
+}
+```
+
+来源：[`packages/session/work-summary/src/index.ts:32`](../packages/session/work-summary/src/index.ts)
+
+<a id="deepseek-aidsh-work-summary-llm"></a>
+
+## `@deepseek-ai/dsh-work-summary-llm`
+
+需要：`workSummary` · `llm`
+
+```ts config-catalog
+/** Plugin configuration: the model route and the bounds of one generation. */
+export interface Config {
+  /** LLM provider id the summary request is routed to. */
+  provider: string
+  /** Model id the summary request is routed to. */
+  model: string
+  /** Output-token cap for one generation. */
+  maxOutputTokens?: number
+  /** End-to-end deadline for one generation in milliseconds. */
+  timeoutMs?: number
+  /** Maximum bytes of the framed work unit sent to the model. */
+  maxInputBytes?: number
+  /** Maximum body lines the reply may contribute. */
+  maxBodyLines?: number
+}
+```
+
+来源：[`packages/session/work-summary-llm/src/index.ts:34`](../packages/session/work-summary-llm/src/index.ts)
+
 <a id="deepseek-aidsh-workflow-worker-thread"></a>
 
 ## `@deepseek-ai/dsh-workflow-worker-thread`
@@ -3728,6 +3942,113 @@ export interface Config {
 
 来源：[`packages/workflow/workflow-worker-thread/src/index.ts:32`](../packages/workflow/workflow-worker-thread/src/index.ts)
 
+<a id="deepseek-aidsh-workspace-automation"></a>
+
+## `@deepseek-ai/dsh-workspace-automation`
+
+需要：`storageDomain` · `git` · `gitAlign` · `workSummary` · `fs`
+
+```ts config-catalog
+/** Plugin configuration. */
+export interface Config {
+  /** Whether the timer runs at all; the default is off. */
+  enabled?: boolean
+  /** Timer interval in seconds; the floor matches the schedule capability's. */
+  intervalSeconds?: number
+  /** Fraction of the interval applied as symmetric jitter. */
+  jitterRatio?: number
+  /** Observation or alignment. */
+  mode?: AutomationMode
+  /** Alignment strategy; a rebase is not expressible. */
+  alignStrategy?: AlignStrategy
+  /** Whether a downstream verifier already covers alignment. */
+  downstreamVerification?: DownstreamVerification
+  /** Dirty-tree policy. */
+  dirtyPolicy?: DirtyPolicy
+  /** Minimum commits behind before an alignment run acts. */
+  behindThreshold?: number
+  /** Time budget for one run in milliseconds. */
+  runTimeoutMs?: number
+  /** How long a conflicted workspace is left alone, in seconds. */
+  conflictCooldownSeconds?: number
+  /** Backoff base in seconds after the first failure. */
+  backoffBaseSeconds?: number
+  /** Backoff ceiling in seconds. */
+  backoffMaxSeconds?: number
+  /** Consecutive failures after which a workspace is suspended. */
+  backoffSuspendAfter?: number
+  /** Retained ledger records per workspace. */
+  ledgerEntries?: number
+  /** Directory outside every workspace where probe work trees are created. */
+  worktreeRoot?: string
+  /** Extra lease time beyond the run budget, in milliseconds. */
+  leaseGraceMs?: number
+  /** Maximum conflict paths one probe report lists. */
+  maxConflictPaths?: number
+  /** The commit job's declared policy. */
+  commit?: CommitConfig
+  /** Per-workspace overrides keyed by workspace id. */
+  workspaces?: Record<string, WorkspaceOverride>
+}
+
+/** Whether the runtime only observes or may align a repository. */
+export type AutomationMode = 'observe' | 'align'
+
+/** Whether a downstream verifier already covers what alignment would do. */
+export type DownstreamVerification = 'none' | 'external'
+
+/** What an alignment run does when the work tree carries uncommitted changes. */
+export type DirtyPolicy = 'refuse' | 'commit-attributable'
+
+/** The commit job's declared policy. */
+export interface CommitConfig {
+  /** Whether a turn boundary may create a commit. */
+  enabled?: boolean
+  /** Whether the created commit runs the repository's commit hooks. */
+  runHooks?: boolean
+  /** Credential shapes the screen refuses; a hit always refuses. */
+  secretPatterns?: string[]
+  /** Maximum bytes read from one path by the screen. */
+  maxScanBytes?: number
+  /** Maximum paths one commit may contain. */
+  maxPathsPerCommit?: number
+  /** Maximum UTF-8 bytes of the complete commit message. */
+  maxMessageBytes?: number
+  /** Trailer key marking the commit as produced by one work unit. */
+  trailer?: string
+  /** Conventional-commit types the summary vocabulary accepts. */
+  messageTypes?: string[]
+  /** Whether a summary may declare a breaking change. */
+  allowBreaking?: boolean
+  /** Type the mechanical summary declares. */
+  fallbackType?: string
+  /** Maximum UTF-8 bytes of a subject line. */
+  maxSubjectBytes?: number
+  /** Maximum body lines. */
+  maxBodyLines?: number
+}
+
+/** Per-workspace overrides; every field falls back to the deployment default. */
+export interface WorkspaceOverride {
+  /** Whether the timer runs for this workspace. */
+  enabled?: boolean
+  /** Timer interval for this workspace, in seconds. */
+  intervalSeconds?: number
+  /** Observation or alignment for this workspace. */
+  mode?: AutomationMode
+  /** Alignment strategy for this workspace. */
+  alignStrategy?: AlignStrategy
+  /** Dirty-tree policy for this workspace. */
+  dirtyPolicy?: DirtyPolicy
+  /** Whether the automatic commit job runs for this workspace. */
+  commitEnabled?: boolean
+}
+```
+
+依赖：[`AlignStrategy`](../packages/git/git-align/src/index.ts)
+
+来源：[`packages/workspace/workspace-automation/src/config.ts:81`](../packages/workspace/workspace-automation/src/config.ts)
+
 ## 无配置的可加载插件
 
 这些插件通过 `cordis.yml` 中不含 `config:` 块的条目加载；它们未声明任何配置接口。
@@ -3736,6 +4057,7 @@ export interface Config {
 - `@deepseek-ai/dsh-agent`（[`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts)）
 - `@deepseek-ai/dsh-api-channels` — 需要 `chatBridge` · `credentials` · `settings` · `typert`（[`packages/api/channels/src/index.ts`](../packages/api/channels/src/index.ts)）
 - `@deepseek-ai/dsh-api-remotes` — 需要 `typertGateway`（[`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts)）
+- `@deepseek-ai/dsh-api-sources` — 需要 `sources` · `credentials` · `settings` · `typert`（[`packages/api/sources/src/index.ts`](../packages/api/sources/src/index.ts)）
 - `@deepseek-ai/dsh-api-workspace-controller` — 需要 `typert` · `workspaceRegistry`（[`packages/api/workspace-controller/src/index.ts`](../packages/api/workspace-controller/src/index.ts)）
 - `@deepseek-ai/dsh-api-workspace-git` — 需要 `git` · `sandboxPolicy` · `typert`（[`packages/api/workspace-git/src/index.ts`](../packages/api/workspace-git/src/index.ts)）
 - `@deepseek-ai/dsh-authorization` — 需要 `credentials`（[`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts)）
@@ -3775,10 +4097,12 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-settings-plugins`（[`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar`（[`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-agents`（[`packages/client/ui-sidebar-agents/src/index.ts`](../packages/client/ui-sidebar-agents/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sidebar-automation`（[`packages/client/ui-sidebar-automation/src/index.ts`](../packages/client/ui-sidebar-automation/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-channels`（[`packages/client/ui-sidebar-channels/src/index.ts`](../packages/client/ui-sidebar-channels/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-files`（[`packages/client/ui-sidebar-files/src/index.ts`](../packages/client/ui-sidebar-files/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-git`（[`packages/client/ui-sidebar-git/src/index.ts`](../packages/client/ui-sidebar-git/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-right`（[`packages/client/ui-sidebar-right/src/index.ts`](../packages/client/ui-sidebar-right/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sidebar-sources`（[`packages/client/ui-sidebar-sources/src/index.ts`](../packages/client/ui-sidebar-sources/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-tasks`（[`packages/client/ui-sidebar-tasks/src/index.ts`](../packages/client/ui-sidebar-tasks/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-terminal`（[`packages/client/ui-sidebar-terminal/src/index.ts`](../packages/client/ui-sidebar-terminal/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-textpreview`（[`packages/client/ui-sidebar-textpreview/src/index.ts`](../packages/client/ui-sidebar-textpreview/src/index.ts)）
@@ -3806,6 +4130,7 @@ export interface Config {
 - `@deepseek-ai/dsh-host-plugin-inventory` — 需要 `loader`（[`packages/host/plugin-inventory/src/index.ts`](../packages/host/plugin-inventory/src/index.ts)）
 - `@deepseek-ai/dsh-llm`（[`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts)）
 - `@deepseek-ai/dsh-lsp`（[`packages/lsp/lsp/src/index.ts`](../packages/lsp/lsp/src/index.ts)）
+- `@deepseek-ai/dsh-resource`（[`packages/resource/resource/src/index.ts`](../packages/resource/resource/src/index.ts)）
 - `@deepseek-ai/dsh-schedule` — 需要 `agents` · `sessions` · `tools` · `sessionPersistence`（[`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)）
 - `@deepseek-ai/dsh-session`（[`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts)）
 - `@deepseek-ai/dsh-session-checkpoint-policy` — 需要 `llm` · `sessionPersistence` · `sessions` · `tools`（[`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts)）
@@ -3836,6 +4161,7 @@ export interface Config {
 - `@deepseek-ai/dsh-file-reference` — 抽象 `FileReferenceService`（[`packages/context/file-reference/src/index.ts`](../packages/context/file-reference/src/index.ts)）
 - `@deepseek-ai/dsh-fs` — 抽象 `FileSystem`（[`packages/fs/fs/src/index.ts`](../packages/fs/fs/src/index.ts)）
 - `@deepseek-ai/dsh-git` — 抽象 `GitObserver`（[`packages/git/git/src/index.ts`](../packages/git/git/src/index.ts)）
+- `@deepseek-ai/dsh-git-align` — 抽象 `GitAligner`（[`packages/git/git-align/src/index.ts`](../packages/git/git-align/src/index.ts)）
 - `@deepseek-ai/dsh-host-directory-picker` — 抽象 `DirectoryPicker`（[`packages/host/directory-picker/src/index.ts`](../packages/host/directory-picker/src/index.ts)）
 - `@deepseek-ai/dsh-jobs` — 抽象 `JobRegistry`（[`packages/jobs/jobs/src/index.ts`](../packages/jobs/jobs/src/index.ts)）
 - `@deepseek-ai/dsh-sandbox` — 抽象 `SandboxProvider`（[`packages/sandbox/sandbox/src/index.ts`](../packages/sandbox/sandbox/src/index.ts)）

@@ -11,7 +11,7 @@ kind: "package-reference"
 
 `dsh-git` 定义 `ctx.git` 仓库观察服务：对包含某个工作目录的仓库做一次有界的只读读取——HEAD 状态、本地分支、有界提交历史、工作区改动——或者明确回答"这里没有仓库"。这个 seam 只观察、绝不改写：词汇表里没有 checkout、commit、push、pull。组合挂载一个注册该服务的 provider（如 `dsh-git-local`）；本包是抽象契约，不是可加载插件。这里没有任何东西到达模型：词汇表由 Web 客户端的 git 面板绘制，没有会话事件、资源声明或请求输入提到它。
 
-**状态：有期限的临时物。** 该 seam 供血的树内面板将在版本线迁移落地后被上游 git 插件替换；seam 及其消费者随之退役。
+**状态：有期限的临时物。** 该 seam 供血的树内面板将在版本线迁移落地后被上游 git 插件替换；seam 及其消费方随之退役。
 
 ## 目录
 
@@ -26,7 +26,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 如何使用本包
 
-你很少直接加载 `dsh-git`：先挂载一个注册为 `ctx.git` 的 provider，再由消费者调用 `observe`。唯一的方法接收一个工作目录和调用方的取消信号，回答一个可判别的值：`absent`（没有仓库把该目录包含为工作树，含裸仓库、或损坏到说不出工作树的仓库），或 `repository`（携带快照）。失败词汇是 `GitError` 上两个稳定代码——git 本身无法运行时 `GIT_UNAVAILABLE`，命令运行了却在此之外失败时 `GIT_COMMAND_FAILED`——判定依据是 `code` 字段，绝不依赖类身份。
+你很少直接加载 `dsh-git`：先挂载一个注册为 `ctx.git` 的 provider，再由消费方调用 `observe`。唯一的方法接收一个工作目录和调用方的取消信号，回答一个可判别的值：`absent`（没有仓库把该目录包含为工作树，含裸仓库、或损坏到说不出工作树的仓库），或 `repository`（携带快照）。失败词汇是 `GitError` 上两个稳定代码——git 本身无法运行时 `GIT_UNAVAILABLE`，命令运行了却在此之外失败时 `GIT_COMMAND_FAILED`——判定依据是 `code` 字段，绝不依赖类身份。
 
 ### 唯一的上限
 
@@ -42,7 +42,7 @@ kind: "package-reference"
 <a id="model-experience"></a>
 ## Model Experience
 
-无。该 seam 不注册工具、会话事件、资源或请求输入；唯一消费者是面向用户的 Web 面板。
+无。该 seam 不注册工具、会话事件、资源或请求输入；唯一消费方是面向用户的 Web 面板。
 
 #### KV Cache effect
 

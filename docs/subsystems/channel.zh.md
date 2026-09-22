@@ -80,13 +80,16 @@ Host Remote service reporting the chat channels and moving one binding.
 @Remote async probe(channel: string): Promise<ChannelProbe>
 
 /**
- * Point one channel at one Session and open its connection.
+ * Point one channel at the calling Session and open its connection.
+ *
+ * The Session is the wire identity, so a panel cannot bind a channel to a
+ * Session it is not addressing.
  * @param channel - the channel id to bind.
- * @param sessionId - the Session the channel drives.
+ * @param agent - target Agent resolved from the Session identity on the wire.
  * @returns the status after the change.
  * @throws {RemoteError} with code `channels/unknown` or `channels/failed`, whose message names what to fix.
  */
-@Remote async enable(channel: string, sessionId: string): Promise<ChannelsStatus>
+@Remote async enable(channel: string, agent: Agent): Promise<ChannelsStatus>
 
 /**
  * Close one channel's connection, leaving its configuration otherwise intact.
@@ -96,6 +99,8 @@ Host Remote service reporting the chat channels and moving one binding.
  */
 @Remote async disable(channel: string): Promise<ChannelsStatus>
 ```
+
+Types: [Agent](core.zh.md)
 
 Source: [`packages/api/channels/src/index.ts`](../../packages/api/channels/src/index.ts)
 

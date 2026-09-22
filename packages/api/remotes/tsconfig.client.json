@@ -81,6 +81,12 @@
       "path": "../channels"
     },
     {
+      "path": "../sources"
+    },
+    {
+      "path": "../workspace-automation"
+    },
+    {
       "path": "../settings-controller"
     },
     {

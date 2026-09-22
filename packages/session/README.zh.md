@@ -22,7 +22,7 @@ session 组让 agent（智能体）的对话在实时 loop 之外持久可复用
 <a id="packages"></a>
 ## 包
 
-本组分为四个家族：持久存储（持久化 seam、后端、检查点策略）、投影、标题与遥测。每个包 README 负责各自的约定与配置。
+本组分为五个家族：持久存储（持久化 seam、后端、检查点策略）、投影、标题、遥测与工作摘要。每个包 README 负责各自的约定与配置。
 
 ### 持久化
 
@@ -62,7 +62,14 @@ session 组让 agent（智能体）的对话在实时 loop 之外持久可复用
 | [`session-telemetry/`](session-telemetry/README.zh.md) | 捕获会话活动并把记录交给配置的上报后端 | `ctx.sessionTelemetry` |
 | [`session-telemetry-otel/`](session-telemetry-otel/README.zh.md) | 通过 OpenTelemetry 日志以 `FEEDBACK_ONLY` 或 `DISABLED` 模式投递遥测 | 注册到 `ctx.sessionTelemetry` |
 
-同一时间只允许一个标题提供方注册；未注册时，标题服务保留其确定性回退。下面的子系统页面是各家族后端无关的参考资料。
+### 工作摘要
+
+| 包 | 职责 | ctx key |
+|---|---|---|
+| [`work-summary/`](work-summary/README.zh.md) | 定义工作摘要服务：一个提供方注册表，外加一个有界的机械回退，把单个工作单元改动的路径变成 Conventional Commits 消息 | `ctx.workSummary` |
+| [`work-summary-llm/`](work-summary-llm/README.zh.md) | 向配置好的模型索取该消息，并在答案不可信时一律拒绝 | 注册到 `ctx.workSummary` |
+
+同一时间只允许一个标题提供方注册；未注册时，标题服务保留其确定性回退。工作摘要服务总会给出答案：抛错、拒绝，或提出超出部署策略消息的提供方会被记为一条 note，随后由机械回退给出消息。下面的子系统页面是各家族后端无关的参考资料。
 
 -----
 
@@ -73,6 +80,7 @@ session 组让 agent（智能体）的对话在实时 loop 之外持久可复用
 - [会话投影子系统](../../docs/subsystems/session-projection.zh.md)——投影单元约定与驱动语义。
 - [会话标题子系统](../../docs/subsystems/session-title.zh.md)——标题资格、回退与提供方流程。
 - [会话遥测子系统](../../docs/subsystems/session-telemetry.zh.md)——捕获、脱敏与投递模式。
+- [工作摘要子系统](../../docs/subsystems/work-summary.zh.md)——提供方注册表、提议接受，以及把一个工作单元的路径转成提交信息的机械回退。
 - [会话子系统](../../docs/subsystems/session.zh.md)——本组每个包持久化或派生的实时事件日志。
 
 <a id="dev-note"></a>

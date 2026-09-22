@@ -65,6 +65,11 @@ function deferred<T>(): Deferred<T> {
 
 class FakeWorkspaceRemote implements WorkspaceRemote {
   readonly calls: Array<{ readonly method: string; readonly request: unknown }> = []
+
+  /** This double exercises workspace commands only; the ledger read is never reached. */
+  automationLedger = (): never => {
+    throw new Error('unused')
+  }
   onCreate: (request: WorkspaceCreateRequest) => Promise<RemoteResult<WorkspaceCreateValue>> = request =>
     Promise.resolve(remoteOk({ workspace: workspace(request.path.split('/').pop() ?? 'workspace'), created: true }))
   onRename: (request: WorkspaceRenameRequest) => Promise<RemoteResult<WorkspaceValue>> = request =>

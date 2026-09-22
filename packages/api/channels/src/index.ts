@@ -16,6 +16,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
+import type { Agent } from '@deepseek-ai/dsh-agent'
 import { credentialRef, isCredentialRefName } from '@deepseek-ai/dsh-credentials'
 import type {} from '@deepseek-ai/dsh-settings'
 import type { SettingsDescriptor } from '@deepseek-ai/dsh-settings'
@@ -70,17 +71,20 @@ export class Channels extends TypertRemoteService {
   }
 
   /**
-   * Point one channel at one Session and open its connection.
+   * Point one channel at the calling Session and open its connection.
+   *
+   * The Session is the wire identity, so a panel cannot bind a channel to a
+   * Session it is not addressing.
    * @param channel - the channel id to bind.
-   * @param sessionId - the Session the channel drives.
+   * @param agent - target Agent resolved from the Session identity on the wire.
    * @returns the status after the change.
    * @throws {RemoteError} with code `channels/unknown` or `channels/failed`, whose message names what to fix.
    */
   @Remote
-  async enable(channel: string, sessionId: string): Promise<ChannelsStatus> {
+  async enable(channel: string, agent: Agent): Promise<ChannelsStatus> {
     const known = this.requireChannel(channel)
     try {
-      await this.ctx.chatBridge.enable(known, sessionId)
+      await this.ctx.chatBridge.enable(known, agent.id)
     } catch (error: unknown) {
       throw new RemoteError('channels/failed', failureText(error), {}, { cause: error })
     }

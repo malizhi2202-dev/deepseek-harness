@@ -18,6 +18,9 @@ import workspaceFilesRemote from '@deepseek-ai/dsh-api-workspace-files/remote'
 import workspaceGitRemote from '@deepseek-ai/dsh-api-workspace-git/remote'
 import terminalConsoleRemote from '@deepseek-ai/dsh-api-terminal-console/remote'
 import channelsRemote from '@deepseek-ai/dsh-api-channels/remote'
+import sourcesRemote from '@deepseek-ai/dsh-api-sources/remote'
+// Adds the `automationLedger` method to the `workspace` namespace the controller declares.
+import workspaceAutomationRemote from '@deepseek-ai/dsh-api-workspace-automation/remote'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 
 export type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
@@ -45,6 +48,12 @@ export type {} from '@deepseek-ai/dsh-api-terminal-console/remote'
 export type * from '@deepseek-ai/dsh-api-terminal-console/types'
 export type {} from '@deepseek-ai/dsh-api-channels/remote'
 export type * from '@deepseek-ai/dsh-api-channels/types'
+export type {} from '@deepseek-ai/dsh-api-sources/remote'
+export type * from '@deepseek-ai/dsh-api-sources/types'
+// The value import above mounts it; this line is what loads its generated
+// declarations into a consumer's compilation face.
+export type {} from '@deepseek-ai/dsh-api-workspace-automation/remote'
+export type * from '@deepseek-ai/dsh-api-workspace-automation/types'
 export type { SessionJob as JobView } from '@deepseek-ai/dsh-api-session-controller/types'
 // The forwarded-event allowlist's selection seat: without it in the consumer's
 // compilation face `TypertRemoteEvent` is `never` and every `$on` call fails.
@@ -161,7 +170,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       agentPresetsRemote, commandsRemote, settingsControllerRemote, goalsRemote, llmRemote, dynamicRemote,
       pluginInventoryRemote, messageFeedbackRemote, fileUploadsRemote, sessionReferencesRemote,
       subagentsRemote, sessionRemote, workspaceRemote, workspaceFilesRemote, workspaceGitRemote,
-      terminalConsoleRemote, channelsRemote,
+      terminalConsoleRemote, channelsRemote, sourcesRemote, workspaceAutomationRemote,
     ]) {
       disposers.push(await ctx.remote.$mount(contribution))
     }

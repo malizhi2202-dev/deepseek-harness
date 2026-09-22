@@ -114,6 +114,11 @@ class ScriptedWorkspaceRemote implements WorkspaceRemote {
   readonly signals: AbortSignal[] = []
   calls = 0
 
+  /** This double exercises workspace commands only; the ledger read is never reached. */
+  automationLedger = (): never => {
+    throw new Error('unused')
+  }
+
   constructor(private readonly generations: readonly Generation[]) {}
 
   create(_request: WorkspaceCreateRequest): Promise<RemoteResult<WorkspaceCreateValue>> {
@@ -157,6 +162,11 @@ class ScriptedWorkspaceRemote implements WorkspaceRemote {
 }
 
 class CommandWorkspaceRemote implements WorkspaceRemote {
+  /** This double exercises workspace commands only; the ledger read is never reached. */
+  automationLedger = (): never => {
+    throw new Error('unused')
+  }
+
   readonly create = vi.fn<WorkspaceRemote['create']>(request => Promise.resolve(remoteOk({
     workspace: workspace('created', { path: request.path }),
     created: true,

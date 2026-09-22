@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-22-workspace-automation-ledger-read-and-panel.md
+2026-09-22-workspace-automation-ledger-read-and-panel.md: a7ff36dd43e0ed1860997db2611f693cd578270a
+2026-09-22-workspace-automation-ledger-read-and-panel.zh.md: 78c81666e0f6996037ccdd203181c9875292eff9

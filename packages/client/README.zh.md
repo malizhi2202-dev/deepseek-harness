@@ -42,8 +42,18 @@ kind: "package-group"
 | [`ui-attachment/`](ui-attachment/README.zh.md) | 注册输入框与消息图片的附件呈现 | — |
 | [`ui-layout/`](ui-layout/README.zh.md) | 排列应用的主要区域 | — |
 | [`ui-sidebar/`](ui-sidebar/README.zh.md) | 展示工作区与会话导航 | — |
+| [`ui-sidebar-right/`](ui-sidebar-right/README.zh.md) | 拥有右侧 Sidebar 的停靠面、两种呈现形态与 tab 类型注册表 | `ctx.sidebarRight`、`ctx.sidebarRightTabs` |
 | [`resources/`](resources/README.zh.md) | 统一资源模型：`useResource` 会话标准 hook 背后的协议提供者 | `ctx.resources` |
 | [`ui-sidebar-files/`](ui-sidebar-files/README.zh.md) | 右侧 Sidebar 的工作区文件树 tab 类型 | — |
+| [`ui-sidebar-agents/`](ui-sidebar-agents/README.zh.md) | 右侧 Sidebar 的派生面板：当前会话的完整派生树，连同每条分支的子级目录读取状态与诊断 | — |
+| [`ui-dockkit/`](ui-dockkit/README.zh.md) | 停靠布局套件：带可逆操作的标签格分裂树、planner、线性历史，以及渲染并驱动它的组件 | — |
+| [`ui-sidebar-automation/`](ui-sidebar-automation/README.zh.md) | 右侧 Sidebar 的自动化 tab 类型：绘制某个工作区的自动化台账，最新运行在前 | — |
+| [`ui-sidebar-channels/`](ui-sidebar-channels/README.zh.md) | 右侧 Sidebar 的远程控制 tab 类型：宿主提供的每个聊天渠道，及其连接状态、凭据引用与设置表单 | — |
+| [`ui-sidebar-git/`](ui-sidebar-git/README.zh.md) | 右侧 Sidebar 的 git 观察面板：会话工作区所属仓库的 HEAD 事实、分支列表、有界提交历史与工作区改动 | — |
+| [`ui-sidebar-sources/`](ui-sidebar-sources/README.zh.md) | 右侧 Sidebar 的远程资源 tab 类型：宿主服务的每个源实例，及其状态、凭据引用与设置表单 | — |
+| [`ui-sidebar-tasks/`](ui-sidebar-tasks/README.zh.md) | 右侧 Sidebar 的任务观测 tab 类型：会话的待办清单与进度汇总，然后是它的后台任务 | — |
+| [`ui-sidebar-terminal/`](ui-sidebar-terminal/README.zh.md) | 右侧 Sidebar 的终端 tab 类型：在会话工作区中开一个 shell 并绘制它打印的内容 | — |
+| [`ui-sidebar-textpreview/`](ui-sidebar-textpreview/README.zh.md) | 右侧 Sidebar 的纯文本查看器与编辑器：对一个工作区文件分页读取，并兜底认领每个 `file` 资源地址 | — |
 | [`ui-brand-official/`](ui-brand-official/README.zh.md) | 用官方名称与标记填充通用浏览器品牌 slot | — |
 | [`ui-workspace/`](ui-workspace/README.zh.md) | 提供工作区选择与创建界面 | — |
 | [`ui-conversation/`](ui-conversation/README.zh.md) | 展示当前对话及其输入界面 | — |

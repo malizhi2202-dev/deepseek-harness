@@ -142,10 +142,18 @@ export interface BindingFields {
   readonly finalReplyOnly: boolean
 }
 
-/** The shared section schema every channel's configuration is composed around. */
+/**
+ * The shared section schema every channel's configuration is composed around.
+ *
+ * `enabled` and `sessionId` are binding state rather than user configuration:
+ * the panel binds a channel to the tab's own Session through
+ * `chatBridge.enable()`, and reports the bound Session it gets back. Both are
+ * therefore hidden from form renderers while staying in the schema, which the
+ * stored binding and the write path both need.
+ */
 const BINDING_FIELDS = z.object({
-  enabled: z.boolean().default(false),
-  sessionId: z.string().default(''),
+  enabled: z.boolean().default(false).hidden(),
+  sessionId: z.string().default('').hidden(),
   markdown: z.boolean().default(true),
   finalReplyOnly: z.boolean().default(false),
 })

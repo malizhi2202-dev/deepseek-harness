@@ -44,6 +44,7 @@
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
+| `@deepseek-ai/dsh-tool-resource` | `source_mediawiki_list`、`source_mediawiki_read`、`source_mediawiki_search` | `ctx.tools`、`ctx.sources`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | 每个 kind 的每种操作各有一个工具——source_<kind>_search、source_<kind>_read 与 source_<kind>_list——仅在该 kind 声明了该操作且存在已配置实例时注册。 |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 
@@ -2231,3 +2232,90 @@ todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为
 来源：[`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.ts)
 
 web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。
+
+<a id="deepseek-aidsh-tool-resource"></a>
+
+## `@deepseek-ai/dsh-tool-resource`
+
+### `source_mediawiki_list`
+
+列出一个已配置的 “mediawiki” source 中某个容器的条目。通过 Action API 检索并读取已配置的 MediaWiki wiki 上的页面。search 执行该 wiki 自身的全文检索并返回页面标题；read 返回单个页面的 wikitext，按 200000 字节裁剪并带上截断标记；list 返回某个分类的成员，未指定容器时返回该 wiki 的全部分类。wiki 未向所配置账号公开的页面会读作未找到。必填。要使用的已配置 source，取值为：catalog。本次列表受该 source 自身配置的条目上限约束。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "Required. The configured source to use; one of: catalog."
+    },
+    "ref": {
+      "type": "string",
+      "description": "Optional. The container handle; omit it to list the source's roots."
+    }
+  },
+  "required": [
+    "source"
+  ]
+}
+```
+
+来源：[`packages/resource/tool-resource/src/index.ts`](../packages/resource/tool-resource/src/index.ts)
+
+### `source_mediawiki_read`
+
+读取一个已配置的 “mediawiki” source 中的单个条目。通过 Action API 检索并读取已配置的 MediaWiki wiki 上的页面。search 执行该 wiki 自身的全文检索并返回页面标题；read 返回单个页面的 wikitext，按 200000 字节裁剪并带上截断标记；list 返回某个分类的成员，未指定容器时返回该 wiki 的全部分类。wiki 未向所配置账号公开的页面会读作未找到。必填。要使用的已配置 source，取值为：catalog。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "Required. The configured source to use; one of: catalog."
+    },
+    "ref": {
+      "type": "string",
+      "description": "Required. The item handle, exactly as a search or a list returned it."
+    }
+  },
+  "required": [
+    "source",
+    "ref"
+  ]
+}
+```
+
+来源：[`packages/resource/tool-resource/src/index.ts`](../packages/resource/tool-resource/src/index.ts)
+
+### `source_mediawiki_search`
+
+检索一个已配置的 “mediawiki” source。通过 Action API 检索并读取已配置的 MediaWiki wiki 上的页面。search 执行该 wiki 自身的全文检索并返回页面标题；read 返回单个页面的 wikitext，按 200000 字节裁剪并带上截断标记；list 返回某个分类的成员，未指定容器时返回该 wiki 的全部分类。wiki 未向所配置账号公开的页面会读作未找到。必填。要使用的已配置 source，取值为：catalog。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "Required. The configured source to use; one of: catalog."
+    },
+    "query": {
+      "type": "string",
+      "description": "Required. The text to search for."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Optional. Upper bound on returned hits; 1–20, default 20."
+    }
+  },
+  "required": [
+    "source",
+    "query"
+  ]
+}
+```
+
+来源：[`packages/resource/tool-resource/src/index.ts`](../packages/resource/tool-resource/src/index.ts)
+
+每个 kind 的每种操作各有一个工具——source_<kind>_search、source_<kind>_read 与 source_<kind>_list——仅在该 kind 声明了该操作且存在已配置实例时注册。

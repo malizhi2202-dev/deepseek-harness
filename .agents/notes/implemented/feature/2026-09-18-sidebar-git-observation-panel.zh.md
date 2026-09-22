@@ -43,3 +43,7 @@ Status: implemented
 退役路径是明说的，不只是意向：版本线迁移之后由上游 git 插件替换家族，四个包（连同其注册行）一起去。在此之间，任何东西都不应在这个 seam 上构建超出其存在目的（面板）以外的东西。
 
 两个限制记录在包 README 里而非在此解决：读取是一次有界取数、没有订阅（新鲜度靠重读手势）；工作区只列改动侧与类型、没有 diff 或暂存视图——两者都属于上游插件。
+
+## 相关
+
+- [逐工作区 git 对齐与自动提交](../architecture/2026-09-22-workspace-git-alignment-and-automatic-commit.zh.md)——在本 seam 旁新增的第二条独立 git seam（`ctx.gitAlign`）。它不构建在 `ctx.git` 上，后者保持只读；它也不属于本 note 所退役的临时家族。

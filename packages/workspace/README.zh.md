@@ -9,7 +9,7 @@ kind: "package-group"
 
 ## 概述
 
-workspace 组提供宿主 UI 背后的持久项目列表：一个产品包 `workspace`，把用户目录命名为项目、保持稳定顺序，并把每个项目的会话归入其下。借助它，UI 可以显示带会话的项目侧边栏、把会话从分组中隐藏而不删除它，以及移除项目——移除绝不会删除文件夹或会话历史，它们只会变成 Ungrouped。本组只面向宿主侧：没有工具、提示词或会话事件，因此模型与 agent loop 永远不会看到它。当产品展示持久 workspace 或项目界面时使用它；它需要会话存储与持久化后端一并挂载。
+workspace 组提供宿主 UI 背后的持久项目列表：一个产品包 `workspace`，把用户目录命名为项目、保持稳定顺序，并把每个项目的会话归入其下。借助它，UI 可以显示带会话的项目侧边栏、把会话从分组中隐藏而不删除它，以及移除项目——移除绝不会删除文件夹或会话历史，它们只会变成 Ungrouped。第二个包 `workspace-automation` 为每个工作区装上定时器：让检出与上游对齐，并提交单个轮次可归属的工作；它没有任何写远端的操作。本组只面向宿主侧：没有工具、提示词或会话事件，因此模型与 agent loop 永远不会看到它。当产品展示持久 workspace 或项目界面时使用它；它需要会话存储与持久化后端一并挂载。
 
 ## 目录
 
@@ -25,13 +25,14 @@ workspace 组提供宿主 UI 背后的持久项目列表：一个产品包 `work
 | 包 | 职责 | ctx 键 |
 |---|---|---|
 | [`workspace`](workspace/README.zh.md) | 提供命名且有序的项目，并在每个目录下聚合其会话 | `ctx.workspaceRegistry` |
+| [`workspace-automation`](workspace-automation/README.zh.md) | 运行逐工作区对齐定时器与轮次边界自动提交，全程不存在写远端的路径 | `ctx.workspaceAutomation` |
 
 -----
 
 <a id="related-documentation"></a>
 ## 相关文档
 
-- [Workspace 子系统](../../docs/subsystems/workspace.zh.md)——项目及其会话的权威功能约定。
+- [Workspace 子系统](../../docs/subsystems/workspace.zh.md)——项目、其会话，以及逐工作区对齐与提交自动化的权威功能约定。
 - [领域 KV 存储 Agent Note](../../.agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.zh.md)——项目记录背后的存储设计。
 - [Workspace UI 产品流 Agent Note](../../.agents/notes/archived/feature/2026-07-25-workspace-ui-product-flow.md)——首次启动如何从会话历史构建项目，以及 GUI 如何排序。
 - [删除 Workspace 注册记录决策](../../.agents/notes/implemented/feature/2026-07-27-workspace-registration-deletion.zh.md)——为什么移除项目绝不会删除其文件夹或会话。

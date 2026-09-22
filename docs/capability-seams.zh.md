@@ -191,6 +191,22 @@ flowchart LR
   pkg_git["git"]
   svc_git["ctx.git<br/>Repository observation seam"]
   pkg_git_local["git-local"]
+  pkg_resource["resource"]
+  svc_sources["ctx.sources<br/>Remote resource-library seam"]
+  pkg_resource_mediawiki["resource-mediawiki"]
+  pkg_resource_github["resource-github"]
+  pkg_resource_mysql["resource-mysql"]
+  pkg_tool_resource["tool-resource"]
+  pkg_api_sources["api-sources"]
+  svc_sourcesPanel["ctx.sourcesPanel<br/>Host resource-library Remote controller"]
+  pkg_git_align["git-align"]
+  svc_gitAlign["ctx.gitAlign<br/>Workspace git-alignment seam"]
+  pkg_git_align_local["git-align-local"]
+  pkg_workspace_automation["workspace-automation"]
+  pkg_work_summary["work-summary"]
+  svc_workSummary["ctx.workSummary<br/>Work-summary seam"]
+  pkg_work_summary_llm["work-summary-llm"]
+  svc_workspaceAutomation["ctx.workspaceAutomation<br/>Per-workspace alignment and commit timer"]
   pkg_compaction["compaction"]
   svc_compaction["ctx.compaction<br/>Compaction seam"]
   svc_subagents["ctx.subagents<br/>Subagent provider and continuation service"]
@@ -253,6 +269,7 @@ flowchart LR
   pkg_api_session_controller --> svc_sessionSkillCatalog
   pkg_api_settings_controller --> svc_credentialsController
   pkg_api_settings_controller --> svc_settingsController
+  pkg_api_sources --> svc_sourcesPanel
   pkg_api_terminal_console --> svc_terminalConsole
   pkg_api_workspace_controller --> svc_directoryPickerController
   pkg_api_workspace_controller --> svc_workspaceController
@@ -293,6 +310,8 @@ flowchart LR
   pkg_fs_local --> svc_fs
   pkg_fs_sandbox --> svc_fs
   pkg_git --> svc_git
+  pkg_git_align --> svc_gitAlign
+  pkg_git_align_local --> svc_gitAlign
   pkg_git_local --> svc_git
   pkg_goal --> svc_goals
   pkg_host_directory_picker --> svc_directoryPicker
@@ -314,6 +333,10 @@ flowchart LR
   pkg_plan_mode --> svc_planMode
   pkg_plugin_package_inventory_deepseek --> svc_deepseekLlmApiExtensions
   pkg_pwsh_local --> svc_shell
+  pkg_resource --> svc_sources
+  pkg_resource_github --> svc_sources
+  pkg_resource_mediawiki --> svc_sources
+  pkg_resource_mysql --> svc_sources
   pkg_sandbox --> svc_sandbox
   pkg_sandbox_local --> svc_sandbox
   pkg_sandbox_policy --> svc_sandboxPolicy
@@ -369,9 +392,12 @@ flowchart LR
   pkg_web_search_exa --> svc_web
   pkg_web_search_perplexity --> svc_web
   pkg_webhook --> svc_webhookRuntime
+  pkg_work_summary --> svc_workSummary
+  pkg_work_summary_llm --> svc_workSummary
   pkg_workflow --> svc_workflowEngine
   pkg_workflow_worker_thread --> svc_workflowEngine
   pkg_workspace --> svc_workspaceRegistry
+  pkg_workspace_automation --> svc_workspaceAutomation
   svc_agentDefaultModel --> pkg_api_session_controller
   svc_agentDefaultModel --> pkg_headless
   svc_agentLoop --> pkg_base
@@ -408,6 +434,7 @@ flowchart LR
   svc_fileUploads --> pkg_api_session_controller
   svc_fs --> pkg_tool_fs
   svc_git --> pkg_api_workspace_git
+  svc_gitAlign --> pkg_workspace_automation
   svc_invariants --> pkg_agent
   svc_invariants --> pkg_agent_loop
   svc_invariants --> pkg_scope
@@ -458,6 +485,8 @@ flowchart LR
   svc_shellEnv --> pkg_tool_bash
   svc_shellEnv --> pkg_tool_pwsh
   svc_skills --> pkg_tool_skill
+  svc_sources --> pkg_api_sources
+  svc_sources --> pkg_tool_resource
   svc_spillStore --> pkg_spill_policy
   svc_storage --> pkg_storage_domain
   svc_storageDomain --> pkg_workspace
@@ -498,6 +527,7 @@ flowchart LR
   svc_webServer --> pkg_client_hmr
   svc_webServer --> pkg_client_modules
   svc_webhookRuntime --> pkg_webhook_github
+  svc_workSummary --> pkg_workspace_automation
   svc_workflowEngine --> pkg_tool_ralph
   svc_workflowEngine --> pkg_tool_workflow
   svc_workspaceRegistry --> pkg_api_session_controller
@@ -569,6 +599,11 @@ flowchart LR
 | `ctx.codeRuntime` | `seam` | [`code-runtime`](../packages/code-runtime/code-runtime) | [`code-runtime-worker-thread`](../packages/code-runtime/code-runtime-worker-thread), [`experimental-code-runtime-python`](../packages/experimental/code-runtime-python) | [`tools`](../packages/core/tools) | - | 使用 Host 提供的异步绑定运行一段由模型编写的程序；各后端采用不同的基础环境和语言（工具注册表在 PTC mode 下消费该服务）。 |
 | `ctx.fs` | `seam` | [`fs`](../packages/fs/fs) | [`fs-local`](../packages/fs/fs-local), [`fs-sandbox`](../packages/fs/fs-sandbox), [`fs-e2b`](../packages/e2b/fs-e2b) | [`tool-fs`](../packages/fs/tool-fs) | [`fs-observation-policy`](../packages/fs/fs-observation-policy) | tool-fs 通过 ctx.fs 执行读取／写入／编辑；fs-sandbox 按共享沙箱模式限制变更；fs-observation-policy 通过 fs/* 事件门禁贡献基于观测状态的检查。 |
 | `ctx.git` | `seam` | [`git`](../packages/git/git) | [`git-local`](../packages/git/git-local) | [`api-workspace-git`](../packages/api/workspace-git) | - | 对包含某个工作目录的仓库做一次有界只读快照；git-local 用宿主 git 读取。有期限的 seam，随替换它的上游 git 插件一起退役。 |
+| `ctx.sources` | `seam` | [`resource`](../packages/resource/resource) | [`resource-mediawiki`](../packages/resource/resource-mediawiki), [`resource-github`](../packages/resource/resource-github), [`resource-mysql`](../packages/resource/resource-mysql) | [`tool-resource`](../packages/resource/tool-resource), [`api-sources`](../packages/api/sources) | - | 面向模型可查询的远端集合只有一个注册表。每个提供方只懂一种 kind 的协议、寻址与上限；面向模型的工具在 tool-resource，面板投射在 api-sources。 |
+| `ctx.sourcesPanel` | `core` | [`api-sources`](../packages/api/sources) | - | - | - | 把来源状态、凭据引用存在性以及每种 kind 自己的设置 schema 投射到生成的 Remote 命名空间上。只报告凭据引用，绝不报告凭据值。 |
+| `ctx.gitAlign` | `seam` | [`git-align`](../packages/git/git-align) | [`git-align-local`](../packages/git/git-align-local) | [`workspace-automation`](../packages/workspace/workspace-automation) | - | 在一个工作区内完成 resolve、fetch、probe、apply 与 commit。没有任何操作会 push、rebase 或改写历史，因此想让提交发布出去的调用方要去问人。 |
+| `ctx.workSummary` | `seam` | [`work-summary`](../packages/session/work-summary) | [`work-summary-llm`](../packages/session/work-summary-llm) | [`workspace-automation`](../packages/workspace/workspace-automation) | - | 把一次回合改动过的路径变成提交信息。提供方可以拒绝，此时注册表回退到受同样上限约束的机械摘要。 |
+| `ctx.workspaceAutomation` | `core` | [`workspace-automation`](../packages/workspace/workspace-automation) | - | - | - | 每个工作区一个定时器，对齐本地工作树并提交该回合归属到的路径；当 head 在其下方移动时选择拒绝而不是猜测。 |
 | `ctx.compaction` | `seam` | [`compaction`](../packages/compaction/compaction) | [`compaction-basic`](../packages/compaction/compaction-basic) | [`compaction-basic`](../packages/compaction/compaction-basic) | - | 基础后端消费步骤后的压力事件和请求错误恢复事件；不存在面向模型的压缩工具。 |
 | `ctx.subagents` | `seam` | [`subagent`](../packages/subagent/subagent) | [`subagent-spawn-in-process`](../packages/subagent/subagent-spawn-in-process), [`subagent-fork-in-process`](../packages/subagent/subagent-fork-in-process), [`subagent-acp`](../packages/subagent/subagent-acp), [`subagent-codex`](../packages/subagent/subagent-codex), [`subagent-claude-code`](../packages/subagent/subagent-claude-code), [`subagent-dsh-sdk`](../packages/subagent/subagent-dsh-sdk) | [`tool-subagent`](../packages/subagent/tool-subagent), [`tool-subagent-control`](../packages/subagent/tool-subagent-control), [`tool-ralph`](../packages/workflow/tool-ralph) | - | 提供方实现传输；该服务还负责可选的、基于 Activation 的延续编排，tool-subagent 选择一次性或可延续委派，tool-subagent-control 传递后续消息，而 tool-ralph 要求一条全新的结构化输出路由。 |
 | `ctx.agentTeams` | `core` | [`experimental-agent-team`](../packages/experimental/agent-team) | - | [`experimental-tool-agent-team`](../packages/experimental/tool-agent-team), [`experimental-client-ui-agent-team`](../packages/experimental/client-ui-agent-team) | - | 负责隐式 Root roster、持久 peer mailbox、共享任务 DAG、continuable child 生命周期与生成式 Team Remote method；tool-agent-team 提供模型控制工具，client-ui-agent-team 挂载浏览器 contribution。 |

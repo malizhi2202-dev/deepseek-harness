@@ -114,7 +114,9 @@ flowchart TD
     pkg_api_remotes["api-remotes"]
     pkg_api_session_controller["api-session-controller"]
     pkg_api_settings_controller["api-settings-controller"]
+    pkg_api_sources["api-sources"]
     pkg_api_terminal_console["api-terminal-console"]
+    pkg_api_workspace_automation["api-workspace-automation"]
     pkg_api_workspace_controller["api-workspace-controller"]
     pkg_api_workspace_files["api-workspace-files"]
     pkg_api_workspace_git["api-workspace-git"]
@@ -138,7 +140,11 @@ flowchart TD
   subgraph group_channel["packages/channel"]
     pkg_channel["channel"]
     pkg_channel_bridge["channel-bridge"]
+    pkg_channel_dingtalk["channel-dingtalk"]
+    pkg_channel_feishu["channel-feishu"]
+    pkg_channel_qq["channel-qq"]
     pkg_channel_tuitui["channel-tuitui"]
+    pkg_channel_wechat["channel-wechat"]
   end
   subgraph group_client["packages/client"]
     pkg_client_connection["client-connection"]
@@ -180,9 +186,12 @@ flowchart TD
     pkg_client_ui_settings_plugins["client-ui-settings-plugins"]
     pkg_client_ui_sidebar["client-ui-sidebar"]
     pkg_client_ui_sidebar_agents["client-ui-sidebar-agents"]
+    pkg_client_ui_sidebar_automation["client-ui-sidebar-automation"]
+    pkg_client_ui_sidebar_channels["client-ui-sidebar-channels"]
     pkg_client_ui_sidebar_files["client-ui-sidebar-files"]
     pkg_client_ui_sidebar_git["client-ui-sidebar-git"]
     pkg_client_ui_sidebar_right["client-ui-sidebar-right"]
+    pkg_client_ui_sidebar_sources["client-ui-sidebar-sources"]
     pkg_client_ui_sidebar_tasks["client-ui-sidebar-tasks"]
     pkg_client_ui_sidebar_terminal["client-ui-sidebar-terminal"]
     pkg_client_ui_sidebar_textpreview["client-ui-sidebar-textpreview"]
@@ -248,6 +257,8 @@ flowchart TD
   end
   subgraph group_git["packages/git"]
     pkg_git["git"]
+    pkg_git_align["git-align"]
+    pkg_git_align_local["git-align-local"]
     pkg_git_local["git-local"]
   end
   subgraph group_guard["packages/guard"]
@@ -291,6 +302,13 @@ flowchart TD
     pkg_agent_presets["agent-presets"]
     pkg_persona["persona"]
   end
+  subgraph group_resource["packages/resource"]
+    pkg_resource["resource"]
+    pkg_resource_github["resource-github"]
+    pkg_resource_mediawiki["resource-mediawiki"]
+    pkg_resource_mysql["resource-mysql"]
+    pkg_tool_resource["tool-resource"]
+  end
   subgraph group_runtime_diagnostics["packages/runtime-diagnostics"]
     pkg_invariants["invariants"]
   end
@@ -327,6 +345,8 @@ flowchart TD
     pkg_session_title_first_prompt_llm["session-title-first-prompt-llm"]
     pkg_session_title_llm["session-title-llm"]
     pkg_session_turn_outline["session-turn-outline"]
+    pkg_work_summary["work-summary"]
+    pkg_work_summary_llm["work-summary-llm"]
   end
   subgraph group_settings["packages/settings"]
     pkg_settings["settings"]
@@ -389,6 +409,7 @@ flowchart TD
   end
   subgraph group_workspace["packages/workspace"]
     pkg_workspace["workspace"]
+    pkg_workspace_automation["workspace-automation"]
   end
   pkg_scope --> pkg_invariants
   pkg_web --> pkg_llm
@@ -405,6 +426,7 @@ flowchart TD
   pkg_experimental_webworker_runtime --> pkg_client_modules
   pkg_experimental_webworker_runtime --> pkg_host_webserver
   pkg_git --> pkg_llm
+  pkg_git_align --> pkg_llm
   pkg_host_directory_picker_auto --> pkg_client_ui_directory_picker_browse
   pkg_host_directory_picker_auto --> pkg_client_ui_directory_picker_native
   pkg_host_directory_picker_auto --> pkg_host_directory_picker_browse
@@ -416,6 +438,10 @@ flowchart TD
   pkg_anonymous_user_id --> pkg_home_paths
   pkg_lsp --> pkg_brand
   pkg_lsp --> pkg_llm
+  pkg_resource --> pkg_brand
+  pkg_resource --> pkg_llm
+  pkg_work_summary_llm --> pkg_llm
+  pkg_work_summary_llm --> pkg_work_summary
   pkg_storage_domain --> pkg_invariants
   pkg_storage_domain --> pkg_storage
   pkg_storage_json --> pkg_storage
@@ -438,6 +464,14 @@ flowchart TD
   pkg_api_remotes --> pkg_scope
   pkg_attachment_local --> pkg_attachment
   pkg_attachment_local --> pkg_home_paths
+  pkg_channel_dingtalk --> pkg_channel
+  pkg_channel_dingtalk --> pkg_credentials
+  pkg_channel_feishu --> pkg_channel
+  pkg_channel_feishu --> pkg_credentials
+  pkg_channel_qq --> pkg_channel
+  pkg_channel_qq --> pkg_credentials
+  pkg_channel_wechat --> pkg_channel
+  pkg_channel_wechat --> pkg_credentials
   pkg_client_file_upload --> pkg_scope
   pkg_authorization --> pkg_credentials
   pkg_authorization --> pkg_invariants
@@ -449,6 +483,8 @@ flowchart TD
   pkg_subprocess_e2b --> pkg_e2b
   pkg_subprocess_e2b --> pkg_subprocess
   pkg_subprocess_e2b --> pkg_timeout
+  pkg_git_align_local --> pkg_git_align
+  pkg_git_align_local --> pkg_native_command
   pkg_git_local --> pkg_git
   pkg_git_local --> pkg_native_command
   pkg_subprocess_local --> pkg_subprocess
@@ -494,11 +530,26 @@ flowchart TD
   pkg_spill_local --> pkg_spill
   pkg_session_log_export --> pkg_session
   pkg_session_log_export --> pkg_session_persistence
+  pkg_api_sources --> pkg_credentials
+  pkg_api_sources --> pkg_settings
+  pkg_api_sources --> pkg_typert_protocol
   pkg_message_feedback --> pkg_brand
   pkg_message_feedback --> pkg_llm
   pkg_message_feedback --> pkg_session
   pkg_message_feedback --> pkg_session_persistence
   pkg_message_feedback --> pkg_typert_protocol
+  pkg_resource_github --> pkg_brand
+  pkg_resource_github --> pkg_credentials
+  pkg_resource_github --> pkg_resource
+  pkg_resource_github --> pkg_settings
+  pkg_resource_mediawiki --> pkg_brand
+  pkg_resource_mediawiki --> pkg_credentials
+  pkg_resource_mediawiki --> pkg_resource
+  pkg_resource_mediawiki --> pkg_settings
+  pkg_resource_mysql --> pkg_brand
+  pkg_resource_mysql --> pkg_credentials
+  pkg_resource_mysql --> pkg_resource
+  pkg_resource_mysql --> pkg_settings
   pkg_sandbox_local --> pkg_llm
   pkg_sandbox_local --> pkg_sandbox
   pkg_sandbox_local --> pkg_session
@@ -656,6 +707,15 @@ flowchart TD
   pkg_workflow --> pkg_invariants
   pkg_workflow --> pkg_llm
   pkg_workflow --> pkg_session
+  pkg_workspace_automation --> pkg_fs
+  pkg_workspace_automation --> pkg_git
+  pkg_workspace_automation --> pkg_git_align
+  pkg_workspace_automation --> pkg_session
+  pkg_workspace_automation --> pkg_storage
+  pkg_workspace_automation --> pkg_storage_domain
+  pkg_workspace_automation --> pkg_util_values
+  pkg_workspace_automation --> pkg_work_summary
+  pkg_workspace_automation --> pkg_workspace
   pkg_tools --> pkg_agent
   pkg_tools --> pkg_code_runtime
   pkg_tools --> pkg_invariants
@@ -676,6 +736,9 @@ flowchart TD
   pkg_fs_sandbox --> pkg_fs_local
   pkg_fs_sandbox --> pkg_sandbox
   pkg_fs_sandbox --> pkg_sandbox_policy
+  pkg_api_workspace_automation --> pkg_typert_protocol
+  pkg_api_workspace_automation --> pkg_workspace
+  pkg_api_workspace_automation --> pkg_workspace_automation
   pkg_api_workspace_git --> pkg_agent
   pkg_api_workspace_git --> pkg_git
   pkg_api_workspace_git --> pkg_sandbox_policy
@@ -871,6 +934,9 @@ flowchart TD
   pkg_agent_presets --> pkg_system_prompt
   pkg_agent_presets --> pkg_tools
   pkg_agent_presets --> pkg_typert_protocol
+  pkg_tool_resource --> pkg_brand
+  pkg_tool_resource --> pkg_resource
+  pkg_tool_resource --> pkg_tools
   pkg_schedule --> pkg_agent
   pkg_schedule --> pkg_brand
   pkg_schedule --> pkg_invariants
@@ -1281,9 +1347,12 @@ flowchart TD
 | [`client-ui-settings-plugins`](../packages/client/ui-settings-plugins) | `client` | — |
 | [`client-ui-sidebar`](../packages/client/ui-sidebar) | `client` | — |
 | [`client-ui-sidebar-agents`](../packages/client/ui-sidebar-agents) | `client` | — |
+| [`client-ui-sidebar-automation`](../packages/client/ui-sidebar-automation) | `client` | — |
+| [`client-ui-sidebar-channels`](../packages/client/ui-sidebar-channels) | `client` | — |
 | [`client-ui-sidebar-files`](../packages/client/ui-sidebar-files) | `client` | — |
 | [`client-ui-sidebar-git`](../packages/client/ui-sidebar-git) | `client` | — |
 | [`client-ui-sidebar-right`](../packages/client/ui-sidebar-right) | `client` | — |
+| [`client-ui-sidebar-sources`](../packages/client/ui-sidebar-sources) | `client` | — |
 | [`client-ui-sidebar-tasks`](../packages/client/ui-sidebar-tasks) | `client` | — |
 | [`client-ui-sidebar-terminal`](../packages/client/ui-sidebar-terminal) | `client` | — |
 | [`client-ui-sidebar-textpreview`](../packages/client/ui-sidebar-textpreview) | `client` | — |
@@ -1313,6 +1382,7 @@ flowchart TD
 | [`session-format`](../packages/session/session-format) | `session` | — |
 | [`session-format-v0-to-v1`](../packages/session/session-format-v0-to-v1) | `session` | — |
 | [`session-format-v1-to-v2`](../packages/session/session-format-v1-to-v2) | `session` | — |
+| [`work-summary`](../packages/session/work-summary) | `session` | — |
 | [`storage`](../packages/storage/storage) | `storage` | — |
 | [`win32-process`](../packages/subprocess/win32-process) | `subprocess` | — |
 | [`llm-mock-server`](../packages/test-support/llm-mock-server) | `test-support` | — |
@@ -1329,10 +1399,13 @@ flowchart TD
 | [`experimental-inspector`](../packages/experimental/inspector) | `experimental` | [`client-modules`](../packages/client/modules), [`host-webserver`](../packages/host/webserver) |
 | [`experimental-webworker-runtime`](../packages/experimental/webworker-runtime) | `experimental` | [`client-connection`](../packages/client/connection), [`client-modules`](../packages/client/modules), [`host-webserver`](../packages/host/webserver) |
 | [`git`](../packages/git/git) | `git` | [`llm`](../packages/llm/llm) |
+| [`git-align`](../packages/git/git-align) | `git` | [`llm`](../packages/llm/llm) |
 | [`host-directory-picker-auto`](../packages/host/directory-picker-auto) | `host` | [`client-ui-directory-picker-browse`](../packages/client/ui-directory-picker-browse), [`client-ui-directory-picker-native`](../packages/client/ui-directory-picker-native), [`host-directory-picker-browse`](../packages/host/directory-picker-browse), [`host-directory-picker-native`](../packages/host/directory-picker-native), [`host-webserver`](../packages/host/webserver) |
 | [`host-frontend-static`](../packages/host/frontend-static) | `host` | [`client-connection`](../packages/client/connection), [`host-webserver`](../packages/host/webserver) |
 | [`anonymous-user-id`](../packages/identity/anonymous-user-id) | `identity` | [`brand`](../packages/util/brand), [`home-paths`](../packages/util/home-paths) |
 | [`lsp`](../packages/lsp/lsp) | `lsp` | [`brand`](../packages/util/brand), [`llm`](../packages/llm/llm) |
+| [`resource`](../packages/resource/resource) | `resource` | [`brand`](../packages/util/brand), [`llm`](../packages/llm/llm) |
+| [`work-summary-llm`](../packages/session/work-summary-llm) | `session` | [`llm`](../packages/llm/llm), [`work-summary`](../packages/session/work-summary) |
 | [`storage-domain`](../packages/storage/storage-domain) | `storage` | [`invariants`](../packages/runtime-diagnostics/invariants), [`storage`](../packages/storage/storage) |
 | [`storage-json`](../packages/storage/storage-json) | `storage` | [`storage`](../packages/storage/storage) |
 | [`storage-sqlite`](../packages/storage/storage-sqlite) | `storage` | [`storage`](../packages/storage/storage) |
@@ -1346,10 +1419,15 @@ flowchart TD
 | [`web-search-perplexity`](../packages/web/web-search-perplexity) | `web` | [`launch-environment`](../packages/util/launch-environment), [`web`](../packages/web/web) |
 | [`api-remotes`](../packages/api/remotes) | `api` | [`scope`](../packages/core/scope) |
 | [`attachment-local`](../packages/attachment/attachment-local) | `attachment` | [`attachment`](../packages/attachment/attachment), [`home-paths`](../packages/util/home-paths) |
+| [`channel-dingtalk`](../packages/channel/channel-dingtalk) | `channel` | [`channel`](../packages/channel/channel), [`credentials`](../packages/credentials/credentials) |
+| [`channel-feishu`](../packages/channel/channel-feishu) | `channel` | [`channel`](../packages/channel/channel), [`credentials`](../packages/credentials/credentials) |
+| [`channel-qq`](../packages/channel/channel-qq) | `channel` | [`channel`](../packages/channel/channel), [`credentials`](../packages/credentials/credentials) |
+| [`channel-wechat`](../packages/channel/channel-wechat) | `channel` | [`channel`](../packages/channel/channel), [`credentials`](../packages/credentials/credentials) |
 | [`client-file-upload`](../packages/client/file-upload) | `client` | [`scope`](../packages/core/scope) |
 | [`authorization`](../packages/credentials/authorization) | `credentials` | [`credentials`](../packages/credentials/credentials), [`invariants`](../packages/runtime-diagnostics/invariants), [`llm`](../packages/llm/llm) |
 | [`credentials-local`](../packages/credentials/credentials-local) | `credentials` | [`atomic-write`](../packages/util/atomic-write), [`credentials`](../packages/credentials/credentials), [`home-paths`](../packages/util/home-paths), [`launch-environment`](../packages/util/launch-environment) |
 | [`subprocess-e2b`](../packages/e2b/subprocess-e2b) | `e2b` | [`e2b`](../packages/e2b/e2b), [`subprocess`](../packages/subprocess/subprocess), [`timeout`](../packages/util/timeout) |
+| [`git-align-local`](../packages/git/git-align-local) | `git` | [`git-align`](../packages/git/git-align), [`native-command`](../packages/util/native-command) |
 | [`git-local`](../packages/git/git-local) | `git` | [`git`](../packages/git/git), [`native-command`](../packages/util/native-command) |
 | [`subprocess-local`](../packages/subprocess/subprocess-local) | `subprocess` | [`subprocess`](../packages/subprocess/subprocess), [`timeout`](../packages/util/timeout) |
 | [`skill-badge`](../packages/skill/skill-badge) | `skill` | [`skill`](../packages/skill/skill) |
@@ -1368,7 +1446,11 @@ flowchart TD
 | [`fs`](../packages/fs/fs) | `fs` | [`brand`](../packages/util/brand), [`invariants`](../packages/runtime-diagnostics/invariants), [`llm`](../packages/llm/llm), [`sandbox`](../packages/sandbox/sandbox) |
 | [`spill-local`](../packages/spill/spill-local) | `spill` | [`spill`](../packages/spill/spill) |
 | [`session-log-export`](../packages/session-query/session-log-export) | `session-query` | [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence) |
+| [`api-sources`](../packages/api/sources) | `api` | [`credentials`](../packages/credentials/credentials), [`settings`](../packages/settings/settings), [`typert-protocol`](../packages/typert/protocol) |
 | [`message-feedback`](../packages/feedback/message-feedback) | `feedback` | [`brand`](../packages/util/brand), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence), [`typert-protocol`](../packages/typert/protocol) |
+| [`resource-github`](../packages/resource/resource-github) | `resource` | [`brand`](../packages/util/brand), [`credentials`](../packages/credentials/credentials), [`resource`](../packages/resource/resource), [`settings`](../packages/settings/settings) |
+| [`resource-mediawiki`](../packages/resource/resource-mediawiki) | `resource` | [`brand`](../packages/util/brand), [`credentials`](../packages/credentials/credentials), [`resource`](../packages/resource/resource), [`settings`](../packages/settings/settings) |
+| [`resource-mysql`](../packages/resource/resource-mysql) | `resource` | [`brand`](../packages/util/brand), [`credentials`](../packages/credentials/credentials), [`resource`](../packages/resource/resource), [`settings`](../packages/settings/settings) |
 | [`sandbox-local`](../packages/sandbox/sandbox-local) | `sandbox` | [`llm`](../packages/llm/llm), [`sandbox`](../packages/sandbox/sandbox), [`session`](../packages/core/session) |
 | [`session-persistence-jsonl`](../packages/session/session-persistence-jsonl) | `session` | [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence) |
 | [`session-projection-cache`](../packages/session/session-projection-cache) | `session` | [`session`](../packages/core/session), [`session-projection`](../packages/session/session-projection), [`storage-domain`](../packages/storage/storage-domain) |
@@ -1405,10 +1487,12 @@ flowchart TD
 | [`terminal`](../packages/terminal/terminal) | `terminal` | [`agent`](../packages/core/agent), [`brand`](../packages/util/brand) |
 | [`loader-smoke`](../packages/test-support/loader-smoke) | `test-support` | [`agent`](../packages/core/agent), [`http-proxy`](../packages/util/http-proxy), [`llm`](../packages/llm/llm), [`session`](../packages/core/session) |
 | [`workflow`](../packages/workflow/workflow) | `workflow` | [`agent`](../packages/core/agent), [`brand`](../packages/util/brand), [`invariants`](../packages/runtime-diagnostics/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session) |
+| [`workspace-automation`](../packages/workspace/workspace-automation) | `workspace` | [`fs`](../packages/fs/fs), [`git`](../packages/git/git), [`git-align`](../packages/git/git-align), [`session`](../packages/core/session), [`storage`](../packages/storage/storage), [`storage-domain`](../packages/storage/storage-domain), [`util-values`](../packages/util/values), [`work-summary`](../packages/session/work-summary), [`workspace`](../packages/workspace/workspace) |
 | [`tools`](../packages/core/tools) | `core` | [`agent`](../packages/core/agent), [`code-runtime`](../packages/code-runtime/code-runtime), [`invariants`](../packages/runtime-diagnostics/invariants), [`llm`](../packages/llm/llm), [`scope`](../packages/core/scope), [`session`](../packages/core/session), [`system-prompt`](../packages/core/system-prompt), [`user-approval`](../packages/interaction/user-approval) |
 | [`command-goal`](../packages/goal/command-goal) | `goal` | [`commands`](../packages/interaction/commands), [`goal`](../packages/goal/goal), [`llm`](../packages/llm/llm) |
 | [`goal-round-driver`](../packages/goal/goal-round-driver) | `goal` | [`agent`](../packages/core/agent), [`goal`](../packages/goal/goal), [`invariants`](../packages/runtime-diagnostics/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session) |
 | [`fs-sandbox`](../packages/fs/fs-sandbox) | `fs` | [`fs`](../packages/fs/fs), [`fs-local`](../packages/fs/fs-local), [`sandbox`](../packages/sandbox/sandbox), [`sandbox-policy`](../packages/sandbox/sandbox-policy) |
+| [`api-workspace-automation`](../packages/api/workspace-automation) | `api` | [`typert-protocol`](../packages/typert/protocol), [`workspace`](../packages/workspace/workspace), [`workspace-automation`](../packages/workspace/workspace-automation) |
 | [`api-workspace-git`](../packages/api/workspace-git) | `api` | [`agent`](../packages/core/agent), [`git`](../packages/git/git), [`sandbox-policy`](../packages/sandbox/sandbox-policy), [`typert-protocol`](../packages/typert/protocol) |
 | [`headless`](../packages/bundle/headless) | `bundle` | [`agent`](../packages/core/agent), [`agent-default-model`](../packages/core/agent-default-model), [`llm`](../packages/llm/llm), [`session`](../packages/core/session) |
 | [`channel-bridge`](../packages/channel/channel-bridge) | `channel` | [`agent`](../packages/core/agent), [`attachment`](../packages/attachment/attachment), [`channel`](../packages/channel/channel), [`fs`](../packages/fs/fs), [`llm`](../packages/llm/llm), [`sandbox-policy`](../packages/sandbox/sandbox-policy), [`session`](../packages/core/session), [`settings`](../packages/settings/settings), [`user-approval`](../packages/interaction/user-approval) |
@@ -1445,6 +1529,7 @@ flowchart TD
 | [`tool-lsp`](../packages/lsp/tool-lsp) | `lsp` | [`llm`](../packages/llm/llm), [`lsp`](../packages/lsp/lsp), [`system-prompt`](../packages/core/system-prompt), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
 | [`mcp-client`](../packages/mcp/mcp-client) | `mcp` | [`attachment`](../packages/attachment/attachment), [`llm`](../packages/llm/llm), [`scope`](../packages/core/scope), [`subprocess`](../packages/subprocess/subprocess), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
 | [`agent-presets`](../packages/preset/agent-presets) | `preset` | [`agent`](../packages/core/agent), [`atomic-write`](../packages/util/atomic-write), [`home-paths`](../packages/util/home-paths), [`invariants`](../packages/runtime-diagnostics/invariants), [`scope`](../packages/core/scope), [`session`](../packages/core/session), [`session-projection`](../packages/session/session-projection), [`settings`](../packages/settings/settings), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools), [`typert-protocol`](../packages/typert/protocol) |
+| [`tool-resource`](../packages/resource/tool-resource) | `resource` | [`brand`](../packages/util/brand), [`resource`](../packages/resource/resource), [`tools`](../packages/core/tools) |
 | [`schedule`](../packages/schedule/schedule) | `schedule` | [`agent`](../packages/core/agent), [`brand`](../packages/util/brand), [`invariants`](../packages/runtime-diagnostics/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence), [`session-projection`](../packages/session/session-projection), [`tools`](../packages/core/tools) |
 | [`session-checkpoint-policy`](../packages/session/session-checkpoint-policy) | `session` | [`agent`](../packages/core/agent), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence), [`tools`](../packages/core/tools) |
 | [`session-telemetry-otel`](../packages/session/session-telemetry-otel) | `session` | [`anonymous-user-id`](../packages/identity/anonymous-user-id), [`command-feedback`](../packages/feedback/command-feedback), [`llm`](../packages/llm/llm), [`message-feedback`](../packages/feedback/message-feedback), [`session`](../packages/core/session), [`session-telemetry`](../packages/session/session-telemetry) |

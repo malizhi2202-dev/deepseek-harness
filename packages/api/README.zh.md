@@ -33,7 +33,10 @@ kind: "package-group"
 | [`workspace-controller/`](workspace-controller/README.zh.md) | 拥有 Workspace 变更与完整 Client Workspace 投影。 | `ctx.workspaceController` / `ctx.remote.workspace` |
 | [`workspace-files/`](workspace-files/README.zh.md) | 拥有有界的工作区文件访问——`stat`、分页 `read`、`list` 与 agent 写入的 `changes` 流——以及其上的 Client `file` 资源提供者。 | `ctx.workspaceFiles` / `ctx.remote.workspaceFiles` |
 | [`workspace-git/`](workspace-git/README.zh.md) | 拥有对会话工作区所属仓库的有界读取，服务 Web git 面板。 | `ctx.workspaceGit` / `ctx.remote.workspaceGit` |
+| [`workspace-automation/`](workspace-automation/README.zh.md) | 拥有 `workspace` Remote 命名空间中的自动化台账读取：`automationLedger(workspaceId)` 投影某个工作区的自动化运行时运行台账。 | `ctx.workspaceAutomationLedger` / `ctx.remote.workspace` |
 | [`terminal-console/`](terminal-console/README.zh.md) | 拥有面向浏览器的 shell 控制台，构建在 Host 的 PTY 注册表之上：服务端创建的 shell 身份、网络访问面闸门与有界输出流。 | `ctx.terminalConsole` / `ctx.remote.terminalConsole` |
+| [`channels/`](channels/README.zh.md) | 拥有 `channels` Remote 命名空间：`status` 读取每个已注册渠道，`probe` 通过构建客户端来测试某个渠道的凭据，`enable`/`disable` 移动一次绑定。 | `ctx.channels` / `ctx.remote.channels` |
+| [`sources/`](sources/README.zh.md) | 拥有 `sources` Remote 命名空间：`status` 报告本 Host 服务的每个远程资源实例，`probe` 用该实例提供方已解析的设置与凭据测试这一个实例。 | `ctx.sourcesPanel` / `ctx.remote.sources` |
 
 Remote 调用沿 Client → Host 方向运行在应用共享的 Connection 之上。API Gateway 拥有 Remote 传输，各 controller 包分别拥有 Session、配置界面与 Workspace 行为。流式下载等不适合 Remote 调用的响应由功能包注册精确的 Connection Fetch 路由。
 

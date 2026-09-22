@@ -2104,10 +2104,12 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'rightbar\' (client-ui-sidebar-right), so it exists while that entry is mounted',
     occupants: [
       'client-ui-sidebar-agents AgentsBody',
+      'client-ui-sidebar-automation AutomationBody',
       'client-ui-sidebar-channels ChannelsBody',
       'client-ui-sidebar-files FilesBody',
       'client-ui-sidebar-git GitBody',
       'client-ui-sidebar-right GuideBody',
+      'client-ui-sidebar-sources SourcesBody',
       'client-ui-sidebar-tasks TasksBody',
       'client-ui-sidebar-terminal TerminalBody',
       'client-ui-sidebar-textpreview TextPreview',

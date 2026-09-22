@@ -163,6 +163,31 @@
     - id: workspace-controller
       name: '@deepseek-ai/dsh-api-workspace-controller'
 
+    # Per-workspace periodic alignment: the local git operations the alignment
+    # runs on (it never pushes, rebases, or rewrites history), the summary
+    # registry and its model provider, and the timer that drives both jobs.
+    - id: git-align-local
+      name: '@deepseek-ai/dsh-git-align-local'
+
+    - id: work-summary
+      name: '@deepseek-ai/dsh-work-summary'
+
+    - id: work-summary-llm
+      name: '@deepseek-ai/dsh-work-summary-llm'
+      # The commit-message route, matching the base profile's agent default.
+      config:
+        provider: deepseek-official
+        model: deepseek-v4-flash
+
+    # The timer and its two jobs. `workspaceRegistry` is an explicit ordering
+    # edge rather than a declared injection: the runtime validates its
+    # per-workspace overrides during its own initializer, and the Loader starts
+    # sibling entries concurrently, so without this the strict registry read
+    # races the registry's own activation.
+    - id: workspace-automation
+      name: '@deepseek-ai/dsh-workspace-automation'
+      inject: [workspaceRegistry]
+
     # Chat platforms as a Session driver: the connector registry, the generic
     # bridge that owns deduplication, the chat lock, admission, and reply
     # delivery, and one connector per platform. Each connector registers its
@@ -193,6 +218,35 @@
     # binding for the configuration panel over Typert Remote.
     - id: api-channels
       name: '@deepseek-ai/dsh-api-channels'
+
+    # Remote resource library: the registry every provider contributes to, the
+    # three configured providers, the model-facing tool consumer, and the
+    # read/probe projection the resource tab reads.
+    - id: resource
+      name: '@deepseek-ai/dsh-resource'
+
+    - id: resource-github
+      name: '@deepseek-ai/dsh-resource-github'
+
+    - id: resource-mysql
+      name: '@deepseek-ai/dsh-resource-mysql'
+
+    - id: resource-mediawiki
+      name: '@deepseek-ai/dsh-resource-mediawiki'
+
+    - id: tool-resource
+      name: '@deepseek-ai/dsh-tool-resource'
+
+    # Source state, credential-reference presence, and the settings form each
+    # kind's own schema declares, over Typert Remote.
+    - id: api-sources
+      name: '@deepseek-ai/dsh-api-sources'
+
+    # The automation ledger's read-only projection. It claims one method on the
+    # `workspace` Remote namespace the controller already declares, so a client
+    # reads runs through the same service.
+    - id: api-workspace-automation
+      name: '@deepseek-ai/dsh-api-workspace-automation'
 
     - id: cordis-host-runner
       name: '@deepseek-ai/dsh-cordis-host-runner'
@@ -335,6 +389,17 @@
     # the settings form its own schema declares.
     - id: ui-sidebar-channels
       name: '@deepseek-ai/dsh-client-ui-sidebar-channels'
+
+    # The right Sidebar's resource-library tab type: every registered source
+    # kind, its state and last error, its credential references, and the
+    # settings form its own schema declares.
+    - id: ui-sidebar-sources
+      name: '@deepseek-ai/dsh-client-ui-sidebar-sources'
+
+    # The right Sidebar's automation tab type: what each timer run compared,
+    # what it did or why it did not, where the conflict is, and what is next.
+    - id: ui-sidebar-automation
+      name: '@deepseek-ai/dsh-client-ui-sidebar-automation'
 
     - id: ui-settings
       name: '@deepseek-ai/dsh-client-ui-settings'

@@ -40,6 +40,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflowEngine`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
+| `@deepseek-ai/dsh-tool-resource` | `source_mediawiki_list`, `source_mediawiki_read`, `source_mediawiki_search` | `ctx.tools`, `ctx.sources`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | One tool per kind and operation — source_<kind>_search, source_<kind>_read, and source_<kind>_list — registered only for the operations a kind declares and only while that kind has a configured instance. |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 
@@ -2223,3 +2224,90 @@ Search the web for current information. Provide 1–4 queries in the required qu
 Source: [`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.ts)
 
 web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps.
+
+<a id="deepseek-aidsh-tool-resource"></a>
+
+## `@deepseek-ai/dsh-tool-resource`
+
+### `source_mediawiki_list`
+
+List the entries of one container in a configured "mediawiki" source. Search and read pages on configured MediaWiki wikis through the Action API. search runs the wiki's own full-text search and returns page titles; read returns one page's wikitext, cut to 200000 bytes with a truncation marker; list returns a category's members, or every category of the wiki when no container is given. A page the wiki does not expose to the configured account reads as not found. Required. The configured source to use; one of: catalog. The listing is bounded by the source's own configured item limit.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "Required. The configured source to use; one of: catalog."
+    },
+    "ref": {
+      "type": "string",
+      "description": "Optional. The container handle; omit it to list the source's roots."
+    }
+  },
+  "required": [
+    "source"
+  ]
+}
+```
+
+Source: [`packages/resource/tool-resource/src/index.ts`](../packages/resource/tool-resource/src/index.ts)
+
+### `source_mediawiki_read`
+
+Read one item from a configured "mediawiki" source. Search and read pages on configured MediaWiki wikis through the Action API. search runs the wiki's own full-text search and returns page titles; read returns one page's wikitext, cut to 200000 bytes with a truncation marker; list returns a category's members, or every category of the wiki when no container is given. A page the wiki does not expose to the configured account reads as not found. Required. The configured source to use; one of: catalog.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "Required. The configured source to use; one of: catalog."
+    },
+    "ref": {
+      "type": "string",
+      "description": "Required. The item handle, exactly as a search or a list returned it."
+    }
+  },
+  "required": [
+    "source",
+    "ref"
+  ]
+}
+```
+
+Source: [`packages/resource/tool-resource/src/index.ts`](../packages/resource/tool-resource/src/index.ts)
+
+### `source_mediawiki_search`
+
+Search one configured "mediawiki" source. Search and read pages on configured MediaWiki wikis through the Action API. search runs the wiki's own full-text search and returns page titles; read returns one page's wikitext, cut to 200000 bytes with a truncation marker; list returns a category's members, or every category of the wiki when no container is given. A page the wiki does not expose to the configured account reads as not found. Required. The configured source to use; one of: catalog.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "Required. The configured source to use; one of: catalog."
+    },
+    "query": {
+      "type": "string",
+      "description": "Required. The text to search for."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Optional. Upper bound on returned hits; 1–20, default 20."
+    }
+  },
+  "required": [
+    "source",
+    "query"
+  ]
+}
+```
+
+Source: [`packages/resource/tool-resource/src/index.ts`](../packages/resource/tool-resource/src/index.ts)
+
+One tool per kind and operation — source_<kind>_search, source_<kind>_read, and source_<kind>_list — registered only for the operations a kind declares and only while that kind has a configured instance.

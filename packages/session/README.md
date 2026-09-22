@@ -22,7 +22,7 @@ The session group makes an agent's conversation durable and reusable outside the
 <a id="packages"></a>
 ## Packages
 
-The group splits into four families: durable storage (persistence seam, backends, checkpoint policy), projections, titles, and telemetry. Each package README owns its contract and configuration.
+The group splits into five families: durable storage (persistence seam, backends, checkpoint policy), projections, titles, telemetry, and work summaries. Each package README owns its contract and configuration.
 
 ### Persistence
 
@@ -62,7 +62,14 @@ The group splits into four families: durable storage (persistence seam, backends
 | [`session-telemetry/`](session-telemetry/README.md) | Captures session activity and hands records to a configured reporting backend | `ctx.sessionTelemetry` |
 | [`session-telemetry-otel/`](session-telemetry-otel/README.md) | Delivers telemetry through OpenTelemetry logs in `FEEDBACK_ONLY` or `DISABLED` mode | registers on `ctx.sessionTelemetry` |
 
-Only one title provider may register at a time; without one, the title service keeps its deterministic fallback. The subsystem pages below are the backend-neutral references for each family.
+### Work summary
+
+| Package | Role | ctx key |
+|---|---|---|
+| [`work-summary/`](work-summary/README.md) | Defines the work-summary service: a provider registry plus a bounded mechanical fallback that turns one work unit's changed paths into a Conventional Commits message | `ctx.workSummary` |
+| [`work-summary-llm/`](work-summary-llm/README.md) | Asks a configured model for that message and declines whenever the answer cannot be trusted | registers on `ctx.workSummary` |
+
+Only one title provider may register at a time; without one, the title service keeps its deterministic fallback. The work-summary service always answers: a provider that throws, declines, or proposes a message outside the deployment's policy is recorded as a note and the mechanical fallback supplies the message. The subsystem pages below are the backend-neutral references for each family.
 
 -----
 
@@ -73,6 +80,7 @@ Only one title provider may register at a time; without one, the title service k
 - [Session projections subsystem](../../docs/subsystems/session-projection.md) — the projection unit contract and drive semantics.
 - [Session titles subsystem](../../docs/subsystems/session-title.md) — title eligibility, fallback, and provider flow.
 - [Session telemetry subsystem](../../docs/subsystems/session-telemetry.md) — capture, redaction, and delivery modes.
+- [Work summary subsystem](../../docs/subsystems/work-summary.md) — the provider registry, proposal acceptance, and the mechanical fallback that turns one work unit's paths into a commit message.
 - [Session subsystem](../../docs/subsystems/session.md) — the live event log every package in this group persists or derives from.
 
 <a id="dev-note"></a>

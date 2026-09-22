@@ -255,6 +255,10 @@ export class FakeApiClient {
         ),
       },
       workspace: {
+        /** This fake exercises workspace commands only; the ledger read is never reached. */
+        automationLedger: (): never => {
+          throw new Error('unused')
+        },
         create: payload => this.record('workspace.create', payload, this.onWorkspaceCreate(payload)),
         rename: payload => this.record('workspace.rename', payload, this.onWorkspaceRename(payload)),
         delete: payload => this.record('workspace.delete', payload, this.onWorkspaceDelete(payload)),

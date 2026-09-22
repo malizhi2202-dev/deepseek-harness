@@ -617,6 +617,27 @@ describe('mounting and sync', () => {
     })
   })
 
+  it('hides the binding fields from form renderers, which cannot supply a Session', async () => {
+    const h = await openBridge()
+
+    const described = h.ctx.settings.describe().find(row => row.ns === NAMESPACE)
+    if (described === undefined) throw new Error('the connector settings namespace was not registered')
+    const rehydrated = new z(described.schema as Schema) as unknown as {
+      list?: Array<{ dict?: Record<string, { meta: { hidden?: boolean } }> }>
+    }
+    // A channel's section is `intersect([shared binding fields, the connector's
+    // own])`, so the shared fields sit in whichever member declares them.
+    const shared = (rehydrated.list ?? []).find(member => member.dict?.['sessionId'] !== undefined)
+
+    // `enabled` and `sessionId` are binding state the panel writes through
+    // `chatBridge.enable()` from the tab's own Session; a form field for either
+    // would ask a person for a Session id, and `enabled` alone cannot bind one.
+    expect(shared?.dict?.['enabled']?.meta.hidden).toBe(true)
+    expect(shared?.dict?.['sessionId']?.meta.hidden).toBe(true)
+    expect(shared?.dict?.['markdown']?.meta.hidden).toBeUndefined()
+    expect(shared?.dict?.['finalReplyOnly']?.meta.hidden).toBeUndefined()
+  })
+
   it('binds every registered connector exactly once, in registration order', async () => {
     const second = new TestConnector(new TestClient(), { channel: OTHER_CHANNEL, namespace: 'channel-other' })
     const h = await openBridge({ connectors: [new TestConnector(new TestClient()), second] })

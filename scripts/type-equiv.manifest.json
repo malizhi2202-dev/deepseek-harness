@@ -1802,6 +1802,146 @@
       "source": "packages/workspace/workspace/src/types.ts"
     },
     {
+      "doc": "docs/subsystems/workspace.md",
+      "symbol": "AlignRequest",
+      "source": "packages/git/git-align/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/workspace.md",
+      "symbol": "AlignSpec",
+      "source": "packages/git/git-align/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/workspace.md",
+      "symbol": "GitAlignFailure",
+      "source": "packages/git/git-align/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/workspace.md",
+      "symbol": "ApplyResult",
+      "source": "packages/git/git-align/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/workspace.md",
+      "symbol": "CommitResult",
+      "source": "packages/git/git-align/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/workspace.md",
+      "symbol": "AutomationOutcome",
+      "source": "packages/workspace/workspace-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/workspace.md",
+      "symbol": "CommitReport",
+      "source": "packages/workspace/workspace-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/workspace.md",
+      "symbol": "RunRecord",
+      "source": "packages/workspace/workspace-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/workspace.md",
+      "symbol": "AutomationRunView",
+      "source": "packages/api/workspace-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/workspace.md",
+      "symbol": "AutomationLedgerView",
+      "source": "packages/api/workspace-automation/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/resource-library.md",
+      "symbol": "SourceKind",
+      "source": "packages/resource/resource/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/resource-library.md",
+      "symbol": "SourceItemRef",
+      "source": "packages/resource/resource/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/resource-library.md",
+      "symbol": "SourceCapabilities",
+      "source": "packages/resource/resource/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/resource-library.md",
+      "symbol": "SourceHit",
+      "source": "packages/resource/resource/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/resource-library.md",
+      "symbol": "SourceDocument",
+      "source": "packages/resource/resource/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/resource-library.md",
+      "symbol": "SourceConfig",
+      "source": "packages/resource/resource/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/resource-library.md",
+      "symbol": "SourceProvider",
+      "source": "packages/resource/resource/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/resource-library.md",
+      "symbol": "Sources",
+      "source": "packages/resource/resource/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/resource-library.md",
+      "symbol": "SourceErrorCode",
+      "source": "packages/resource/resource/src/error.ts"
+    },
+    {
+      "doc": "docs/subsystems/resource-library.md",
+      "symbol": "SourceState",
+      "source": "packages/api/sources/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/resource-library.md",
+      "symbol": "SourceCredentialView",
+      "source": "packages/api/sources/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/work-summary.md",
+      "symbol": "WorkSummaryRequest",
+      "source": "packages/session/work-summary/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/work-summary.md",
+      "symbol": "WorkSummaryProposal",
+      "source": "packages/session/work-summary/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/work-summary.md",
+      "symbol": "WorkSummaryProviderResult",
+      "source": "packages/session/work-summary/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/work-summary.md",
+      "symbol": "WorkSummaryProvider",
+      "source": "packages/session/work-summary/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/work-summary.md",
+      "symbol": "WorkSummaryMessage",
+      "source": "packages/session/work-summary/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/work-summary.md",
+      "symbol": "WorkSummaryResult",
+      "source": "packages/session/work-summary/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/work-summary.md",
+      "symbol": "MessagePolicy",
+      "source": "packages/session/work-summary/src/summary.ts"
+    },
+    {
       "doc": "docs/subsystems/client-modules.md",
       "symbol": "WebBootEntry",
       "source": "packages/client/modules/src/client/manifest.ts"

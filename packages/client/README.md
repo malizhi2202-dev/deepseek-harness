@@ -42,8 +42,18 @@ The kernel packages boot and serve the page; the UI feature packages present it.
 | [`ui-attachment/`](ui-attachment/README.md) | Registers composer and message-image attachment presentation | — |
 | [`ui-layout/`](ui-layout/README.md) | Arranges the main application regions | — |
 | [`ui-sidebar/`](ui-sidebar/README.md) | Presents workspace and session navigation | — |
+| [`ui-sidebar-right/`](ui-sidebar-right/README.md) | Owns the right Sidebar's docking surface, its two presentations, and the tab-type registry | `ctx.sidebarRight`, `ctx.sidebarRightTabs` |
 | [`resources/`](resources/README.md) | Unified resource model: protocol providers behind the `useResource` session standard hook | `ctx.resources` |
 | [`ui-sidebar-files/`](ui-sidebar-files/README.md) | Right-Sidebar workspace file tree tab type | — |
+| [`ui-sidebar-agents/`](ui-sidebar-agents/README.md) | Right-Sidebar derivation panel: the mounted session's complete derivation tree, with each branch's child-catalog read state and diagnostics | — |
+| [`ui-dockkit/`](ui-dockkit/README.md) | Docking layout kit: a split tree of tabbed panes with invertible operations, planners, a linear history, and the components that render and drive it | — |
+| [`ui-sidebar-automation/`](ui-sidebar-automation/README.md) | Right-Sidebar automation tab type drawing one workspace's automation ledger, newest run first | — |
+| [`ui-sidebar-channels/`](ui-sidebar-channels/README.md) | Right-Sidebar remote-control tab type: every chat channel the Host serves, with its connection, credential references, and settings form | — |
+| [`ui-sidebar-git/`](ui-sidebar-git/README.md) | Right-Sidebar git observation panel: the session workspace repository's head facts, branch list, bounded history, and worktree changes | — |
+| [`ui-sidebar-sources/`](ui-sidebar-sources/README.md) | Right-Sidebar remote-resource tab type: every source instance the Host serves, with its state, credential references, and settings form | — |
+| [`ui-sidebar-tasks/`](ui-sidebar-tasks/README.md) | Right-Sidebar task-observation tab type: the session's todo list with a progress summary, then its background jobs | — |
+| [`ui-sidebar-terminal/`](ui-sidebar-terminal/README.md) | Right-Sidebar terminal tab type: mints a shell in the session's workspace and draws what it prints | — |
+| [`ui-sidebar-textpreview/`](ui-sidebar-textpreview/README.md) | Right-Sidebar plain-text viewer and editor: paged reads of one workspace file, with the fallback claim on every `file` resource address | — |
 | [`ui-brand-official/`](ui-brand-official/README.md) | Fills the generic browser-brand slots with the official name and marks | — |
 | [`ui-workspace/`](ui-workspace/README.md) | Provides workspace selection and creation surfaces | — |
 | [`ui-conversation/`](ui-conversation/README.md) | Presents the active conversation and its input surface | — |
