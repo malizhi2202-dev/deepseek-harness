@@ -41,6 +41,7 @@
   background: var(--dsw-alias-bg-secondary, transparent);
   border: 0.5px solid var(--dsw-alias-border-secondary, var(--dsw-alias-label-tertiary));
   border-radius: 999px;
+  corner-shape: round;
 }
 
 .action,
