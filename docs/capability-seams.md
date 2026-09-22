@@ -10,6 +10,10 @@ flowchart LR
   pkg_channel["channel"]
   svc_chatChannels["ctx.chatChannels<br/>Chat-channel connector registry"]
   pkg_channel_tuitui["channel-tuitui"]
+  pkg_channel_feishu["channel-feishu"]
+  pkg_channel_dingtalk["channel-dingtalk"]
+  pkg_channel_qq["channel-qq"]
+  pkg_channel_wechat["channel-wechat"]
   pkg_channel_bridge["channel-bridge"]
   pkg_api_channels["api-channels"]
   svc_chatBridge["ctx.chatBridge<br/>Generic chat-channel bridge"]
@@ -259,7 +263,11 @@ flowchart LR
   pkg_bash_sandbox --> svc_shell
   pkg_channel --> svc_chatChannels
   pkg_channel_bridge --> svc_chatBridge
+  pkg_channel_dingtalk --> svc_chatChannels
+  pkg_channel_feishu --> svc_chatChannels
+  pkg_channel_qq --> svc_chatChannels
   pkg_channel_tuitui --> svc_chatChannels
+  pkg_channel_wechat --> svc_chatChannels
   pkg_client_file_upload --> svc_fileUploads
   pkg_client_modules --> svc_clientModules
   pkg_code_runtime --> svc_codeRuntime
@@ -497,7 +505,7 @@ flowchart LR
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
-| `ctx.chatChannels` | `seam` | [`channel`](../packages/channel/channel) | [`channel-tuitui`](../packages/channel/channel-tuitui) | [`channel-bridge`](../packages/channel/channel-bridge), [`api-channels`](../packages/api/channels) | - | Providers register one connector per platform; the bridge drives them and never learns a platform protocol. |
+| `ctx.chatChannels` | `seam` | [`channel`](../packages/channel/channel) | [`channel-tuitui`](../packages/channel/channel-tuitui), [`channel-feishu`](../packages/channel/channel-feishu), [`channel-dingtalk`](../packages/channel/channel-dingtalk), [`channel-qq`](../packages/channel/channel-qq), [`channel-wechat`](../packages/channel/channel-wechat) | [`channel-bridge`](../packages/channel/channel-bridge), [`api-channels`](../packages/api/channels) | - | Providers register one connector per platform; the bridge drives them and never learns a platform protocol. |
 | `ctx.chatBridge` | `core` | [`channel-bridge`](../packages/channel/channel-bridge) | - | [`api-channels`](../packages/api/channels) | - | Owns deduplication, the chat lock, Session admission, outbound relay, and reply file delivery for every platform at once. |
 | `ctx.channels` | `core` | [`api-channels`](../packages/api/channels) | - | - | - | Projects channel status, credential-reference presence, and the enable/disable binding onto the generated Remote namespace. |
 | `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | [`api-session-controller`](../packages/api/session-controller), [`tool-fs`](../packages/fs/tool-fs), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | The host commits accepted images before session events; provider adapters resolve authorized durable references into provider-native content. |

@@ -103,7 +103,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     pkg: 'channel',
     title: 'Chat-channel connector registry',
     mode: 'seam',
-    implementations: ['channel-tuitui'],
+    implementations: ['channel-tuitui', 'channel-feishu', 'channel-dingtalk', 'channel-qq', 'channel-wechat'],
     consumers: ['channel-bridge', 'api-channels'],
     note: 'Providers register one connector per platform; the bridge drives them and never learns a platform protocol.',
   },

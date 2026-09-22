@@ -425,6 +425,67 @@ export interface Config {
 
 Source: [`packages/channel/channel-bridge/src/index.ts:76`](../packages/channel/channel-bridge/src/index.ts)
 
+<a id="deepseek-aidsh-channel-dingtalk"></a>
+
+## `@deepseek-ai/dsh-channel-dingtalk`
+
+Requires: `chatChannels` · `credentials`
+
+```ts config-catalog
+/** The DingTalk channel's configuration fields. */
+export interface Config {
+  /** The internal application's Client ID, which DingTalk also calls the AppKey. */
+  clientId?: string
+  /** Name of a `dsh-credentials` reference holding the Client Secret, never the secret. */
+  clientSecretRef?: string
+}
+```
+
+Source: [`packages/channel/channel-dingtalk/src/index.ts:34`](../packages/channel/channel-dingtalk/src/index.ts)
+
+<a id="deepseek-aidsh-channel-feishu"></a>
+
+## `@deepseek-ai/dsh-channel-feishu`
+
+Requires: `chatChannels` · `credentials`
+
+```ts config-catalog
+/** The Feishu channel's configuration fields. */
+export interface Config {
+  /** The self-built application's id from the Feishu Open Platform console. */
+  appId?: string
+  /** The deployment whose endpoints the application signs in to. */
+  domain?: FeishuDomain
+  /** Name of a `dsh-credentials` reference holding the application secret, never the secret. */
+  appSecretRef?: string
+}
+
+/** The deployment whose Open Platform endpoints this connector signs in to. */
+export type FeishuDomain = 'feishu' | 'lark'
+```
+
+Source: [`packages/channel/channel-feishu/src/index.ts:33`](../packages/channel/channel-feishu/src/index.ts)
+
+<a id="deepseek-aidsh-channel-qq"></a>
+
+## `@deepseek-ai/dsh-channel-qq`
+
+Requires: `chatChannels` · `credentials`
+
+```ts config-catalog
+/** The QQ channel's configuration fields. */
+export interface Config {
+  /** The application id from the QQ bot developer console. */
+  appId?: string
+  /** Name of the `dsh-credentials` reference holding the application secret, never the secret. */
+  appSecretRef?: string
+  /** The API host; empty uses the host the current platform documentation names. */
+  apiBaseUrl?: string
+}
+```
+
+Source: [`packages/channel/channel-qq/src/index.ts:49`](../packages/channel/channel-qq/src/index.ts)
+
 <a id="deepseek-aidsh-channel-tuitui"></a>
 
 ## `@deepseek-ai/dsh-channel-tuitui`
@@ -444,6 +505,26 @@ export interface Config {
 ```
 
 Source: [`packages/channel/channel-tuitui/src/index.ts:29`](../packages/channel/channel-tuitui/src/index.ts)
+
+<a id="deepseek-aidsh-channel-wechat"></a>
+
+## `@deepseek-ai/dsh-channel-wechat`
+
+Requires: `chatChannels` · `credentials`
+
+```ts config-catalog
+/** The WeChat channel's configuration fields. */
+export interface Config {
+  /** The bot API host the QR sign-in's confirmation recorded; empty uses the official host. */
+  baseUrl?: string
+  /** Name of the `dsh-credentials` reference holding the bot token, never the token. */
+  tokenRef?: string
+  /** The value sent as `bot_agent`; empty uses this provider's own name. */
+  botAgent?: string
+}
+```
+
+Source: [`packages/channel/channel-wechat/src/index.ts:53`](../packages/channel/channel-wechat/src/index.ts)
 
 <a id="deepseek-aidsh-client-connection"></a>
 

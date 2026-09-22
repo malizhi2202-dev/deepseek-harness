@@ -1,0 +1,44 @@
+{
+  "name": "@deepseek-ai/dsh-channel-feishu",
+  "description": "Feishu (飞书) chat-channel provider: declares the platform's configuration namespace and adapts the official Lark Open Platform SDK into a channel connector",
+  "version": "0.1.3-alpha.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "packages/channel/channel-feishu"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/dsh-brand": "workspace:^",
+    "@deepseek-ai/schemastery": "workspace:^",
+    "@larksuiteoapi/node-sdk": "1.74.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/dsh-channel": "workspace:^",
+    "@deepseek-ai/dsh-credentials": "workspace:^"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/dsh-channel": "workspace:^",
+    "@deepseek-ai/dsh-credentials": "workspace:^"
+  }
+}

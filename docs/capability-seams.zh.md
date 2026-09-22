@@ -12,6 +12,10 @@ flowchart LR
   pkg_channel["channel"]
   svc_chatChannels["ctx.chatChannels<br/>Chat-channel connector registry"]
   pkg_channel_tuitui["channel-tuitui"]
+  pkg_channel_feishu["channel-feishu"]
+  pkg_channel_dingtalk["channel-dingtalk"]
+  pkg_channel_qq["channel-qq"]
+  pkg_channel_wechat["channel-wechat"]
   pkg_channel_bridge["channel-bridge"]
   pkg_api_channels["api-channels"]
   svc_chatBridge["ctx.chatBridge<br/>Generic chat-channel bridge"]
@@ -261,7 +265,11 @@ flowchart LR
   pkg_bash_sandbox --> svc_shell
   pkg_channel --> svc_chatChannels
   pkg_channel_bridge --> svc_chatBridge
+  pkg_channel_dingtalk --> svc_chatChannels
+  pkg_channel_feishu --> svc_chatChannels
+  pkg_channel_qq --> svc_chatChannels
   pkg_channel_tuitui --> svc_chatChannels
+  pkg_channel_wechat --> svc_chatChannels
   pkg_client_file_upload --> svc_fileUploads
   pkg_client_modules --> svc_clientModules
   pkg_code_runtime --> svc_codeRuntime
@@ -499,7 +507,7 @@ flowchart LR
 
 | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `ctx.chatChannels` | `seam` | [`channel`](../packages/channel/channel) | [`channel-tuitui`](../packages/channel/channel-tuitui) | [`channel-bridge`](../packages/channel/channel-bridge), [`api-channels`](../packages/api/channels) | - | 提供方为每个平台注册一个连接器；桥接层驱动它们，且从不了解任何平台协议。 |
+| `ctx.chatChannels` | `seam` | [`channel`](../packages/channel/channel) | [`channel-tuitui`](../packages/channel/channel-tuitui), [`channel-feishu`](../packages/channel/channel-feishu), [`channel-dingtalk`](../packages/channel/channel-dingtalk), [`channel-qq`](../packages/channel/channel-qq), [`channel-wechat`](../packages/channel/channel-wechat) | [`channel-bridge`](../packages/channel/channel-bridge), [`api-channels`](../packages/api/channels) | - | 提供方为每个平台注册一个连接器；桥接层驱动它们，且从不了解任何平台协议。 |
 | `ctx.chatBridge` | `core` | [`channel-bridge`](../packages/channel/channel-bridge) | - | [`api-channels`](../packages/api/channels) | - | 为所有平台统一负责去重、会话锁定、Session 接纳、出站转发与回复文件投递。 |
 | `ctx.channels` | `core` | [`api-channels`](../packages/api/channels) | - | - | - | 把渠道状态、凭据引用存在性与启用/停用绑定投射到生成的 Remote 命名空间上。 |
 | `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | [`api-session-controller`](../packages/api/session-controller), [`tool-fs`](../packages/fs/tool-fs), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | 宿主会在会话事件之前提交已接受的图片；提供方适配器将已授权的持久引用解析为提供方原生内容。 |

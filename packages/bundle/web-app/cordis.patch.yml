@@ -165,9 +165,9 @@
 
     # Chat platforms as a Session driver: the connector registry, the generic
     # bridge that owns deduplication, the chat lock, admission, and reply
-    # delivery, and the Tuitui connector that adapts the transport this
-    # repository already ships. The connector registers its configuration
-    # namespace and opens no connection until a channel is enabled.
+    # delivery, and one connector per platform. Each connector registers its
+    # configuration namespace and opens no connection until a channel is
+    # enabled.
     - id: channel
       name: '@deepseek-ai/dsh-channel'
 
@@ -176,6 +176,18 @@
 
     - id: channel-tuitui
       name: '@deepseek-ai/dsh-channel-tuitui'
+
+    - id: channel-feishu
+      name: '@deepseek-ai/dsh-channel-feishu'
+
+    - id: channel-dingtalk
+      name: '@deepseek-ai/dsh-channel-dingtalk'
+
+    - id: channel-qq
+      name: '@deepseek-ai/dsh-channel-qq'
+
+    - id: channel-wechat
+      name: '@deepseek-ai/dsh-channel-wechat'
 
     # Channel status, credential-reference presence, and the enable/disable
     # binding for the configuration panel over Typert Remote.

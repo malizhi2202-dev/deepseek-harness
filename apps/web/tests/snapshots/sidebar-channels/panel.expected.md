@@ -1,5 +1,124 @@
 - button "Reload":
   - img
+- text: feishu Not connected
+- button "Enable"
+- button "Test credentials"
+- paragraph: Platform capabilities Quoted replies · Inbound images · Inbound files · Outbound files · Markdown · At most 30000 characters per message · At most 31457280 bytes per inbound attachment · At most 31457280 bytes per outbound attachment
+- text: Credentials
+- list:
+  - listitem:
+    - code: appSecretRef
+    - text: Not set Read-only
+- text: "Only reference names appear here: this panel neither reads nor shows a credential value. Supply values through an environment variable or the credential store. Settings enabled"
+- switch "enabled"
+- text: Schema default
+- button "Clear the user setting for enabled" [disabled]: Discard changes
+- text: sessionId
+- textbox "sessionId"
+- text: Schema default
+- button "Clear the user setting for sessionId" [disabled]: Discard changes
+- text: markdown
+- switch "markdown" [checked]
+- text: Schema default
+- button "Clear the user setting for markdown" [disabled]: Discard changes
+- text: finalReplyOnly
+- switch "finalReplyOnly"
+- text: Schema default
+- button "Clear the user setting for finalReplyOnly" [disabled]: Discard changes
+- text: appId
+- textbox "appId"
+- text: Deployment default
+- button "Clear the user setting for appId" [disabled]: Discard changes
+- text: domain
+- combobox "domain":
+  - option "feishu" [selected]
+  - option "lark"
+- text: Deployment default
+- button "Clear the user setting for domain" [disabled]: Discard changes
+- text: appSecretRef
+- textbox "appSecretRef — A credential reference name, not the secret itself."
+- text: Deployment default
+- button "Clear the user setting for appSecretRef" [disabled]: Discard changes
+- button "Save" [disabled]
+- button "Discard changes" [disabled]
+- text: qq Not connected
+- button "Enable"
+- button "Test credentials"
+- paragraph: Platform capabilities Inbound images · Inbound files
+- text: Credentials
+- list:
+  - listitem:
+    - code: appSecretRef
+    - text: Not set Read-only
+- text: "Only reference names appear here: this panel neither reads nor shows a credential value. Supply values through an environment variable or the credential store. Settings enabled"
+- switch "enabled"
+- text: Schema default
+- button "Clear the user setting for enabled" [disabled]: Discard changes
+- text: sessionId
+- textbox "sessionId"
+- text: Schema default
+- button "Clear the user setting for sessionId" [disabled]: Discard changes
+- text: markdown
+- switch "markdown" [checked]
+- text: Schema default
+- button "Clear the user setting for markdown" [disabled]: Discard changes
+- text: finalReplyOnly
+- switch "finalReplyOnly"
+- text: Schema default
+- button "Clear the user setting for finalReplyOnly" [disabled]: Discard changes
+- text: appId
+- textbox "appId"
+- text: Deployment default
+- button "Clear the user setting for appId" [disabled]: Discard changes
+- text: appSecretRef
+- textbox "appSecretRef — A credential reference name, not the secret itself."
+- text: Deployment default
+- button "Clear the user setting for appSecretRef" [disabled]: Discard changes
+- text: apiBaseUrl
+- textbox "apiBaseUrl"
+- text: Deployment default
+- button "Clear the user setting for apiBaseUrl" [disabled]: Discard changes
+- button "Save" [disabled]
+- button "Discard changes" [disabled]
+- text: wechat Not connected
+- button "Enable"
+- button "Test credentials"
+- paragraph: Platform capabilities Inbound images · Inbound files · At most 4000 characters per message · At most 104857600 bytes per inbound attachment
+- text: Credentials
+- list:
+  - listitem:
+    - code: tokenRef
+    - text: Not set Read-only
+- text: "Only reference names appear here: this panel neither reads nor shows a credential value. Supply values through an environment variable or the credential store. Settings enabled"
+- switch "enabled"
+- text: Schema default
+- button "Clear the user setting for enabled" [disabled]: Discard changes
+- text: sessionId
+- textbox "sessionId"
+- text: Schema default
+- button "Clear the user setting for sessionId" [disabled]: Discard changes
+- text: markdown
+- switch "markdown" [checked]
+- text: Schema default
+- button "Clear the user setting for markdown" [disabled]: Discard changes
+- text: finalReplyOnly
+- switch "finalReplyOnly"
+- text: Schema default
+- button "Clear the user setting for finalReplyOnly" [disabled]: Discard changes
+- text: baseUrl
+- textbox "baseUrl"
+- text: Deployment default
+- button "Clear the user setting for baseUrl" [disabled]: Discard changes
+- text: tokenRef
+- textbox "tokenRef — A credential reference name, not the secret itself."
+- text: Deployment default
+- button "Clear the user setting for tokenRef" [disabled]: Discard changes
+- text: botAgent
+- textbox "botAgent"
+- text: Deployment default
+- button "Clear the user setting for botAgent" [disabled]: Discard changes
+- button "Save" [disabled]
+- button "Discard changes" [disabled]
 - text: Tuitui Not connected
 - button "Enable"
 - button "Test credentials"
@@ -37,5 +156,40 @@
 - textbox "appSecretRef — A credential reference name, not the secret itself."
 - text: Deployment default
 - button "Clear the user setting for appSecretRef" [disabled]: Discard changes
+- button "Save" [disabled]
+- button "Discard changes" [disabled]
+- text: dingtalk Not connected
+- button "Enable"
+- button "Test credentials"
+- paragraph: Platform capabilities Markdown · At most 5000 characters per message
+- text: Credentials
+- list:
+  - listitem:
+    - code: clientSecretRef
+    - text: Not set Read-only
+- text: "Only reference names appear here: this panel neither reads nor shows a credential value. Supply values through an environment variable or the credential store. Settings enabled"
+- switch "enabled"
+- text: Schema default
+- button "Clear the user setting for enabled" [disabled]: Discard changes
+- text: sessionId
+- textbox "sessionId"
+- text: Schema default
+- button "Clear the user setting for sessionId" [disabled]: Discard changes
+- text: markdown
+- switch "markdown" [checked]
+- text: Schema default
+- button "Clear the user setting for markdown" [disabled]: Discard changes
+- text: finalReplyOnly
+- switch "finalReplyOnly"
+- text: Schema default
+- button "Clear the user setting for finalReplyOnly" [disabled]: Discard changes
+- text: clientId
+- textbox "clientId"
+- text: Deployment default
+- button "Clear the user setting for clientId" [disabled]: Discard changes
+- text: clientSecretRef
+- textbox "clientSecretRef — A credential reference name, not the secret itself."
+- text: Deployment default
+- button "Clear the user setting for clientSecretRef" [disabled]: Discard changes
 - button "Save" [disabled]
 - button "Discard changes" [disabled]
