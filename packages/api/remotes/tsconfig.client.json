@@ -78,6 +78,9 @@
       "path": "../terminal-console"
     },
     {
+      "path": "../channels"
+    },
+    {
       "path": "../settings-controller"
     },
     {

@@ -19,7 +19,7 @@
 | [`client/resources`](../../packages/client/resources/README.zh.md) | `ctx.resources`、`useResource`、协议 → 值类型的花名册 `ResourceProtocolMap` |
 | [`api/workspace-files`](../../packages/api/workspace-files/README.zh.md) | Host `ctx.workspaceFiles`、`workspaceFiles` Remote 命名空间与 Client `file` 资源提供者 |
 | [`util/workspace-path`](../../packages/util/workspace-path/README.zh.md) | 文件地址语法：`fileAddressFor`、`parseFileAddress` |
-| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.zh.md)、[`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.zh.md)、[`client/ui-sidebar-tasks`](../../packages/client/ui-sidebar-tasks/README.zh.md)、[`client/ui-sidebar-agents`](../../packages/client/ui-sidebar-agents/README.zh.md)、[`client/ui-sidebar-git`](../../packages/client/ui-sidebar-git/README.zh.md)、[`client/ui-sidebar-terminal`](../../packages/client/ui-sidebar-terminal/README.zh.md) | 内置的 `text`、`files`、`tasks`、`agents`、`git` 与 `terminal` 类型 |
+| [`client/ui-sidebar-textpreview`](../../packages/client/ui-sidebar-textpreview/README.zh.md)、[`client/ui-sidebar-files`](../../packages/client/ui-sidebar-files/README.zh.md)、[`client/ui-sidebar-tasks`](../../packages/client/ui-sidebar-tasks/README.zh.md)、[`client/ui-sidebar-agents`](../../packages/client/ui-sidebar-agents/README.zh.md)、[`client/ui-sidebar-git`](../../packages/client/ui-sidebar-git/README.zh.md)、[`client/ui-sidebar-terminal`](../../packages/client/ui-sidebar-terminal/README.zh.md)、[`client/ui-sidebar-channels`](../../packages/client/ui-sidebar-channels/README.zh.md) | 内置的 `text`、`files`、`tasks`、`agents`、`git`、`terminal` 与 `channels` 类型 |
 
 ## 地址
 
@@ -133,6 +133,7 @@ Host 的 `ctx.workspaceFiles` 服务与生成的 `workspaceFiles` Remote 命名�
 - **`files`**——`builtin`、`available`、order 200，以 `openTab('files')` 打开。工作区目录树，经 `list` 懒加载，用 `tab.actions.openResource(fileAddressFor(sessionId, root, path))` 在自己所在 pane 打开文件（[README](../../packages/client/ui-sidebar-files/README.zh.md)）。
 - **`git`**——`builtin`、`available`、order 400，从引导页进入，以 `openTab('git')` 打开。当前会话工作区的仓库，经 Host 的 `workspaceGit` Remote 命名空间观测：head 的事实、本地分支列表、带泳道槽的有界历史与工作区改动条目。它从不写仓库，工作区不在仓库内时以一行说明（[README](../../packages/client/ui-sidebar-git/README.zh.md)）。
 - **`terminal`**——`builtin`、`available`、order 500，从引导页进入，以 `openTab('terminal')` 打开。会话自己的 shell 控制台，经 Host 的 `terminalConsole` Remote 命名空间驱动：会话持有的 shell、当前显示的那一个，以及它已经打印出的有界净化文本。这是用户的通道，不是模型的——它打印的任何内容都不进入会话记录——而对外提供网络可达访问面的安装默认拒绝它（[README](../../packages/client/ui-sidebar-terminal/README.zh.md)）。
+- **`channels`**——`builtin`、`available`、order 600，从引导页进入，以 `openTab('channels')` 打开。Host 的连接器注册表提供的每个聊天渠道，经 Host 的 `channels` Remote 命名空间驱动、经设置作用域读取：各自报告的连接状态、以引用名表示的凭据、声明的能力，以及按渠道自身配置 schema 构建的设置表单。启用会把渠道绑定到当前标签页自己的会话；面板从不读取也不显示凭据值（[README](../../packages/client/ui-sidebar-channels/README.zh.md)）。
 - **`tasks`**——`builtin`、`default-on`、order 10，以 `openTab('tasks')` 打开。会话的 todo 列表及进度摘要，其后是后台任务，均从浏览器状态读取；因此新面板会在引导页旁自动打开它（[README](../../packages/client/ui-sidebar-tasks/README.zh.md)）。
 - **`agents`**——`builtin`、`default-on`、order 20，以 `openTab('agents')` 打开。当前会话的完整派生树：会话列表里的每一个持久子会话，加上直接子级目录的诊断与读取状态；只有当父级目录能确认某一行时，点它才会打开该会话，会话头部的目录浮层按名字提供这个面板（[README](../../packages/client/ui-sidebar-agents/README.zh.md)）。
 

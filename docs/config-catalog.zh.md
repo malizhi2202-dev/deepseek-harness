@@ -3694,6 +3694,7 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-settings-plugins`（[`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar`（[`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-agents`（[`packages/client/ui-sidebar-agents/src/index.ts`](../packages/client/ui-sidebar-agents/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sidebar-channels`（[`packages/client/ui-sidebar-channels/src/index.ts`](../packages/client/ui-sidebar-channels/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-files`（[`packages/client/ui-sidebar-files/src/index.ts`](../packages/client/ui-sidebar-files/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-git`（[`packages/client/ui-sidebar-git/src/index.ts`](../packages/client/ui-sidebar-git/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-right`（[`packages/client/ui-sidebar-right/src/index.ts`](../packages/client/ui-sidebar-right/src/index.ts)）

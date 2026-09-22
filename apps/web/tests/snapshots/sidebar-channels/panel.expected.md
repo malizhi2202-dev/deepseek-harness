@@ -1,0 +1,41 @@
+- button "Reload":
+  - img
+- text: Tuitui Not connected
+- button "Enable"
+- button "Test credentials"
+- paragraph: Platform capabilities Markdown · At most 20000 characters per message
+- text: Credentials
+- list:
+  - listitem:
+    - code: appSecretRef
+    - text: Not set Read-only
+- text: "Only reference names appear here: this panel neither reads nor shows a credential value. Supply values through an environment variable or the credential store. Settings enabled"
+- switch "enabled"
+- text: Schema default
+- button "Clear the user setting for enabled" [disabled]: Discard changes
+- text: sessionId
+- textbox "sessionId"
+- text: Schema default
+- button "Clear the user setting for sessionId" [disabled]: Discard changes
+- text: markdown
+- switch "markdown" [checked]
+- text: Schema default
+- button "Clear the user setting for markdown" [disabled]: Discard changes
+- text: finalReplyOnly
+- switch "finalReplyOnly"
+- text: Schema default
+- button "Clear the user setting for finalReplyOnly" [disabled]: Discard changes
+- text: host
+- textbox "host"
+- text: Deployment default
+- button "Clear the user setting for host" [disabled]: Discard changes
+- text: appId
+- textbox "appId"
+- text: Deployment default
+- button "Clear the user setting for appId" [disabled]: Discard changes
+- text: appSecretRef
+- textbox "appSecretRef — A credential reference name, not the secret itself."
+- text: Deployment default
+- button "Clear the user setting for appSecretRef" [disabled]: Discard changes
+- button "Save" [disabled]
+- button "Discard changes" [disabled]

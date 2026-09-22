@@ -318,6 +318,12 @@
     - id: ui-sidebar-terminal
       name: '@deepseek-ai/dsh-client-ui-sidebar-terminal'
 
+    # The right Sidebar's remote-control tab type: every chat channel this
+    # Host serves, with its connection state, its credential references, and
+    # the settings form its own schema declares.
+    - id: ui-sidebar-channels
+      name: '@deepseek-ai/dsh-client-ui-sidebar-channels'
+
     - id: ui-settings
       name: '@deepseek-ai/dsh-client-ui-settings'
 

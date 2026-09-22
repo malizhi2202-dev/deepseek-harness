@@ -172,6 +172,8 @@
       "@deepseek-ai/dsh-api-terminal-console/types": ["./packages/api/terminal-console/src/types.ts"],
       "@deepseek-ai/dsh-client-ui-sidebar-terminal": ["./packages/client/ui-sidebar-terminal/src"],
       "@deepseek-ai/dsh-client-ui-sidebar-terminal/client": ["./packages/client/ui-sidebar-terminal/src/client"],
+      "@deepseek-ai/dsh-client-ui-sidebar-channels": ["./packages/client/ui-sidebar-channels/src"],
+      "@deepseek-ai/dsh-client-ui-sidebar-channels/client": ["./packages/client/ui-sidebar-channels/src/client"],
       "@deepseek-ai/dsh-client-resources": ["./packages/client/resources/src"],
       "@deepseek-ai/dsh-client-resources/client": ["./packages/client/resources/src/client"],
       "@deepseek-ai/dsh-client-ui-sidebar-agents": ["./packages/client/ui-sidebar-agents/src"],

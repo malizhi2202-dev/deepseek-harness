@@ -120,6 +120,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-sidebar-agents': { kind: 'none', reason: 'Browser-only derivation panel reading the session list and the direct-child catalog; registers no tool, prompt section, or session event.' },
   'packages/client/ui-sidebar-git': { kind: 'none', reason: 'Browser-only git observation panel reading the workspaceGit Remote namespace; registers no tool, prompt section, or session event.' },
   'packages/client/ui-sidebar-terminal': { kind: 'none', reason: 'Browser-only shell panel driving the terminalConsole Remote namespace; registers no tool, prompt section, or session event.' },
+  'packages/client/ui-sidebar-channels': { kind: 'none', reason: 'Browser-only remote-control panel driving the channels Remote namespace and the settings scope; registers no tool, prompt section, or session event, and enabling a channel changes what reaches a chat platform rather than the model.' },
   'packages/git/git': { kind: 'none', reason: 'Read-only repository observation seam; registers no tool, prompt section, or session event, and the panel that draws it is browser-only.' },
   'packages/git/git-local': { kind: 'none', reason: 'Host-local provider behind the observation seam; its output feeds the browser-only panel, never a model request.' },
   'packages/api/workspace-git': { kind: 'none', reason: 'Client-facing Remote namespace for the observation seam; registers no tool, prompt section, or session event.' },

@@ -91,6 +91,7 @@
     "apps/web/tests/agent-team-panel.e2e.ts",
     "apps/web/tests/sidebar-right.e2e.ts",
     "apps/web/tests/sidebar-git.e2e.ts",
+    "apps/web/tests/sidebar-channels.e2e.ts",
     "apps/web/tests/chat-scroll-fixture.ts",
     "apps/web/tests/chat-scroll-contract.e2e.ts",
     "apps/web/tests/chat-long-interactions.e2e.ts",

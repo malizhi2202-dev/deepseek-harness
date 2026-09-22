@@ -90,6 +90,7 @@
     { "path": "./packages/client/ui-sidebar-files" },
     { "path": "./packages/client/ui-sidebar-agents" },
     { "path": "./packages/client/ui-sidebar-git" },
+    { "path": "./packages/client/ui-sidebar-channels" },
     { "path": "./packages/client/ui-sidebar-terminal" },
     { "path": "./packages/client/ui-sidebar-tasks" },
     { "path": "./packages/client/ui-jobs" },
